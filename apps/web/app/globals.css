@@ -1,0 +1,261 @@
+@import "tailwindcss";
+
+/* ============================================================
+   POLARIS — StudentOS design system (dark / premium)
+   Imported from claude.ai/design "Polaris" foundations.
+   Tokens are exposed as Tailwind utilities via @theme.
+   ============================================================ */
+@theme {
+  /* Surfaces (dark slate canvas) */
+  --color-canvas: #070a12; /* app background           */
+  --color-base: #0a0e1a; /* sidebar / deepest panel  */
+  --color-surface: #131a2b; /* inputs, secondary panels */
+  --color-card: #0e1422; /* cards                    */
+  --color-raised: #1c2740; /* raised buttons / hover   */
+  --color-input: #0f1626; /* topbar search field      */
+
+  /* Accent system: cyan → indigo */
+  --color-cyan: #22d3ee;
+  --color-indigo: #818cf8;
+  /* Dark ink for text/icons sitting ON the accent gradient.
+     NOTE: kept separate from `base` because `text-base` collides with
+     Tailwind's core font-size utility — use `text-on-accent` for color. */
+  --color-on-accent: #0a0e1a;
+
+  /* Semantic */
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #fb7185;
+
+  /* Text ramp */
+  --color-ink: #f1f5f9; /* high-contrast headings   */
+  --color-soft: #cbd5e1; /* body                     */
+  --color-muted: #94a3b8; /* secondary                */
+  --color-faint: #64748b; /* tertiary / placeholder   */
+  --color-dim: #475569; /* labels / disabled        */
+
+  /* Hairlines */
+  --color-line: rgba(255, 255, 255, 0.07);
+  --color-line-strong: rgba(255, 255, 255, 0.1);
+
+  /* Typography */
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+
+  /* Motion */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Named animations → Tailwind `animate-*` utilities */
+  --animate-aurora: aurora 14s ease-in-out infinite;
+  --animate-aurora2: aurora2 16s ease-in-out infinite;
+  --animate-floaty: floaty 4s ease-in-out infinite;
+  --animate-pulse-ring: pulseRing 2.6s infinite;
+  --animate-flame: flameWobble 1.6s ease-in-out infinite;
+  --animate-dash-grow: dashGrow 0.6s ease both;
+}
+
+@keyframes aurora {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(8%, 6%) scale(1.15);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+}
+@keyframes aurora2 {
+  0% {
+    transform: translate(0, 0) scale(1.1);
+  }
+  50% {
+    transform: translate(-10%, -4%) scale(1);
+  }
+  100% {
+    transform: translate(0, 0) scale(1.1);
+  }
+}
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-7px);
+  }
+}
+@keyframes pulseRing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 16px rgba(34, 211, 238, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 211, 238, 0);
+  }
+}
+@keyframes flameWobble {
+  0%,
+  100% {
+    transform: rotate(-4deg) scale(1);
+  }
+  50% {
+    transform: rotate(4deg) scale(1.08);
+  }
+}
+@keyframes dashGrow {
+  from {
+    transform: scaleY(0.2);
+    opacity: 0.3;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+/* Document editor: Word-like blue selection on the white page (overrides the cyan app default). */
+.doc-surface ::selection {
+  background: #b4d7ff;
+  color: #000;
+}
+/* docx-preview faithful render: center the white A4 pages on a soft desk. */
+.docxp .docx-wrapper {
+  background: transparent;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+.docxp .docx {
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* Voice "stone in a lake" ripple — rings expand outward from the active speaker. */
+@keyframes voiceWave {
+  0%   { transform: scale(0.82); opacity: 0.55; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+.voice-ring {
+  animation: voiceWave 1.8s cubic-bezier(0.22, 0.61, 0.36, 1) infinite;
+}
+
+/* Landing page animations */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes floatDrift {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  33%      { transform: translate(12px, -16px) rotate(2deg); }
+  66%      { transform: translate(-8px, 10px) rotate(-1deg); }
+}
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+@keyframes glowPulse {
+  0%, 100% { box-shadow: 0 0 20px rgba(34, 211, 238, 0.15); }
+  50%      { box-shadow: 0 0 40px rgba(34, 211, 238, 0.3); }
+}
+@keyframes iconBounce {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.15); }
+}
+@keyframes lineGrow {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@keyframes gradientShift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-fade-in {
+  animation: fadeIn 0.6s ease both;
+}
+.animate-float-drift {
+  animation: floatDrift 12s ease-in-out infinite;
+}
+.animate-shimmer {
+  background-size: 200% auto;
+  animation: shimmer 3s linear infinite;
+}
+.animate-glow-pulse {
+  animation: glowPulse 3s ease-in-out infinite;
+}
+.animate-icon-bounce {
+  animation: iconBounce 2s ease-in-out infinite;
+}
+.animate-line-grow {
+  animation: lineGrow 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: gradientShift 6s ease infinite;
+}
+
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
+.stagger-5 { animation-delay: 0.5s; }
+.stagger-6 { animation-delay: 0.6s; }
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--color-canvas);
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--color-canvas);
+  color: var(--color-soft);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.3);
+  color: #fff;
+}
+
+/* Polaris accent gradient — reused on logos, primary CTAs, avatars */
+.bg-accent-gradient {
+  background-image: linear-gradient(135deg, var(--color-cyan), var(--color-indigo));
+}
+.text-accent-gradient {
+  background-image: linear-gradient(135deg, var(--color-cyan), var(--color-indigo));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Thin custom scrollbar to match the dark canvas */
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.18);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.32);
+}

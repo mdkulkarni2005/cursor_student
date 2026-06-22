@@ -1,0 +1,332 @@
+// StudentOS data model — Neon Postgres via Prisma.
+// Mirrors docs/PLAN.md §6. Every artifact a student makes is a `Document` in a
+// `Workspace`; the Academic Vault is just a searchable view over Documents.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // Neon: pooled connection for the app...
+  url = env("DATABASE_URL")
+  // ...and a direct (unpooled) connection for migrations.
+  directUrl = env("DIRECT_URL")
+}
+
+// ----------------------------- Enums --------------------------------------
+
+enum Plan {
+  FREE
+  PRO
+  PREMIUM
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  EXPIRED
+}
+
+enum DocumentType {
+  ASSIGNMENT
+  REPORT
+  PPT
+  PROJECT
+  VIVA
+  RESUME
+  INTERVIEW
+}
+
+enum DocumentStatus {
+  DRAFT
+  QUEUED
+  GENERATING
+  NEEDS_INPUT
+  READY
+  FAILED
+}
+
+enum TemplateType {
+  REPORT
+  PPT
+  RESUME
+}
+
+enum ExportFormat {
+  DOCX
+  PPTX
+  PDF
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  NEEDS_INPUT
+  SUCCEEDED
+  FAILED
+}
+
+enum UploadKind {
+  PHOTO
+  PDF
+  IMAGE
+  OTHER
+}
+
+// quota dimensions enforced by plan-gating (PLAN.md §8)
+enum UsageKind {
+  ASSIGNMENT
+  REPORT
+  PPT
+}
+
+// ----------------------------- Core ---------------------------------------
+
+model User {
+  id         String   @id @default(cuid())
+  clerkId    String   @unique
+  email      String   @unique
+  name       String?
+  // Academic context — powers department/semester-aware generation.
+  department String?
+  semester   String?
+  onboardedAt DateTime?
+  plan       Plan     @default(FREE)
+
+  // Branch-aware capability: coding track (DSA + coding interview round). Department seeds the
+  // default at onboarding, but the student can opt in/out. Default true = fail-open (show everything).
+  codingEnabled Boolean @default(true)
+  // Legal acceptance — captured as the last step of onboarding.
+  acceptedLegalAt DateTime?
+  // Lightweight activity metrics for the admin panel (no per-token accounting).
+  lastSeenAt DateTime?
+  appOpens   Int       @default(0)
+
+  institutionId String?
+  institution   Institution? @relation(fields: [institutionId], references: [id])
+
+  workspaces   Workspace[]
+  documents    Document[]
+  uploads      Upload[]
+  subscription Subscription?
+  usageEvents  UsageEvent[]
+  dsaAttempts  DsaAttempt[]
+  assistantThread AssistantThread?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([institutionId])
+}
+
+model Institution {
+  id         String   @id @default(cuid())
+  name       String // college name
+  university String?
+  users      User[]
+  templates  Template[]
+  createdAt  DateTime @default(now())
+
+  @@unique([name, university])
+}
+
+// A locked institutional template. The AI never emits layout — it fills these slots.
+model Template {
+  id            String       @id @default(cuid())
+  type          TemplateType
+  name          String
+  institutionId String?
+  institution   Institution? @relation(fields: [institutionId], references: [id])
+  // R2 object key of the .docx/.pptx template asset.
+  storageKey    String
+  schemaVersion Int          @default(1)
+  // Declared placeholder slots, for validation against generated content.
+  placeholders  Json?
+  isDefault     Boolean      @default(false)
+
+  documents Document[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  @@index([type, institutionId])
+}
+
+// ----------------------------- Workspace ----------------------------------
+
+model Workspace {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  semester  String?
+  subjects  Subject[]
+  documents Document[]
+  createdAt DateTime   @default(now())
+
+  @@index([userId])
+}
+
+model Subject {
+  id          String     @id @default(cuid())
+  workspaceId String
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  name        String
+  code        String?
+  documents   Document[]
+
+  @@index([workspaceId])
+}
+
+// ----------------------------- Documents ----------------------------------
+
+model Document {
+  id     String         @id @default(cuid())
+  ownerId String
+  owner   User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  type   DocumentType
+  title  String
+  status DocumentStatus @default(DRAFT)
+
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  subjectId   String?
+  subject     Subject?   @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  templateId  String?
+  template    Template?  @relation(fields: [templateId], references: [id])
+
+  // Latest plagiarism / AI-detection metrics: { aiScore, plagiarismScore, humanized }
+  quality Json?
+
+  content DocumentContent?
+  exports DocumentExport[]
+  job     GenerationJob?
+  viva    VivaSet?
+  uploads Upload[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId, type])
+  @@index([ownerId, status])
+}
+
+// The structured, schema-validated content the model produced (the renderer's input).
+model DocumentContent {
+  id            String   @id @default(cuid())
+  documentId    String   @unique
+  document      Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  schemaVersion Int      @default(1)
+  data          Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// A rendered file (DOCX/PPTX/PDF) stored in R2.
+model DocumentExport {
+  id         String       @id @default(cuid())
+  documentId String
+  document   Document     @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  format     ExportFormat
+  storageKey String
+  sizeBytes  Int?
+  createdAt  DateTime     @default(now())
+
+  @@index([documentId])
+}
+
+// Async generation tracking — heavy work runs off-request so mobile users never lose progress.
+model GenerationJob {
+  id         String    @id @default(cuid())
+  documentId String    @unique
+  document   Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  status     JobStatus @default(QUEUED)
+  model      String?
+  inputRefs  Json?
+  // When paused at NEEDS_INPUT: { questions, title, reportType, guidelines, templateKey }
+  pending    Json?
+  error      String?
+  costCents  Int?
+  startedAt  DateTime?
+  finishedAt DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+model Upload {
+  id         String     @id @default(cuid())
+  ownerId    String
+  owner      User       @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  documentId String?
+  document   Document?  @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  storageKey String
+  mime       String
+  sizeBytes  Int
+  kind       UploadKind @default(OTHER)
+  createdAt  DateTime   @default(now())
+
+  @@index([ownerId])
+}
+
+model VivaSet {
+  id         String   @id @default(cuid())
+  documentId String   @unique
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  // [{ question, answer, difficulty }]
+  questions  Json
+  createdAt  DateTime @default(now())
+}
+
+// ----------------------------- Billing ------------------------------------
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan               Plan               @default(FREE)
+  status             SubscriptionStatus @default(ACTIVE)
+  razorpaySubId      String?            @unique
+  razorpayCustomerId String?
+  currentPeriodEnd   DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+// One row per quota-consuming generation; counted per billing period for plan-gating.
+model UsageEvent {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind       UsageKind
+  documentId String?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId, kind, createdAt])
+}
+
+// Persisted always-on assistant chat — one rolling thread per user (messages = [{role,content}]).
+model AssistantThread {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Json     @default("[]")
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+}
+
+// DSA practice attempts (append-only). Problems live in code (static catalog), referenced by slug.
+// Streaks are DERIVED from these timestamps (IST), never a stored counter. `solved` is self-marked.
+model DsaAttempt {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  problemSlug String
+  language    String?
+  code        String
+  solved      Boolean  @default(false)
+  review      Json? // AI review: { timeComplexity, spaceComplexity, feedback, suggestions[] }
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, problemSlug])
+}

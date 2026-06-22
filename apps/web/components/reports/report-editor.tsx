@@ -1,0 +1,290 @@
+"use client";
+
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useFormStatus } from "react-dom";
+import { updateReportAction } from "@/lib/actions/reports";
+import { Button, Spinner } from "@/components/ui/button";
+
+export type ReportData = {
+  abstract?: string;
+  sections?: { heading: string; content: string }[];
+  references?: string[];
+};
+
+const FONTS = [
+  { label: "Times New Roman", value: "'Times New Roman', Times, serif" },
+  { label: "Calibri", value: "Calibri, 'Segoe UI', sans-serif" },
+  { label: "Arial", value: "Arial, Helvetica, sans-serif" },
+  { label: "Georgia", value: "Georgia, serif" },
+];
+const SIZES = [9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32];
+
+function esc(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function buildHtml(data: ReportData): string {
+  const paras = (text: string) =>
+    text.split(/\n\s*\n/).map((b) => `<p>${esc(b).replace(/\n/g, "<br>") || "<br>"}</p>`).join("");
+  const parts: string[] = [];
+  if (data.abstract) parts.push(`<h2>Abstract</h2>${paras(data.abstract)}`);
+  for (const s of data.sections ?? []) parts.push(`<h2>${esc(s.heading)}</h2>${paras(s.content)}`);
+  if (data.references && data.references.length > 0) {
+    parts.push(`<h2>References</h2><ol>${data.references.map((r) => `<li>${esc(r)}</li>`).join("")}</ol>`);
+  }
+  return parts.join("") || "<p><br></p>";
+}
+
+function parseDoc(root: HTMLElement): ReportData {
+  const data: ReportData = { sections: [], references: [] };
+  let heading: string | null = null;
+  let buf: string[] = [];
+  const flush = () => {
+    const content = buf.join("\n\n").trim();
+    buf = [];
+    if (heading == null) { if (content) data.abstract = content; return; }
+    const key = heading.trim().toLowerCase();
+    if (key === "abstract") data.abstract = content;
+    else if (key === "references") data.references = content.split("\n").map((r) => r.trim()).filter(Boolean);
+    else if (heading.trim()) data.sections!.push({ heading: heading.trim(), content });
+  };
+  root.childNodes.forEach((node) => {
+    if (node.nodeType !== 1) { const t = node.textContent?.trim(); if (t) buf.push(t); return; }
+    const el = node as HTMLElement;
+    const tag = el.tagName.toLowerCase();
+    if (tag === "h1" || tag === "h2" || tag === "h3") { flush(); heading = el.textContent ?? ""; }
+    else if (tag === "ul" || tag === "ol") el.querySelectorAll("li").forEach((li) => buf.push(li.textContent ?? ""));
+    else { const t = el.textContent ?? ""; buf.push(t.trim() ? t : ""); }
+  });
+  flush();
+  return data;
+}
+
+function SaveButton() {
+  const { pending } = useFormStatus();
+  return (
+    <Button type="submit" loading={pending} loadingText="Saving…" className="rounded-lg bg-accent-gradient px-4 py-2 text-[13px] font-semibold text-on-accent shadow-[0_4px_14px_rgba(34,211,238,0.3)]">
+      Save to template
+    </Button>
+  );
+}
+
+function TBtn({ title, onRun, children }: { title: string; onRun: () => void; children: React.ReactNode }) {
+  return (
+    <button type="button" title={title} onMouseDown={(e) => { e.preventDefault(); onRun(); }}
+      className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-md px-2 text-[13px] font-semibold text-soft transition-colors hover:bg-white/10">
+      {children}
+    </button>
+  );
+}
+const Sep = () => <span className="mx-0.5 h-5 w-px shrink-0 bg-line-strong" />;
+
+/**
+ * Page-accurate preview of the report. Prefers a server-rendered PDF (exact Word pages + page
+ * count, via Gotenberg) shown in the browser's PDF viewer; falls back to the HTML docx renderer
+ * when PDF rendering isn't configured (GOTENBERG_URL unset) so the preview always works.
+ */
+function WordPreview({ docId, refreshKey }: { docId: string; refreshKey: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [state, setState] = useState<"loading" | "pdf" | "html" | "error">("loading");
+
+  const fit = useCallback(() => {
+    const host = ref.current;
+    if (!host) return;
+    const wrapper = host.querySelector<HTMLElement>(".docx-wrapper");
+    const page = host.querySelector<HTMLElement>(".docx");
+    if (!wrapper || !page) return;
+    const scale = Math.min(1, (host.clientWidth - 8) / page.offsetWidth);
+    wrapper.style.transform = `scale(${scale})`;
+    wrapper.style.transformOrigin = "top center";
+    host.style.height = scale < 1 ? `${wrapper.scrollHeight * scale + 24}px` : "";
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    let objectUrl: string | null = null;
+    (async () => {
+      setState("loading");
+      // 1) Try the exact PDF render.
+      try {
+        const res = await fetch(`/reports/${docId}/pdf`, { cache: "no-store" });
+        if (res.ok) {
+          const blob = await res.blob();
+          if (cancelled) return;
+          objectUrl = URL.createObjectURL(blob);
+          setPdfUrl(objectUrl);
+          setState("pdf");
+          return;
+        }
+      } catch { /* fall through to HTML renderer */ }
+      // 2) Fall back to the HTML docx renderer.
+      try {
+        const { renderAsync } = await import("docx-preview");
+        const res = await fetch(`/reports/${docId}/download`, { cache: "no-store" });
+        if (!res.ok) throw new Error("no export");
+        const blob = await res.blob();
+        if (cancelled || !ref.current) return;
+        ref.current.innerHTML = "";
+        await renderAsync(blob, ref.current, undefined, {
+          className: "docx", inWrapper: true, breakPages: true, ignoreLastRenderedPageBreak: false, experimental: true,
+        });
+        if (cancelled) return;
+        fit();
+        setState("html");
+      } catch {
+        if (!cancelled) setState("error");
+      }
+    })();
+    return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [docId, refreshKey, fit]);
+
+  useEffect(() => {
+    const onResize = () => fit();
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [fit]);
+
+  return (
+    <div className="relative">
+      {state === "loading" ? (
+        <div className="flex items-center justify-center gap-2 py-16 text-[13px] text-faint"><Spinner /> Rendering your Word document…</div>
+      ) : null}
+      {state === "error" ? (
+        <div className="py-12 text-center text-[13px] text-warning">Couldn&apos;t render the preview. Use <span className="font-semibold">Download DOCX</span> to open it in Word.</div>
+      ) : null}
+      {state === "pdf" && pdfUrl ? (
+        <iframe title="Report preview" src={pdfUrl} className="h-[78vh] w-full rounded-sm bg-white" />
+      ) : null}
+      <div className="docxp overflow-auto" ref={ref} style={{ display: state === "html" ? "block" : "none" }} />
+    </div>
+  );
+}
+
+export function ReportEditor({ docId, initial, editable = true, hasExport = false }: { docId: string; initial: ReportData; editable?: boolean; hasExport?: boolean }) {
+  const editorRef = useRef<HTMLDivElement>(null);
+  const hiddenRef = useRef<HTMLInputElement>(null);
+  const savedRange = useRef<Range | null>(null);
+  // Default to the faithful Word preview when a DOCX exists; else go straight to editing.
+  const [mode, setMode] = useState<"preview" | "edit">(hasExport ? "preview" : "edit");
+  const [previewKey, setPreviewKey] = useState(0);
+
+  useEffect(() => {
+    if (mode === "edit" && editorRef.current) {
+      editorRef.current.innerHTML = buildHtml(initial);
+      if (hiddenRef.current) hiddenRef.current.value = JSON.stringify(initial);
+    }
+  }, [initial, mode]);
+
+  const saveSel = () => {
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount && editorRef.current?.contains(sel.anchorNode)) savedRange.current = sel.getRangeAt(0).cloneRange();
+  };
+  const restoreSel = () => {
+    const sel = window.getSelection();
+    if (savedRange.current && sel) { sel.removeAllRanges(); sel.addRange(savedRange.current); }
+  };
+  const sync = () => {
+    if (editorRef.current && hiddenRef.current) hiddenRef.current.value = JSON.stringify(parseDoc(editorRef.current));
+  };
+  const exec = (cmd: string, value?: string) => { editorRef.current?.focus(); restoreSel(); document.execCommand(cmd, false, value); sync(); };
+  const setFontSize = (px: string) => {
+    editorRef.current?.focus(); restoreSel(); document.execCommand("fontSize", false, "7");
+    editorRef.current?.querySelectorAll('font[size="7"]').forEach((f) => { f.removeAttribute("size"); (f as HTMLElement).style.fontSize = `${px}px`; });
+    sync();
+  };
+
+  const Tabs = (
+    <div className="flex items-center gap-1 rounded-lg bg-surface p-0.5">
+      {hasExport ? (
+        <button type="button" onClick={() => setMode("preview")} className={`rounded-md px-3 py-1.5 text-[12.5px] font-semibold transition-colors ${mode === "preview" ? "bg-cyan/20 text-cyan" : "text-muted hover:text-soft"}`}>Preview</button>
+      ) : null}
+      {editable ? (
+        <button type="button" onClick={() => setMode("edit")} className={`rounded-md px-3 py-1.5 text-[12.5px] font-semibold transition-colors ${mode === "edit" ? "bg-cyan/20 text-cyan" : "text-muted hover:text-soft"}`}>Edit text</button>
+      ) : null}
+    </div>
+  );
+
+  // ---------- Preview (faithful Word render) ----------
+  if (mode === "preview") {
+    return (
+      <div className="mt-6 overflow-hidden rounded-2xl border border-line bg-[#0b0f1a]">
+        <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
+          {Tabs}
+          <span className="text-[11px] text-faint">Page-accurate Word preview</span>
+        </div>
+        <div className="bg-[#12161f] p-2 sm:p-6">
+          <WordPreview docId={docId} refreshKey={previewKey} />
+        </div>
+        <p className="border-t border-line px-4 py-2 text-[11px] text-faint">This is your actual Word file — pages, borders and images from your template, rendered exactly as it downloads.</p>
+      </div>
+    );
+  }
+
+  // ---------- Edit (text WYSIWYG) ----------
+  if (!editable) {
+    return (
+      <div className="mt-6 rounded-2xl border border-line bg-[#11151f] p-3 sm:p-5">
+        <p className="mb-3 text-center text-[12px] text-faint">Preview — editing unlocks once the report is ready.</p>
+        <div className="doc-surface mx-auto w-full max-w-[816px] rounded-sm bg-white px-[7%] py-10 text-black shadow-2xl sm:px-16 [&_h2]:mt-5 [&_h2]:text-[17px] [&_h2]:font-bold [&_p]:my-2 [&_p]:text-justify [&_p]:leading-relaxed"
+          style={{ fontFamily: "'Times New Roman', Times, serif" }} dangerouslySetInnerHTML={{ __html: buildHtml(initial) }} />
+      </div>
+    );
+  }
+
+  return (
+    <form action={updateReportAction} onSubmit={() => setTimeout(() => { setPreviewKey((k) => k + 1); setMode(hasExport ? "preview" : "edit"); }, 50)}
+      className="mt-6 rounded-2xl border border-cyan/25 bg-[#11151f]">
+      <input type="hidden" name="docId" value={docId} />
+      <input ref={hiddenRef} type="hidden" name="report" />
+
+      {/* Toolbar — sticky to the top of the page scroll so it's reachable while editing anywhere.
+          (The form must NOT have overflow-hidden, or sticky positioning breaks.) */}
+      <div className="sticky top-0 z-30 rounded-t-2xl border-b border-line bg-[#0e1320]/95 px-2 py-2 shadow-[0_4px_12px_rgba(0,0,0,0.35)] backdrop-blur">
+        <div className="mb-2 flex items-center justify-between gap-2">{Tabs}<SaveButton /></div>
+        <div className="flex flex-nowrap items-center gap-1 overflow-x-auto sm:flex-wrap">
+          <select aria-label="Paragraph style" onChange={(e) => { exec("formatBlock", e.target.value); e.target.selectedIndex = 0; }}
+            className="h-8 shrink-0 rounded-md border border-line-strong bg-surface px-2 text-[12px] text-soft outline-none focus:border-cyan/50">
+            <option value="">Style</option><option value="<p>">Normal</option><option value="<h1>">Heading 1</option><option value="<h2>">Heading 2</option><option value="<h3>">Heading 3</option>
+          </select>
+          <select aria-label="Font" onChange={(e) => exec("fontName", e.target.value)} defaultValue={FONTS[0].value}
+            className="h-8 max-w-[120px] shrink-0 rounded-md border border-line-strong bg-surface px-2 text-[12px] text-soft outline-none focus:border-cyan/50">
+            {FONTS.map((f) => <option key={f.label} value={f.value}>{f.label}</option>)}
+          </select>
+          <select aria-label="Font size" onChange={(e) => setFontSize(e.target.value)} defaultValue="12"
+            className="h-8 shrink-0 rounded-md border border-line-strong bg-surface px-2 text-[12px] text-soft outline-none focus:border-cyan/50">
+            {SIZES.map((s) => <option key={s} value={s}>{s}</option>)}
+          </select>
+          <Sep />
+          <TBtn title="Bold" onRun={() => exec("bold")}><span className="font-bold">B</span></TBtn>
+          <TBtn title="Italic" onRun={() => exec("italic")}><span className="italic">I</span></TBtn>
+          <TBtn title="Underline" onRun={() => exec("underline")}><span className="underline">U</span></TBtn>
+          <label title="Text color" className="flex h-8 shrink-0 cursor-pointer items-center rounded-md px-1 hover:bg-white/10" onMouseDown={(e) => e.preventDefault()}>
+            <span className="text-[13px] font-semibold text-soft">A</span>
+            <input type="color" defaultValue="#000000" onChange={(e) => exec("foreColor", e.target.value)} className="ml-0.5 size-4 cursor-pointer border-0 bg-transparent p-0" />
+          </label>
+          <Sep />
+          <TBtn title="Align left" onRun={() => exec("justifyLeft")}>⯇</TBtn>
+          <TBtn title="Center" onRun={() => exec("justifyCenter")}>≡</TBtn>
+          <TBtn title="Align right" onRun={() => exec("justifyRight")}>⯈</TBtn>
+          <TBtn title="Justify" onRun={() => exec("justifyFull")}>☰</TBtn>
+          <Sep />
+          <TBtn title="Bulleted list" onRun={() => exec("insertUnorderedList")}>•</TBtn>
+          <TBtn title="Numbered list" onRun={() => exec("insertOrderedList")}>1.</TBtn>
+          <Sep />
+          <TBtn title="Undo" onRun={() => exec("undo")}>↶</TBtn>
+          <TBtn title="Redo" onRun={() => exec("redo")}>↷</TBtn>
+        </div>
+      </div>
+
+      <div className="doc-surface bg-[#12161f] px-1 py-4 sm:px-6 sm:py-8">
+        <div ref={editorRef} contentEditable suppressContentEditableWarning spellCheck
+          onInput={sync} onMouseUp={saveSel} onKeyUp={saveSel} onBlur={() => { saveSel(); sync(); }}
+          className="mx-auto min-h-[60vh] w-full max-w-[816px] rounded-sm bg-white px-[6%] py-10 text-black shadow-2xl outline-none sm:px-16 sm:py-14 [&_h1]:mt-6 [&_h1]:text-[22px] [&_h1]:font-bold [&_h2]:mt-5 [&_h2]:text-[17px] [&_h2]:font-bold [&_h3]:mt-4 [&_h3]:text-[15px] [&_h3]:font-semibold [&_li]:mb-1 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-2 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-6"
+          style={{ fontFamily: "'Times New Roman', Times, serif" }} />
+      </div>
+
+      <p className="border-t border-line px-4 py-2 text-[11px] text-faint">Edit the words here; on save we write them back into <span className="text-soft">your uploaded template</span> and re-render the Word file.</p>
+    </form>
+  );
+}

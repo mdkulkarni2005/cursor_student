@@ -1,0 +1,37 @@
+{
+  "name": "@studentos/documents",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic document renderer — structured JSON injected into locked institutional templates (DOCX/PPTX/PDF). The model never emits document XML.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "make:template": "tsx scripts/make-template.ts",
+    "make:user-template": "tsx scripts/make-user-template.ts",
+    "verify:template": "tsx scripts/verify-template.ts",
+    "demo": "tsx scripts/demo.ts",
+    "resume:sample": "tsx scripts/resume-sample.ts",
+    "verify:resume-format": "tsx scripts/verify-resume-format.ts",
+    "verify:ppt-clone": "tsx scripts/verify-ppt-clone.ts",
+    "check-types": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "^0.9.6",
+    "docx": "^9.0.2",
+    "docxtemplater": "^3.50.0",
+    "pdfkit": "^0.19.1",
+    "pizzip": "^3.1.7",
+    "pptxgenjs": "^3.12.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/pdfkit": "^0.17.6",
+    "tsx": "^4.19.2",
+    "typescript": "^5.9.3"
+  }
+}

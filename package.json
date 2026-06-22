@@ -1,0 +1,23 @@
+{
+  "name": "studentos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "StudentOS — the AI academic operating system (Cursor for Students).",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "check-types": "turbo check-types",
+    "gotenberg": "docker run --rm -p 9000:3000 gotenberg/gotenberg:8",
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\" --ignore-path .gitignore"
+  },
+  "devDependencies": {
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.9.3"
+  }
+}
