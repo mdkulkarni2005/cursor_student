@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import { generateResumeAction, type ResumeFormState } from "@/lib/actions/resume";
 import { ClarifyQuestions } from "@/components/clarify-questions";
+import { GeneratingOverlay } from "@/components/generating-overlay";
 
 const label = "mb-1.5 block text-[12.5px] font-semibold text-muted";
 const box =
@@ -14,6 +15,7 @@ export function GenerateResumeForm({ defaults }: { defaults: { name?: string; em
 
   return (
     <form action={action} className="rounded-2xl border border-line bg-card p-5">
+      <GeneratingOverlay label="Generating your resume…" />
       <div className="mb-4">
         <label htmlFor="targetRole" className={label}>
           Target role

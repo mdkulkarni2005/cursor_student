@@ -3,6 +3,7 @@
 import { useFormStatus } from "react-dom";
 import { convertReportToPptAction } from "@/lib/actions/ppt";
 import { Button } from "@/components/ui/button";
+import { GeneratingOverlay } from "@/components/generating-overlay";
 
 function ConvertButton() {
   const { pending } = useFormStatus();
@@ -43,6 +44,7 @@ export function ConvertReportToPpt({ reports }: { reports: { id: string; title: 
         ))}
       </select>
       <ConvertButton />
+      <GeneratingOverlay label="Building your presentation…" sub="Turning your report into a slide deck. This takes a minute — keep this tab open." />
     </form>
   );
 }

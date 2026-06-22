@@ -9,7 +9,7 @@ import { PptContentSchema, richToPlain } from "@studentos/documents";
 import { putObject, keys } from "@studentos/storage";
 import { getOrCreateUser } from "@/lib/user";
 import { createPptDoc, runPptGeneration, resumePptGeneration, markPptGenerating, rerenderPptExport } from "@/lib/ppt/generate";
-import { convertPptToReport } from "@/lib/reports/generate";
+import { createConvertedReportDoc, runConvertedReport } from "@/lib/reports/generate";
 import { QuotaExceededError } from "@/lib/entitlements";
 import { rateLimit, friendlyError } from "@/lib/reliability";
 
@@ -128,13 +128,18 @@ export async function convertPptToReportAction(formData: FormData): Promise<void
   const user = await getOrCreateUser();
   const pptDocId = String(formData.get("docId") ?? "");
   if (!user || !pptDocId) return;
+  // Create fast, then expand in the BACKGROUND so the request returns immediately (a 2-minute
+  // synchronous action froze the UI and let the Clerk session go stale). The report page shows
+  // the live generating poller while `runConvertedReport` works.
   let reportId: string;
   try {
-    const res = await convertPptToReport(user.id, pptDocId);
+    const res = await createConvertedReportDoc(user.id, pptDocId);
     reportId = res.docId;
-  } catch {
+  } catch (err) {
+    if (err instanceof QuotaExceededError) redirect("/plans");
     redirect(`/ppt/${pptDocId}`);
   }
+  after(() => runConvertedReport(reportId, user.id, pptDocId));
   redirect(`/reports/${reportId}`);
 }
 

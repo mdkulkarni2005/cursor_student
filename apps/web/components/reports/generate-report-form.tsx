@@ -6,6 +6,7 @@ import { generateReportAction, type ReportFormState } from "@/lib/actions/report
 import { ClarifyQuestions } from "@/components/clarify-questions";
 import { REPORT_TYPES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
+import { GeneratingOverlay } from "@/components/generating-overlay";
 
 const label = "mb-1.5 block text-[12.5px] font-semibold text-muted";
 const box =
@@ -19,6 +20,7 @@ export function GenerateReportForm() {
 
   return (
     <form action={action} className="rounded-2xl border border-line bg-card p-5">
+      <GeneratingOverlay label="Generating your report…" />
       <div className="mb-4">
         <label htmlFor="title" className={label}>
           Report topic

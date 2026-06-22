@@ -10,6 +10,7 @@ import { DeleteDocButton } from "@/components/delete-doc-button";
 import { PPT_STAGES } from "@/lib/ppt/generate";
 import { stageOf } from "@/lib/jobs";
 import { DeckViewer, type Deck } from "@/components/ppt/deck-viewer";
+import { GeneratingOverlay } from "@/components/generating-overlay";
 import type { ClarifyQuestion } from "@studentos/ai";
 import type { PptTheme, PptSlide } from "@studentos/documents";
 
@@ -72,6 +73,7 @@ export default async function PptDetailPage({ params }: { params: Promise<{ id: 
                   >
                     Convert to Report
                   </button>
+                  <GeneratingOverlay label="Converting to a report…" sub="We're expanding your slides into a full report. This takes a minute — keep this tab open." />
                 </form>
                 <a
                   href={`/ppt/${doc.id}/download`}
@@ -90,6 +92,7 @@ export default async function PptDetailPage({ params }: { params: Promise<{ id: 
             action={resumePptAction}
             className="mt-6 rounded-2xl border border-cyan/25 bg-cyan/[0.06] p-5"
           >
+            <GeneratingOverlay label="Finishing your deck…" />
             <input type="hidden" name="docId" value={doc.id} />
             <p className="font-display text-[15px] font-semibold text-ink">
               A few details to finish your deck

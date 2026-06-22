@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { generatePptAction, type PptFormState } from "@/lib/actions/ppt";
 import { ClarifyQuestions } from "@/components/clarify-questions";
 import { Button } from "@/components/ui/button";
+import { GeneratingOverlay } from "@/components/generating-overlay";
 
 const label = "mb-1.5 block text-[12.5px] font-semibold text-muted";
 const box =
@@ -16,6 +17,7 @@ export function GeneratePptForm() {
 
   return (
     <form action={action} className="rounded-2xl border border-line bg-card p-5">
+      <GeneratingOverlay label="Generating your presentation…" />
       <div className="mb-4">
         <label htmlFor="title" className={label}>
           Presentation topic

@@ -316,12 +316,12 @@ export default async function ResumeDetailPage({ params }: { params: Promise<{ i
         )}
 
         {r ? (
-          <details className="mt-5 rounded-2xl border border-line bg-card p-5">
+          <details open className="mt-5 rounded-2xl border border-line bg-card p-5">
             <summary className="cursor-pointer font-display text-[15px] font-semibold text-ink">
               Edit resume content
             </summary>
             <p className="mb-4 mt-1 text-[12.5px] text-muted">
-              Edit any field below — saving re-renders the Word file in your locked format (it can&apos;t break) and re-scores ATS.
+              Edit any field below — saving re-renders the Word file in your locked format (font, spacing &amp; layout stay fixed, so it can&apos;t break) and re-scores ATS.
             </p>
             <ResumeEditor docId={doc.id} resume={r} />
           </details>

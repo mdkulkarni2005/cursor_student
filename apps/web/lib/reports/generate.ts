@@ -260,7 +260,9 @@ export async function generateAndStoreReport(input: GenerateReportInput): Promis
 }
 
 /** PPT → Report (#8.1): expand an existing deck into a written report (metered as a report). */
-export async function convertPptToReport(userId: string, pptDocId: string): Promise<{ docId: string }> {
+/** FAST: validate the PPT, create the REPORT doc (GENERATING), return its id so the action can
+ *  redirect immediately. The heavy AI + render runs in the background via `runConvertedReport`. */
+export async function createConvertedReportDoc(userId: string, pptDocId: string): Promise<{ docId: string }> {
   const ppt = await prisma.document.findFirst({
     where: { id: pptDocId, ownerId: userId, type: "PPT" },
     include: { content: true, owner: { include: { institution: true } } },
@@ -280,11 +282,31 @@ export async function convertPptToReport(userId: string, pptDocId: string): Prom
       title: ppt.title,
       status: "GENERATING",
       workspaceId: workspace.id,
-      job: { create: { status: "RUNNING", startedAt: new Date() } },
+      job: { create: { status: "RUNNING", startedAt: new Date(), pending: { stage: "draft" } as object } },
     },
   });
+  return { docId: doc.id };
+}
 
+/** Synchronous create+run (kept for non-interactive callers / verify scripts). */
+export async function convertPptToReport(userId: string, pptDocId: string): Promise<{ docId: string }> {
+  const { docId } = await createConvertedReportDoc(userId, pptDocId);
+  await runConvertedReport(docId, userId, pptDocId);
+  return { docId };
+}
+
+/** SLOW: expand the PPT into a full report and finalize — runs in the background (Next `after`),
+ *  so the request returns instantly and the report page shows the live generating poller. */
+export async function runConvertedReport(reportDocId: string, userId: string, pptDocId: string): Promise<void> {
   try {
+    const ppt = await prisma.document.findFirst({
+      where: { id: pptDocId, ownerId: userId, type: "PPT" },
+      include: { content: true, owner: { include: { institution: true } } },
+    });
+    if (!ppt?.content) throw new Error("Presentation not found or has no content.");
+    const slides = ((ppt.content.data as { slides?: { heading: string; bullets: string[] }[] }).slides) ?? [];
+    const user = ppt.owner;
+
     const template = await prisma.template.findFirst({ where: { type: "REPORT", isDefault: true } });
     if (!template) throw new Error("No default report template configured — run the template seed.");
     const student = {
@@ -296,20 +318,18 @@ export async function convertPptToReport(userId: string, pptDocId: string): Prom
       guide: "—",
     };
     const gen = await withAiRetry(() => expandPptToReport({ title: ppt.title, reportType: "project", student, slides }), { label: "ppt-to-report" });
-    await prisma.document.update({ where: { id: doc.id }, data: { templateId: template.id } });
-    await finalize(doc.id, userId, {
+    await prisma.document.update({ where: { id: reportDocId }, data: { templateId: template.id } });
+    await finalize(reportDocId, userId, {
       data: gen.content,
       model: gen.model,
       render: async () => renderReportDocx(gen.content, await getObjectBuffer(template.storageKey)).buffer,
     });
-    return { docId: doc.id };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    await prisma.document.update({ where: { id: doc.id }, data: { status: "FAILED" } }).catch(() => {});
+    await prisma.document.update({ where: { id: reportDocId }, data: { status: "FAILED" } }).catch(() => {});
     await prisma.generationJob
-      .update({ where: { documentId: doc.id }, data: { status: "FAILED", error: message, finishedAt: new Date() } })
+      .update({ where: { documentId: reportDocId }, data: { status: "FAILED", error: message, finishedAt: new Date() } })
       .catch(() => {});
-    throw err;
   }
 }
 
