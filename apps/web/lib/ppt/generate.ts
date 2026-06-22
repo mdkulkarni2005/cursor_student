@@ -1,8 +1,20 @@
 import { prisma, type User } from "@studentos/db";
 import { getObjectBuffer, putObject, keys } from "@studentos/storage";
-import { renderPptx, inspectPptxTheme, fillPptxTemplate, type PptxTheme, type PptContent } from "@studentos/documents";
+import {
+  renderPptx,
+  inspectPptxTheme,
+  fillPptxTemplate,
+  inspectPptxStructure,
+  fillPptxTemplateInPlace,
+  resolvePptTheme,
+  richToPlain,
+  type PptxTheme,
+  type PptxStructure,
+  type PptContent,
+} from "@studentos/documents";
 import {
   generatePptContent,
+  generatePptTemplateContent,
   generateSlideImage,
   slideImagePrompt,
   assessDraftGaps,
@@ -24,6 +36,8 @@ export type GeneratePptInput = {
   guidelines?: string;
   /** Optional: the user's own .pptx — we match its brand theme (colors + fonts). */
   templateKey?: string;
+  /** Resume only: answers to the template's info-field questions (field label → value). */
+  fieldAnswers?: Record<string, string>;
 };
 
 type Produced = {
@@ -34,10 +48,96 @@ type Produced = {
   images?: (string | null)[];
   /** The user's template bytes — present only when a template was uploaded (enables layout cloning). */
   templateBuffer?: Buffer;
+  /** Present for a STRUCTURED template (fill-in-place path): its detected slide roles. */
+  structure?: PptxStructure;
+  /** Info-table values to write (field label → value), for the structured path. */
+  fieldValues?: Record<string, string>;
+  /** Unknown info-table fields we must ask the user about before finishing. */
+  fieldQuestions?: ClarifyQuestion[];
 };
 
 function draftText(content: PptContent): string {
-  return content.slides.map((s) => `${s.heading} ${s.bullets.join(" ")}`).join("\n");
+  return content.slides.map((s) => `${richToPlain(s.heading)} ${s.bullets.map(richToPlain).join(" ")}`).join("\n");
+}
+
+/** A clean, human label for an info-table field (drops trailing "of the internship" noise minimally). */
+function fieldQuestionText(label: string): string {
+  return `What is your "${label}"?`;
+}
+
+/** Derive a known info-field value from the topic/profile, or null if we must ask the user. */
+function deriveFieldValue(
+  label: string,
+  input: GeneratePptInput,
+  user: User & { institution: { name: string } | null },
+): string | null {
+  const l = label.toLowerCase();
+  if (/title/.test(l)) return input.title;
+  if (/\bname\b/.test(l) && !/company|organi[sz]ation|industry|guide|teacher|faculty|mentor/.test(l))
+    return user.name ?? null;
+  if (/branch|class|department/.test(l)) return user.department ?? null;
+  return null; // PRN, Roll No., Duration/dates, LG Teacher, … → ask.
+}
+
+/** Build the structured deck: content keyed to the template's own sections + resolved info fields. */
+async function produceStructured(
+  user: User & { institution: { name: string } | null },
+  input: GeneratePptInput,
+  subtitle: string,
+  templateBuffer: Buffer,
+  theme: PptxTheme,
+  structure: PptxStructure,
+): Promise<Produced> {
+  const sections = structure.slides
+    .filter((s): s is Extract<PptxStructure["slides"][number], { kind: "section" }> => s.kind === "section")
+    .map((s) => ({ heading: s.heading, instruction: s.instruction }));
+
+  const { contentByHeading, model } = await withAiRetry(
+    () =>
+      generatePptTemplateContent({
+        topic: input.title,
+        subtitle,
+        department: user.department ?? "—",
+        sections,
+        guidelines: input.guidelines,
+      }),
+    { label: "ppt.template" },
+  );
+
+  // Content.data mirrors the template's true sections so the in-app preview matches the file.
+  // Templates own their layout — fill them as plain bullet sections (do not impose our layouts).
+  const slides = sections.map((s) => ({
+    layout: "bullets" as const,
+    heading: s.heading,
+    bullets: contentByHeading[s.heading] ?? ["(content pending)"],
+  }));
+  const content: PptContent = { title: input.title, subtitle, slides };
+
+  // Resolve info-table fields: fill what we know, ask for the rest.
+  const fieldValues: Record<string, string> = {};
+  const fieldQuestions: ClarifyQuestion[] = [];
+  for (const slide of structure.slides) {
+    if (slide.kind !== "metadata") continue;
+    for (const f of slide.fields) {
+      if (!f.isPlaceholder) continue; // already filled in the template — leave it.
+      const answered = input.fieldAnswers?.[f.label];
+      if (answered) {
+        fieldValues[f.label] = answered;
+        continue;
+      }
+      const derived = deriveFieldValue(f.label, input, user);
+      if (derived) fieldValues[f.label] = derived;
+      else
+        fieldQuestions.push({
+          id: `field:${f.label}`,
+          question: fieldQuestionText(f.label),
+          type: "text",
+          options: [],
+        });
+    }
+  }
+
+  return { content, model, theme, templateBuffer, structure, fieldValues, fieldQuestions };
 }
 
 /** Generate the deck content (no rendering yet), plus the user's theme if a template was given. */
@@ -55,6 +155,14 @@ async function produceContent(
     templateBuffer = await getObjectBuffer(input.templateKey);
     theme = inspectPptxTheme(templateBuffer);
     if (!theme.ok) throw new Error(theme.issues[0] ?? "We couldn't read that PowerPoint template.");
+
+    // STRUCTURED template (info table / fixed sections): keep its exact slides and fill in place,
+    // steering content by the template's own per-section instructions. This is the faithful path.
+    const structure = inspectPptxStructure(templateBuffer);
+    if (structure.ok && structure.structured) {
+      return produceStructured(user, input, subtitle, templateBuffer, theme, structure);
+    }
+    // Otherwise it's a theme-only design deck — fall through to a generic deck + clone/theme render.
   }
 
   const { content, model } = await withAiRetry(() => generatePptContent({
@@ -67,13 +175,59 @@ async function produceContent(
 
   // Generated visuals are only for the from-scratch deck. With a template we clone the user's
   // exact layout (their design is the point) and skip generated images.
+  // Generate images ONLY for slides the model marked `layout: "image"` (a from-scratch deck only;
+  // templates keep their own design). Best-effort: a null just renders the slide text-only.
   const images = templateBuffer
     ? undefined
     : await Promise.all(
-        content.slides.map((s) => generateSlideImage(slideImagePrompt(s.heading, input.title))),
+        content.slides.map((s) =>
+          s.layout === "image" ? generateSlideImage(slideImagePrompt(richToPlain(s.heading) || input.title, input.title)) : Promise.resolve(null),
+        ),
       ).then((imgs) => imgs.map((im) => im?.dataUrl ?? null));
 
   return { content, model, theme, images, templateBuffer };
+}
+
+/** Persist the resolved render theme alongside the content so the in-app canvas renders
+ *  brand-approximate (it can't re-read the uploaded .pptx) — the exact colors/fonts the file used.
+ *  `templated` marks decks bound to an uploaded .pptx (in-app editing is disabled for those so an
+ *  edit can't silently abandon the user's template; they download to edit in PowerPoint). */
+function contentWithTheme(produced: Produced): object {
+  return { ...produced.content, theme: resolvePptTheme(produced.theme), templated: !!produced.templateBuffer };
+}
+
+/**
+ * Re-render a (from-scratch) deck's .pptx from edited content and replace the stored export — used
+ * by the in-app editor's Save. Resolves each slide's persisted image key back to bytes so images
+ * survive the re-render. Templated decks don't use this (editing is disabled for them).
+ */
+export async function rerenderPptExport(docId: string, content: PptContent): Promise<void> {
+  const images = await Promise.all(
+    content.slides.map(async (s) => {
+      if (!s.image) return null;
+      try {
+        const buf = await getObjectBuffer(s.image);
+        return `data:image/png;base64,${buf.toString("base64")}`;
+      } catch {
+        return null;
+      }
+    }),
+  );
+  const buffer = (await renderPptx(content, undefined, images)).buffer;
+  const exportKey = keys.exportFile(docId, "PPTX");
+  await putObject(exportKey, buffer, PPTX_MIME);
+  const data = { ...content, theme: content.theme ?? resolvePptTheme(undefined), templated: false };
+  await prisma.$transaction([
+    prisma.documentContent.upsert({
+      where: { documentId: docId },
+      create: { documentId: docId, data: data as unknown as object },
+      update: { data: data as unknown as object },
+    }),
+    prisma.documentExport.deleteMany({ where: { documentId: docId, format: "PPTX" } }),
+    prisma.documentExport.create({
+      data: { documentId: docId, format: "PPTX", storageKey: exportKey, sizeBytes: buffer.length },
+    }),
+  ]);
 }
 
 /** Render + persist a finished deck (READY). Used by first-pass and resume. */
@@ -81,19 +235,53 @@ async function finalize(docId: string, userId: string, produced: Produced): Prom
   // With a template: try EXACT layout cloning; use it only if the integrity guard passes,
   // else fall back to the known-good theme renderer (still their brand colors/fonts).
   let buffer: Buffer;
-  if (produced.templateBuffer) {
-    const clone = fillPptxTemplate(produced.templateBuffer, produced.content);
+  if (produced.templateBuffer && produced.structure?.structured) {
+    // Structured template → FILL IN PLACE: keep every slide, write sections + info fields.
+    const contentByHeading: Record<string, string[]> = {};
+    for (const s of produced.content.slides) contentByHeading[richToPlain(s.heading)] = s.bullets.map(richToPlain);
+    const filled = fillPptxTemplateInPlace(
+      produced.templateBuffer,
+      produced.structure,
+      contentByHeading,
+      produced.fieldValues ?? {},
+    );
+    buffer = filled.ok && filled.buffer ? filled.buffer : (await renderPptx(produced.content, produced.theme)).buffer;
+  } else if (produced.templateBuffer) {
+    // Theme-only design deck → try EXACT layout cloning; else the known-good theme renderer.
+    const cloneContent = {
+      title: produced.content.title,
+      subtitle: produced.content.subtitle,
+      slides: produced.content.slides.map((s) => ({ heading: richToPlain(s.heading), bullets: s.bullets.map(richToPlain) })),
+    };
+    const clone = fillPptxTemplate(produced.templateBuffer, cloneContent);
     buffer = clone.ok && clone.buffer ? clone.buffer : (await renderPptx(produced.content, produced.theme)).buffer;
   } else {
     buffer = (await renderPptx(produced.content, produced.theme, produced.images)).buffer;
   }
+
+  // Persist generated images to R2 and record their keys on the slides, so the in-app viewer can
+  // load them via /ppt/[id]/image/[idx]. (Only the from-scratch path has images.)
+  if (produced.images) {
+    await Promise.all(
+      produced.images.map(async (dataUrl, i) => {
+        const m = dataUrl && /^data:(image\/[a-z0-9.+-]+);base64,(.*)$/i.exec(dataUrl);
+        if (!m) return;
+        const key = keys.slideImage(docId, i);
+        await putObject(key, Buffer.from(m[2]!, "base64"), m[1]!);
+        const slide = produced.content.slides[i];
+        if (slide) slide.image = key;
+      }),
+    );
+  }
+
+  const content = contentWithTheme(produced);
   const exportKey = keys.exportFile(docId, "PPTX");
   await putObject(exportKey, buffer, PPTX_MIME);
   await prisma.$transaction([
     prisma.documentContent.upsert({
       where: { documentId: docId },
-      create: { documentId: docId, data: produced.content as unknown as object },
-      update: { data: produced.content as unknown as object },
+      create: { documentId: docId, data: content as unknown as object },
+      update: { data: content as unknown as object },
     }),
     prisma.documentExport.create({
       data: { documentId: docId, format: "PPTX", storageKey: exportKey, sizeBytes: buffer.length },
@@ -142,6 +330,38 @@ export async function runPptGeneration(docId: string, input: GeneratePptInput): 
   try {
     await setJobStage(docId, "draft");
     const produced = await produceContent(user, input);
+
+    // STRUCTURED template: the template owns the structure, so don't ask topic-gap questions —
+    // only ask for the info-table fields we couldn't derive (PRN, Roll No., dates, LG Teacher).
+    if (produced.structure?.structured) {
+      await setJobStage(docId, "review");
+      if (produced.fieldQuestions && produced.fieldQuestions.length > 0) {
+        await prisma.documentContent.upsert({
+          where: { documentId: docId },
+          create: { documentId: docId, data: contentWithTheme(produced) },
+          update: { data: contentWithTheme(produced) },
+        });
+        await prisma.document.update({ where: { id: docId }, data: { status: "NEEDS_INPUT" } });
+        await prisma.generationJob.update({
+          where: { documentId: docId },
+          data: {
+            status: "NEEDS_INPUT",
+            model: produced.model,
+            pending: {
+              questions: produced.fieldQuestions,
+              title: input.title,
+              slideCount: input.slideCount ?? null,
+              guidelines: input.guidelines ?? null,
+              templateKey: input.templateKey ?? null,
+            } as unknown as object,
+          },
+        });
+        return;
+      }
+      await setJobStage(docId, "format");
+      await finalize(docId, user.id, produced);
+      return;
+    }
 
     await setJobStage(docId, "review");
     const gaps = await withAiRetry(() => assessDraftGaps({
@@ -223,7 +443,15 @@ export async function resumePptGeneration(
   if (!doc || (doc.status !== "NEEDS_INPUT" && doc.status !== "GENERATING")) throw new Error("This presentation isn't waiting for input.");
 
   const pending = (doc.job?.pending ?? {}) as PendingState;
-  const extra = answersToContext(pending.questions ?? [], answers);
+
+  // Info-table field answers (id `field:<label>`) fill the template's table; everything else is
+  // topic context folded into guidelines.
+  const fieldAnswers: Record<string, string> = {};
+  for (const [id, value] of Object.entries(answers)) {
+    if (id.startsWith("field:") && value.trim()) fieldAnswers[id.slice("field:".length)] = value.trim();
+  }
+  const topicQuestions = (pending.questions ?? []).filter((q) => !q.id.startsWith("field:"));
+  const extra = answersToContext(topicQuestions, answers);
   const guidelines = [pending.guidelines ?? undefined, extra].filter(Boolean).join("\n") || undefined;
 
   await prisma.document.update({ where: { id: docId }, data: { status: "GENERATING" } });
@@ -240,6 +468,7 @@ export async function resumePptGeneration(
       slideCount: pending.slideCount ?? undefined,
       guidelines,
       templateKey: pending.templateKey ?? undefined,
+      fieldAnswers: Object.keys(fieldAnswers).length ? fieldAnswers : undefined,
     });
     await setJobStage(docId, "format");
     await finalize(docId, userId, produced);

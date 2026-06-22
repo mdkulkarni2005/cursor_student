@@ -17,6 +17,7 @@
     "resume:sample": "tsx scripts/resume-sample.ts",
     "verify:resume-format": "tsx scripts/verify-resume-format.ts",
     "verify:ppt-clone": "tsx scripts/verify-ppt-clone.ts",
+    "verify:ppt-structure": "tsx scripts/verify-ppt-structure.ts",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {

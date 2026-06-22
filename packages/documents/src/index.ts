@@ -3,6 +3,8 @@ export * from "./report";
 export * from "./ppt";
 export * from "./pptx-theme";
 export * from "./pptx-clone";
+export * from "./pptx-structure";
+export * from "./pptx-fill";
 export * from "./assignment";
 export * from "./resume";
 export * from "./resume-pdf";

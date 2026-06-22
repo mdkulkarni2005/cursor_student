@@ -9,12 +9,17 @@ import { GeneratingPoller } from "@/components/reports/generating-poller";
 import { DeleteDocButton } from "@/components/delete-doc-button";
 import { PPT_STAGES } from "@/lib/ppt/generate";
 import { stageOf } from "@/lib/jobs";
+import { DeckViewer, type Deck } from "@/components/ppt/deck-viewer";
 import type { ClarifyQuestion } from "@studentos/ai";
+import type { PptTheme, PptSlide } from "@studentos/documents";
 
 type PptData = {
   title?: string;
   subtitle?: string;
-  slides?: { heading: string; bullets: string[]; notes?: string }[];
+  slides?: PptSlide[];
+  theme?: PptTheme;
+  /** Deck bound to an uploaded .pptx template — in-app editing is disabled for these. */
+  templated?: boolean;
 };
 
 export default async function PptDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -34,9 +39,16 @@ export default async function PptDetailPage({ params }: { params: Promise<{ id: 
     ((doc.job?.pending as { questions?: ClarifyQuestion[] } | null)?.questions) ?? [];
   const stage = stageOf(doc.job?.pending);
 
+  const deck: Deck = {
+    title: data.title ?? doc.title,
+    subtitle: data.subtitle ?? "",
+    slides,
+    theme: data.theme,
+  };
+
   return (
     <AppShell user={shellUserFrom(user)}>
-      <div className="mx-auto max-w-[860px]">
+      <div className="mx-auto w-full max-w-[1400px]">
         <Link href="/ppt" className="text-[13px] text-muted transition-colors hover:text-soft">
           ← All presentations
         </Link>
@@ -102,26 +114,7 @@ export default async function PptDetailPage({ params }: { params: Promise<{ id: 
             Generation failed: {doc.job?.error ?? "unknown error"}. Try generating again.
           </div>
         ) : (
-          <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {slides.map((s, i) => (
-              <div key={i} className="overflow-hidden rounded-xl border border-line bg-card">
-                <div className="flex aspect-video flex-col p-4">
-                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-faint">
-                    Slide {i + 1}
-                  </p>
-                  <h3 className="mb-2 font-display text-[15px] font-semibold text-ink">{s.heading}</h3>
-                  <ul className="space-y-1 text-[12px] text-soft">
-                    {s.bullets.slice(0, 5).map((b, j) => (
-                      <li key={j} className="flex gap-1.5">
-                        <span className="text-cyan">•</span>
-                        <span className="line-clamp-1">{b}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            ))}
-          </div>
+          <DeckViewer docId={doc.id} deck={deck} editable={!data.templated} />
         )}
       </div>
     </AppShell>

@@ -2,11 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { after } from "next/server";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@studentos/db";
-import { type ClarifyQuestion } from "@studentos/ai";
+import { type ClarifyQuestion, generateSlideImage, slideImagePrompt } from "@studentos/ai";
+import { PptContentSchema, richToPlain } from "@studentos/documents";
 import { putObject, keys } from "@studentos/storage";
 import { getOrCreateUser } from "@/lib/user";
-import { createPptDoc, runPptGeneration, resumePptGeneration, markPptGenerating } from "@/lib/ppt/generate";
+import { createPptDoc, runPptGeneration, resumePptGeneration, markPptGenerating, rerenderPptExport } from "@/lib/ppt/generate";
 import { convertPptToReport } from "@/lib/reports/generate";
 import { QuotaExceededError } from "@/lib/entitlements";
 import { rateLimit, friendlyError } from "@/lib/reliability";
@@ -134,6 +136,72 @@ export async function convertPptToReportAction(formData: FormData): Promise<void
     redirect(`/ppt/${pptDocId}`);
   }
   redirect(`/reports/${reportId}`);
+}
+
+export type SaveDeckState = { ok?: boolean; error?: string };
+
+/** Save edited deck content (in-app editor) and re-render the .pptx so the download matches.
+ *  Disabled for templated decks — editing those in-app would abandon the uploaded template. */
+export async function savePptDeckAction(docId: string, rawContent: unknown): Promise<SaveDeckState> {
+  const user = await getOrCreateUser();
+  if (!user) return { error: "You must be signed in." };
+  try { rateLimit(user.id, "ppt"); } catch (e) { return { error: friendlyError(e) }; }
+
+  const doc = await prisma.document.findFirst({
+    where: { id: docId, ownerId: user.id, type: "PPT" },
+    include: { content: true },
+  });
+  if (!doc) return { error: "Presentation not found." };
+  if ((doc.content?.data as { templated?: boolean } | undefined)?.templated) {
+    return { error: "This deck follows your uploaded template — download it to edit in PowerPoint." };
+  }
+
+  const parsed = PptContentSchema.safeParse(rawContent);
+  if (!parsed.success) return { error: "Some slides are incomplete — please fill them in before saving." };
+
+  try {
+    await rerenderPptExport(docId, parsed.data);
+  } catch (e) {
+    return { error: friendlyError(e) };
+  }
+  revalidatePath(`/ppt/${docId}`);
+  return { ok: true };
+}
+
+/** Generate (or regenerate) an image for one slide, persist it, and re-render the export. */
+export async function regenerateSlideImageAction(
+  docId: string,
+  slideIndex: number,
+  rawContent: unknown,
+): Promise<SaveDeckState> {
+  const user = await getOrCreateUser();
+  if (!user) return { error: "You must be signed in." };
+  try { rateLimit(user.id, "ppt"); } catch (e) { return { error: friendlyError(e) }; }
+
+  const doc = await prisma.document.findFirst({ where: { id: docId, ownerId: user.id, type: "PPT" } });
+  if (!doc) return { error: "Presentation not found." };
+
+  const parsed = PptContentSchema.safeParse(rawContent);
+  if (!parsed.success) return { error: "Please save your edits before generating an image." };
+  const slide = parsed.data.slides[slideIndex];
+  if (!slide) return { error: "Slide not found." };
+
+  const img = await generateSlideImage(slideImagePrompt(richToPlain(slide.heading) || parsed.data.title, parsed.data.title));
+  if (!img) return { error: "Image generation isn't available right now (check the AI Gateway image model)." };
+
+  const m = /^data:(image\/[a-z0-9.+-]+);base64,(.*)$/i.exec(img.dataUrl);
+  if (!m) return { error: "Image generation returned an unexpected format." };
+  const key = keys.slideImage(docId, slideIndex);
+  await putObject(key, Buffer.from(m[2]!, "base64"), m[1]!);
+  slide.image = key;
+
+  try {
+    await rerenderPptExport(docId, parsed.data);
+  } catch (e) {
+    return { error: friendlyError(e) };
+  }
+  revalidatePath(`/ppt/${docId}`);
+  return { ok: true };
 }
 
 /** Resume a deck paused at NEEDS_INPUT, with the user's answers to the mid-generation questions. */

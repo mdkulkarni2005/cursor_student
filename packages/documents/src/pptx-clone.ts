@@ -1,5 +1,14 @@
 import PizZip from "pizzip";
-import { DOMParser, XMLSerializer } from "@xmldom/xmldom";
+import {
+  arr,
+  parse,
+  serialize,
+  phKindOf,
+  shapeTextLen,
+  setTxBodyText,
+  slidePartOrder,
+  type El,
+} from "./pptx-internal";
 
 /**
  * EXACT layout cloning (#8.1). pptxgenjs can't import a .pptx, so to reproduce a user's real
@@ -22,73 +31,6 @@ export type PptCloneResult = { ok: boolean; buffer?: Buffer; issues: string[] };
 const SLIDE_CT_FALLBACK = "application/vnd.openxmlformats-officedocument.presentationml.slide+xml";
 const SLIDE_REL_FALLBACK = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide";
 
-// Structural @xmldom node types (the package has no DOM lib in scope).
-interface NodeListLike { length: number; item(i: number): El | null; }
-interface El {
-  nodeName: string;
-  textContent: string | null;
-  parentNode: El | null;
-  childNodes: NodeListLike;
-  getElementsByTagName(tag: string): NodeListLike;
-  getAttribute(name: string): string | null;
-  setAttribute(name: string, value: string): void;
-  appendChild(child: El): El;
-  removeChild(child: El): El;
-  cloneNode(deep: boolean): El;
-}
-interface Doc extends El { createElement(tag: string): El; }
-
-function arr(list: NodeListLike): El[] {
-  const out: El[] = [];
-  for (let i = 0; i < list.length; i++) {
-    const n = list.item(i);
-    if (n) out.push(n);
-  }
-  return out;
-}
-const parse = (xml: string): Doc => new DOMParser().parseFromString(xml.replace(/^\uFEFF/, ""), "application/xml") as unknown as Doc;
-const serialize = (node: El): string => new XMLSerializer().serializeToString(node as never);
-
-type PhKind = "title" | "subtitle" | "body" | "other";
-function phKindOf(sp: El): PhKind {
-  const phs = sp.getElementsByTagName("p:ph");
-  if (phs.length === 0) return "other";
-  const type = phs.item(0)!.getAttribute("type");
-  if (type === "title" || type === "ctrTitle") return "title";
-  if (type === "subTitle") return "subtitle";
-  if (type === "body" || type === "obj" || !type) return "body"; // untyped placeholder = body
-  return "other";
-}
-function shapeTextLen(sp: El): number {
-  return arr(sp.getElementsByTagName("a:t")).reduce((n, t) => n + (t.textContent?.length ?? 0), 0);
-}
-
-/** Set a shape's text: one paragraph per line, cloning the shape's first paragraph for formatting. */
-function setShapeText(sp: El, lines: string[]): boolean {
-  const bodies = sp.getElementsByTagName("p:txBody");
-  if (bodies.length === 0) return false;
-  const txBody = bodies.item(0)!;
-  const paras = arr(txBody.getElementsByTagName("a:p")).filter((p) => p.parentNode === txBody);
-  if (paras.length === 0) return false;
-  const template = paras[0]!;
-
-  const built = (lines.length ? lines : [""]).map((line) => {
-    const p = template.cloneNode(true) as El;
-    const runs = arr(p.getElementsByTagName("a:r")).filter((r) => r.parentNode === p);
-    if (runs.length === 0) return p; // keep as-is (rare); avoids breaking structure
-    // First run carries the text; drop the rest so we don't duplicate.
-    const first = runs[0]!;
-    const ts = first.getElementsByTagName("a:t");
-    if (ts.length) ts.item(0)!.textContent = line;
-    for (let i = 1; i < runs.length; i++) p.removeChild(runs[i]!);
-    return p;
-  });
-
-  for (const p of paras) txBody.removeChild(p);
-  for (const p of built) txBody.appendChild(p);
-  return true;
-}
-
 type SlideInfo = { partName: string; baseName: string; doc: ReturnType<typeof parse>; title?: El; subtitle?: El; body?: El; bodyLen: number };
 
 function analyzeSlide(zip: PizZip, partName: string): SlideInfo | null {
@@ -109,26 +51,6 @@ function analyzeSlide(zip: PizZip, partName: string): SlideInfo | null {
     }
   }
   return info;
-}
-
-/** Ordered list of slide part names from presentation.xml + its rels. */
-function slidePartOrder(zip: PizZip): string[] {
-  const presXml = zip.file("ppt/presentation.xml")?.asText();
-  const relsXml = zip.file("ppt/_rels/presentation.xml.rels")?.asText();
-  if (!presXml || !relsXml) return [];
-  const pres = parse(presXml);
-  const rels = parse(relsXml);
-  const relTarget = new Map<string, string>();
-  for (const r of arr(rels.getElementsByTagName("Relationship"))) {
-    relTarget.set(r.getAttribute("Id") ?? "", r.getAttribute("Target") ?? "");
-  }
-  const order: string[] = [];
-  for (const sldId of arr(pres.getElementsByTagName("p:sldId"))) {
-    const rid = sldId.getAttribute("r:id") ?? "";
-    const target = relTarget.get(rid);
-    if (target) order.push("ppt/" + target.replace(/^\/?ppt\//, "").replace(/^\.\.\//, ""));
-  }
-  return order;
 }
 
 export function fillPptxTemplate(templateBuffer: Buffer, content: PptCloneContent): PptCloneResult {
@@ -193,15 +115,15 @@ export function fillPptxTemplate(templateBuffer: Buffer, content: PptCloneConten
   // Title slide. (If the template has no dedicated title layout, put the subtitle into the body
   // so leftover sample bullets don't survive.)
   newSlides.push(makePart(titleSrc, (_d, title, subtitle, body) => {
-    if (title) setShapeText(title, [content.title]);
-    if (subtitle) setShapeText(subtitle, [content.subtitle]);
-    else if (body) setShapeText(body, [content.subtitle]);
+    if (title) setTxBodyText(title, [content.title]);
+    if (subtitle) setTxBodyText(subtitle, [content.subtitle]);
+    else if (body) setTxBodyText(body, [content.subtitle]);
   }));
   // Content slides.
   for (const s of content.slides) {
     newSlides.push(makePart(contentSrc, (_d, title, _sub, body) => {
-      if (title) setShapeText(title, [s.heading]);
-      if (body) setShapeText(body, s.bullets);
+      if (title) setTxBodyText(title, [s.heading]);
+      if (body) setTxBodyText(body, s.bullets);
     }));
   }
 

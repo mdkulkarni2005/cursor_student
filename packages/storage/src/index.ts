@@ -105,4 +105,6 @@ export const keys = {
   upload: (userId: string, id: string, ext: string) => `uploads/${userId}/${id}.${ext}`,
   template: (templateId: string, ext: string) => `templates/${templateId}.${ext}`,
   exportFile: (documentId: string, format: string) => `exports/${documentId}.${format.toLowerCase()}`,
+  /** A generated slide image (per deck, per slide index). PNG bytes live in storage, not the DB. */
+  slideImage: (documentId: string, slideIndex: number) => `slides/${documentId}/${slideIndex}.png`,
 };
