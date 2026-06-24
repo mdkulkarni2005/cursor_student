@@ -34,12 +34,14 @@ export default async function InterviewSessionPage({ params }: { params: Promise
             <h1 className="font-display text-[24px] font-bold leading-tight text-ink">{loaded.title}</h1>
             <p className="mt-1 text-[13px] text-faint">
               {state.config.rounds.map((r) => ROUND_LABEL[r]).join(" · ")} ·{" "}
-              {state.phase === "complete" ? "Completed" : `Question ${Math.min(answered + 1, state.questionPlan.length)} of ${state.questionPlan.length}`}
+              {state.phase === "complete" ? "Completed" : "In progress"}
             </p>
           </div>
         </div>
 
-        {/* Transcript */}
+        {/* Transcript — only shown AFTER the interview ends. During a live interview the
+            questions are spoken (you listen, like a real interview), not displayed as text. */}
+        {state.phase === "complete" ? (
         <div className="mt-6 space-y-3">
           {state.transcript.map((t, i) => (
             <div key={i} className={t.speaker === "interviewer" ? "flex justify-start" : "flex justify-end"}>
@@ -68,20 +70,22 @@ export default async function InterviewSessionPage({ params }: { params: Promise
             </div>
           ))}
         </div>
+        ) : null}
 
-        {/* Answer area: live voice OR typed; coding questions get the editor, verbal get the answer box. */}
+        {/* Answer area: live voice (VAPI assistant) OR typed fallback. */}
         {awaitingAnswer ? (
           <InterviewActive
             docId={id}
             isLast={answered + 1 >= state.questionPlan.length}
             view={{
-              phase: "active",
               question: lastTurn?.content ?? "",
               kind: (lastTurn?.kind ?? "question") as "question" | "coding" | "answer",
               runnable: isRunnable,
-              answered,
-              total: state.questionPlan.length,
-              evaluation: null,
+            }}
+            live={{
+              role: state.config.role,
+              candidateName: user.name ?? "",
+              questions: state.questions ?? [],
             }}
           />
         ) : null}

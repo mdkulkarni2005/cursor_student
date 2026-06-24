@@ -75,6 +75,11 @@ export function InterviewAnswerPanel({ docId, question, isCoding, isLast }: { do
 
   return (
     <div>
+      <div className="mb-3 rounded-2xl border border-line bg-card px-4 py-3">
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-cyan">Interviewer asks</p>
+        <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-soft">{question}</p>
+      </div>
+
       <div className="mb-2 flex items-center justify-between">
         <button
           type="button"

@@ -10,6 +10,8 @@ import { cpp } from "@codemirror/lang-cpp";
 import { oneDark } from "@codemirror/theme-one-dark";
 import type { Extension } from "@codemirror/state";
 import { Button, Spinner } from "@/components/ui/button";
+import type { QuestionItem } from "@studentos/ai";
+import { interviewer, interviewerVariableValues } from "@/lib/interview/vapi-assistant";
 
 const CodeMirror = dynamic(() => import("@uiw/react-codemirror"), { ssr: false });
 
@@ -22,34 +24,34 @@ const EXT: Record<Lang, () => Extension> = {
 };
 
 type VapiMsg = { type?: string; role?: string; transcript?: string; transcriptType?: string };
-export type InterviewView = {
-  phase: "active" | "complete";
-  question: string;
-  kind: "question" | "coding" | "answer";
-  runnable: boolean;
-  answered: number;
-  total: number;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  evaluation: any | null;
-};
+type Turn = { role: "assistant" | "user"; content: string };
 
 const MAX_CALL_MS = 20 * 60_000; // hard cap on the whole session (credit guard)
 
+/**
+ * Live voice interview (adrianhajdin/ai_mock_interviews pattern): an inline VAPI assistant conducts
+ * the whole conversation from the resume-grounded questions injected via variableValues — intro,
+ * questions, barge-in, all native. We capture the transcript client-side and, on End, POST it to
+ * our server to evaluate (Sonnet). For coding rounds an editor is available; its code is folded into
+ * the transcript at the end. No webhook / public URL needed for this flow.
+ */
 export function InterviewLiveSession({
-  docId,
-  initialView,
-  onExit,
+  docId, role, candidateName, questions, onExit,
 }: {
   docId: string;
-  initialView: InterviewView;
+  role: string;
+  candidateName: string;
+  questions: QuestionItem[];
   onExit: () => void;
 }) {
   const router = useRouter();
-  const [view, setView] = useState<InterviewView>(initialView);
+  const codingQuestions = questions.filter((q) => q.kind === "coding");
+  const codingIncluded = codingQuestions.length > 0;
+
   const [callStatus, setCallStatus] = useState<"idle" | "connecting" | "live" | "ended" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
-  const [transcript, setTranscript] = useState(""); // candidate's spoken answer (current question)
-  const [submitting, setSubmitting] = useState(false);
+  const [ending, setEnding] = useState(false);
+  const [lastLine, setLastLine] = useState("");
 
   // media gate — camera AND mic are mandatory before joining
   const [permission, setPermission] = useState<"idle" | "requesting" | "granted" | "denied">("idle");
@@ -60,17 +62,27 @@ export function InterviewLiveSession({
   const [speaking, setSpeaking] = useState(false);
   const [volume, setVolume] = useState(0);
 
-  // coding answer state
+  // coding editor (available throughout when the interview has a coding round)
   const [lang, setLang] = useState<Lang>("python");
   const [code, setCode] = useState("");
   const [runOutput, setRunOutput] = useState("");
   const [running, setRunning] = useState(false);
+  const [editorOpen, setEditorOpen] = useState(codingIncluded);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const camStreamRef = useRef<MediaStream | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const vapiRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const messagesRef = useRef<Turn[]>([]); // captured transcript (handlers register once → use a ref)
+  const finalizingRef = useRef(false);
+  const endingRef = useRef(false);
+  const codeRef = useRef("");
+  const runOutputRef = useRef("");
+  const langRef = useRef<Lang>("python");
+  useEffect(() => { codeRef.current = code; }, [code]);
+  useEffect(() => { runOutputRef.current = runOutput; }, [runOutput]);
+  useEffect(() => { langRef.current = lang; }, [lang]);
 
   const publicKey = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY;
 
@@ -86,11 +98,7 @@ export function InterviewLiveSession({
   // Keep whichever <video> is mounted (lobby or room) wired to the live stream.
   useEffect(() => {
     if (videoRef.current && camStreamRef.current) videoRef.current.srcObject = camStreamRef.current;
-  }, [callStatus, permission, view.kind, camOn]);
-
-  function speak(text: string) {
-    try { vapiRef.current?.say?.(text); } catch { /* ignore */ }
-  }
+  }, [callStatus, permission, camOn]);
 
   /** Pre-flight: camera + mic are required. Mic track is released so VAPI can own it. */
   async function requestMedia() {
@@ -125,23 +133,42 @@ export function InterviewLiveSession({
       vapiRef.current = vapi;
       vapi.on("call-start", () => {
         setCallStatus("live");
-        timerRef.current = setTimeout(() => endSession(), MAX_CALL_MS);
+        timerRef.current = setTimeout(() => void finalize(), MAX_CALL_MS);
       });
-      vapi.on("call-end", () => { setSpeaking(false); setCallStatus("ended"); });
+      vapi.on("call-end", () => {
+        if (finalizingRef.current) return; // we ended deliberately (End button / cap) — already finalizing
+        // Unexpected end: only auto-evaluate if there's a real conversation; otherwise it was a drop
+        // early on — let them rejoin instead of scoring an empty interview.
+        const userTurns = messagesRef.current.filter((t) => t.role === "user").length;
+        if (userTurns >= 2) { void finalize(); return; }
+        setSpeaking(false);
+        setCallStatus("error");
+        setError("The call ended early. You can rejoin to continue.");
+      });
       vapi.on("speech-start", () => setSpeaking(true));
       vapi.on("speech-end", () => { setSpeaking(false); setVolume(0); });
       vapi.on("volume-level", (v: number) => setVolume(typeof v === "number" ? v : 0));
-      vapi.on("error", (e: unknown) => { setError("Voice connection dropped. Try rejoining."); setCallStatus("error"); console.warn("[vapi]", e); });
-      vapi.on("message", (m: VapiMsg) => {
-        if (m.type === "transcript" && m.role === "user" && m.transcriptType === "final" && m.transcript) {
-          setTranscript((p) => (p ? `${p} ${m.transcript}` : m.transcript!));
-        }
+      vapi.on("error", (e: unknown) => {
+        // VAPI/Daily emits an "error" when the meeting simply ends — not a failure.
+        const msg = (typeof e === "string" ? e : (e as { message?: string; errorMsg?: string } | null)?.message ?? (e as { errorMsg?: string } | null)?.errorMsg ?? "").toLowerCase();
+        const benignEnd = /ended|ejection|meeting has ended|left the meeting/.test(msg);
+        // A benign "meeting ended" just stops the speaking animation; the `call-end` handler decides
+        // whether to finalize or offer a rejoin. Only surface a real connection failure.
+        if (benignEnd || endingRef.current) { setSpeaking(false); return; }
+        setError("Voice connection dropped. Try rejoining."); setCallStatus("error"); console.warn("[vapi]", e);
       });
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await vapi.start({
-        firstMessage: view.question,
-        model: { provider: "openai", model: "gpt-4o-mini", messages: [{ role: "system", content: "You are the voice of an interview app. Speak ONLY the messages you are given, then stay completely silent and listen. Never ask follow-ups or respond on your own." }] },
-      } as any);
+      vapi.on("message", (m: VapiMsg) => {
+        if (m.type !== "transcript" || m.transcriptType !== "final" || !m.transcript) return;
+        const turn: Turn = { role: m.role === "user" ? "user" : "assistant", content: m.transcript };
+        messagesRef.current = [...messagesRef.current, turn];
+        setLastLine(m.transcript);
+      });
+      await vapi.start(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        interviewer as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        { variableValues: interviewerVariableValues({ questions, role, candidateName }) } as any,
+      );
     } catch (e) {
       setError("Couldn't connect the voice call. Try rejoining.");
       setCallStatus("error");
@@ -176,51 +203,63 @@ export function InterviewLiveSession({
     }
   }
 
-  async function submit() {
-    const isCoding = view.kind === "coding";
-    const answer = isCoding ? `${code}${transcript ? `\n\n/* Spoken: ${transcript} */` : ""}` : transcript;
-    if (!answer.trim()) { setError(isCoding ? "Write some code first." : "Say or type your answer first."); return; }
-    setSubmitting(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/interview/answer", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ docId, answer, language: isCoding ? lang : undefined, runOutput: isCoding ? runOutput : undefined }),
+  /** End the interview → fold in any code → evaluate the transcript on the server → show the report. */
+  async function finalize() {
+    if (finalizingRef.current) return;
+    finalizingRef.current = true;
+    endingRef.current = true;
+    setEnding(true);
+    const turns: Turn[] = [...messagesRef.current];
+    if (codingIncluded && codeRef.current.trim()) {
+      turns.push({
+        role: "user",
+        content: `[My code solution (${langRef.current})]:\n${codeRef.current}${runOutputRef.current ? `\n\n[Program output]:\n${runOutputRef.current}` : ""}`,
       });
-      const d = await res.json();
-      if (d.error) { setError(d.error); return; }
-      setTranscript(""); setCode(""); setRunOutput("");
-      if (d.phase === "complete") {
-        setView((v) => ({ ...v, phase: "complete", evaluation: d.evaluation }));
-        speak("That's the end of the interview. I've prepared your evaluation.");
-        setTimeout(() => endSession(), 1500);
-        router.refresh();
-      } else {
-        setView({ phase: "active", question: d.nextQuestion, kind: d.kind, runnable: d.runnable, answered: d.answered, total: d.total, evaluation: null });
-        speak(d.nextQuestion);
-      }
-    } catch {
-      setError("Couldn't submit — try again.");
-    } finally {
-      setSubmitting(false);
     }
-  }
-
-  function endSession() {
     stopEverything();
     setSpeaking(false);
     setCallStatus("ended");
-    router.refresh();
+    try {
+      const res = await fetch("/api/interview/feedback", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ docId, transcript: turns }),
+      });
+      const d = await res.json();
+      if (d?.error) {
+        // Keep the user on the wrapping-up screen with a Retry — the transcript is still in
+        // messagesRef, so retrying just re-POSTs it (no need to rejoin the call).
+        setError(d.error);
+        finalizingRef.current = false;
+        return;
+      }
+      router.refresh();
+    } catch {
+      setError("Couldn't generate your feedback — tap Retry.");
+      finalizingRef.current = false; // allow retry; KEEP `ending` true so the retry screen stays
+    }
   }
 
-  // ---------------------------------------------------------------- complete
-  if (view.phase === "complete") {
+  const scale = 1 + Math.min(volume, 1) * 0.12;
+
+  // ---------------------------------------------------------------- finalizing (ending → eval)
+  if (ending) {
+    const failed = !!error; // feedback POST failed → offer Retry (transcript is still in messagesRef)
     return (
       <div className="rounded-2xl border border-line bg-card p-6 text-center">
-        <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-success/15 text-2xl">🎉</div>
-        <p className="text-[15px] font-semibold text-ink">Interview complete</p>
-        <p className="mt-1 text-[13px] text-muted">Your evaluation is ready below.</p>
-        <Button type="button" onClick={() => { endSession(); onExit(); }} className="mt-4 rounded-xl bg-accent-gradient px-5 py-2.5 text-[13px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(34,211,238,0.3)]">See evaluation ↓</Button>
+        {failed ? (
+          <>
+            <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-warning/15 text-2xl">⚠️</div>
+            <p className="text-[15px] font-semibold text-ink">Couldn’t generate your feedback</p>
+            <p className="mt-1 text-[12.5px] text-warning">{error}</p>
+            <Button type="button" onClick={() => { setError(null); void finalize(); }} className="mt-4 rounded-xl bg-accent-gradient px-5 py-2.5 text-[13px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(34,211,238,0.3)]">Retry →</Button>
+          </>
+        ) : (
+          <>
+            <Spinner className="mx-auto mb-2 text-cyan" />
+            <p className="text-[15px] font-semibold text-ink">Wrapping up</p>
+            <p className="mt-1 text-[13px] text-muted">Preparing your evaluation…</p>
+          </>
+        )}
       </div>
     );
   }
@@ -234,7 +273,7 @@ export function InterviewLiveSession({
         permission={permission}
         camOn={camOn}
         error={error}
-        total={view.total}
+        codingIncluded={codingIncluded}
         onRequest={requestMedia}
         onJoin={startSession}
         onLeave={onExit}
@@ -243,9 +282,6 @@ export function InterviewLiveSession({
   }
 
   // ---------------------------------------------------------------- live room
-  const isCoding = view.kind === "coding";
-  const scale = 1 + Math.min(volume, 1) * 0.12;
-
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-[#0b0f1a]">
       {/* top bar */}
@@ -255,75 +291,60 @@ export function InterviewLiveSession({
             ? <span className="flex items-center gap-1.5 rounded-full bg-danger/15 px-2.5 py-1 text-[11px] font-semibold text-danger"><span className="size-1.5 animate-pulse rounded-full bg-danger" /> REC</span>
             : <span className="flex items-center gap-1.5 text-[12px] text-faint"><Spinner /> Connecting…</span>}
           <span className="text-[12px] text-soft">Mock Interview</span>
-          <span className="text-[11px] text-faint">· Q{view.answered + 1} of {view.total}</span>
         </div>
-        <span className="text-[11px] uppercase tracking-wide text-faint">{isCoding ? "Coding round" : "Voice round"}</span>
+        {codingIncluded ? (
+          <button type="button" onClick={() => setEditorOpen((v) => !v)} className="rounded-lg border border-line-strong bg-surface px-2.5 py-1 text-[11px] font-semibold text-soft transition-colors hover:text-cyan">
+            {editorOpen ? "Hide editor" : "💻 Open editor"}
+          </button>
+        ) : <span className="text-[11px] uppercase tracking-wide text-faint">Voice round</span>}
       </div>
 
-      {isCoding ? (
-        /* ---- screen-share layout: code (big, left) + two participant squares (right) ---- */
-        <div className="grid gap-3 p-3 lg:grid-cols-[1fr_220px]">
-          <div className="min-w-0">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-[12px] font-semibold text-muted">Shared editor</span>
-              <select value={lang} onChange={(e) => { setLang(e.target.value as Lang); setRunOutput(""); }} className="rounded-lg border border-line-strong bg-surface px-2.5 py-1 text-[12px] text-soft outline-none focus:border-cyan/50">
-                {LANGS.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
-              </select>
-            </div>
-            <div className="overflow-hidden rounded-xl border border-line-strong">
-              <CodeMirror value={code} height="320px" theme={oneDark} extensions={[EXT[lang]()]} onChange={setCode} basicSetup={{ lineNumbers: true, foldGutter: true, autocompletion: true, highlightActiveLine: true, bracketMatching: true, closeBrackets: true }} />
-            </div>
-            {view.runnable ? (
-              <Button type="button" onClick={runCode} loading={running} loadingText="Running…" className="mt-2 rounded-lg border border-cyan/35 bg-cyan/10 px-3 py-1.5 text-[12px] font-semibold text-cyan">▶ Run</Button>
-            ) : null}
-            {runOutput ? <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap rounded-lg bg-[#0a0e1a] p-3 font-mono text-[11.5px] text-soft">{runOutput}</pre> : null}
-          </div>
-          <div className="flex flex-row gap-3 lg:flex-col">
-            <InterviewerTile speaking={speaking} scale={scale} compact />
+      {/* google-meet stage: interviewer big + self PiP */}
+      <div className="relative p-3">
+        <div className="relative mx-auto aspect-video w-full overflow-hidden rounded-2xl bg-gradient-to-br from-[#0f1a2e] to-[#0c1020]">
+          <InterviewerTile speaking={speaking} scale={scale} />
+          <div className="absolute bottom-3 right-3 w-32 overflow-hidden rounded-xl border border-line-strong bg-black shadow-lg sm:w-40">
             <SelfTile videoRef={videoRef} camOn={camOn} muted={muted} compact />
           </div>
         </div>
-      ) : (
-        /* ---- google-meet layout: interviewer big stage + self PiP ---- */
-        <div className="relative p-3">
-          <div className="relative mx-auto aspect-video w-full max-w-[640px] overflow-hidden rounded-2xl bg-gradient-to-br from-[#0f1a2e] to-[#0c1020]">
-            <InterviewerTile speaking={speaking} scale={scale} />
-            {/* self PiP */}
-            <div className="absolute bottom-3 right-3 w-32 overflow-hidden rounded-xl border border-line-strong bg-black shadow-lg sm:w-40">
-              <SelfTile videoRef={videoRef} camOn={camOn} muted={muted} compact />
+      </div>
+
+      {/* coding editor — available throughout when the interview includes a coding round */}
+      {codingIncluded && editorOpen ? (
+        <div className="mx-3 mb-1 rounded-xl border border-line-strong bg-card p-3">
+          {codingQuestions.length ? (
+            <div className="mb-2 rounded-lg border border-cyan/20 bg-cyan/[0.05] px-3 py-2">
+              <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-cyan">Coding task{codingQuestions.length > 1 ? "s" : ""}</p>
+              {codingQuestions.map((q, i) => (
+                <p key={i} className="whitespace-pre-wrap text-[12.5px] leading-relaxed text-soft">{codingQuestions.length > 1 ? `${i + 1}. ` : ""}{q.question}</p>
+              ))}
             </div>
+          ) : null}
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[12px] font-semibold text-muted">Your editor</span>
+            <select value={lang} onChange={(e) => { setLang(e.target.value as Lang); setRunOutput(""); }} className="rounded-lg border border-line-strong bg-surface px-2.5 py-1 text-[12px] text-soft outline-none focus:border-cyan/50">
+              {LANGS.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+            </select>
           </div>
+          <div className="overflow-hidden rounded-xl border border-line-strong">
+            <CodeMirror value={code} height="220px" theme={oneDark} extensions={[EXT[lang]()]} onChange={setCode} basicSetup={{ lineNumbers: true, foldGutter: true, autocompletion: true, highlightActiveLine: true, bracketMatching: true, closeBrackets: true }} />
+          </div>
+          <Button type="button" onClick={runCode} loading={running} loadingText="Running…" className="mt-2 rounded-lg border border-cyan/35 bg-cyan/10 px-3 py-1.5 text-[12px] font-semibold text-cyan">▶ Run</Button>
+          {runOutput ? <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap rounded-lg bg-[#0a0e1a] p-3 font-mono text-[11.5px] text-soft">{runOutput}</pre> : null}
         </div>
-      )}
+      ) : null}
 
-      {/* question caption */}
-      <div className="mx-3 rounded-xl border border-line bg-card px-4 py-3">
-        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-cyan">Interviewer asks</p>
-        <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed text-soft">{view.question}</p>
+      {/* ambient status — the assistant drives the whole interview */}
+      <div className="px-3 pb-2 pt-3">
+        <div className="flex items-center gap-2 rounded-xl border border-line bg-card px-3.5 py-2.5">
+          <span className="text-[12.5px] text-muted">🎙️ The interview is live — just talk naturally. {codingIncluded ? "Use the editor when asked, and say “I’m done”. " : ""}Press <span className="font-semibold text-soft">End &amp; evaluate</span> when you’re finished.</span>
+        </div>
+        {lastLine ? <p className="mt-1.5 truncate px-1 text-[11.5px] italic text-faint">“{lastLine}”</p> : null}
+        {error ? <p className="mt-1.5 px-1 text-[12px] text-warning">{error}</p> : null}
       </div>
 
-      {/* your answer */}
-      <div className="px-3 pt-3">
-        <p className="mb-1 text-[11px] font-semibold text-muted">{isCoding ? "Spoken explanation (optional)" : "Your answer — speak, or type to edit"}</p>
-        <textarea
-          value={transcript}
-          onChange={(e) => setTranscript(e.target.value)}
-          rows={isCoding ? 2 : 3}
-          placeholder={callStatus === "live" ? "Your words appear here as you speak…" : "Connecting…"}
-          className="w-full resize-none rounded-xl border border-line-strong bg-surface px-3.5 py-2.5 text-[13px] text-ink outline-none transition-colors focus:border-cyan/50 placeholder:text-faint"
-        />
-      </div>
-
-      {error ? <p className="px-3 pt-2 text-[12px] text-warning">{error}</p> : null}
-
-      <div className="px-3 pb-3 pt-2">
-        <Button type="button" onClick={submit} loading={submitting} loadingText="Submitting…" className="w-full rounded-xl bg-accent-gradient py-2.5 text-[13.5px] font-semibold text-on-accent">
-          {view.answered + 1 >= view.total ? "Submit & finish →" : "Submit & next question →"}
-        </Button>
-      </div>
-
-      {/* control bar */}
-      <ControlBar muted={muted} camOn={camOn} onToggleMute={toggleMute} onToggleCam={toggleCam} onEnd={() => { endSession(); onExit(); }} />
+      {/* control bar — red button ends the interview and produces the evaluation */}
+      <ControlBar muted={muted} camOn={camOn} ending={ending} onToggleMute={toggleMute} onToggleCam={toggleCam} onEnd={() => void finalize()} />
     </div>
   );
 }
@@ -331,13 +352,13 @@ export function InterviewLiveSession({
 /* ---------------------------------------------------------------- pieces */
 
 function Lobby({
-  videoRef, permission, camOn, error, total, onRequest, onJoin, onLeave,
+  videoRef, permission, camOn, error, codingIncluded, onRequest, onJoin, onLeave,
 }: {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   permission: "idle" | "requesting" | "granted" | "denied";
   camOn: boolean;
   error: string | null;
-  total: number;
+  codingIncluded: boolean;
   onRequest: () => void;
   onJoin: () => void;
   onLeave: () => void;
@@ -345,7 +366,7 @@ function Lobby({
   const granted = permission === "granted";
   return (
     <div className="overflow-hidden rounded-2xl border border-line bg-[#0b0f1a] p-4">
-      <p className="mb-3 text-center text-[13px] text-soft">Live voice interview · {total} questions. The interviewer speaks each question; you answer out loud.</p>
+      <p className="mb-3 text-center text-[13px] text-soft">Live voice interview. The interviewer introduces itself, asks you to introduce yourself, then works through your questions — talk naturally, and you can interrupt it like a real call.{codingIncluded ? " For coding questions, write your solution in the editor and say “I’m done”." : ""} Press End when finished to get your feedback.</p>
       <div className="relative mx-auto aspect-video w-full max-w-[440px] overflow-hidden rounded-2xl bg-black">
         <video ref={videoRef} autoPlay muted playsInline className="size-full -scale-x-100 object-cover" />
         {!camOn || !granted ? (
@@ -419,7 +440,7 @@ function SelfTile({ videoRef, camOn, muted, compact = false }: { videoRef: React
   );
 }
 
-function ControlBar({ muted, camOn, onToggleMute, onToggleCam, onEnd }: { muted: boolean; camOn: boolean; onToggleMute: () => void; onToggleCam: () => void; onEnd: () => void }) {
+function ControlBar({ muted, camOn, ending, onToggleMute, onToggleCam, onEnd }: { muted: boolean; camOn: boolean; ending: boolean; onToggleMute: () => void; onToggleCam: () => void; onEnd: () => void }) {
   const pill = "flex size-11 items-center justify-center rounded-full border text-lg transition-colors";
   return (
     <div className="flex items-center justify-center gap-3 border-t border-line bg-[#0a0e1a] py-3">
@@ -429,9 +450,9 @@ function ControlBar({ muted, camOn, onToggleMute, onToggleCam, onEnd }: { muted:
       <button type="button" onClick={onToggleCam} title={camOn ? "Turn camera off" : "Turn camera on"} className={`${pill} ${camOn ? "border-line-strong bg-surface text-soft hover:text-cyan" : "border-danger/40 bg-danger/15 text-danger"}`}>
         {camOn ? "📹" : "🚫"}
       </button>
-      {/* red hang-up — ends the interview */}
-      <button type="button" onClick={onEnd} title="End interview" className="flex h-11 items-center gap-2 rounded-full bg-danger px-5 text-[13px] font-semibold text-white shadow-[0_4px_14px_rgba(251,113,133,0.4)] transition-transform hover:-translate-y-0.5">
-        <span className="text-lg leading-none">📞</span> End
+      {/* red hang-up — ends the interview and runs the evaluation */}
+      <button type="button" onClick={onEnd} disabled={ending} title="End interview" className="flex h-11 items-center gap-2 rounded-full bg-danger px-5 text-[13px] font-semibold text-white shadow-[0_4px_14px_rgba(251,113,133,0.4)] transition-transform hover:-translate-y-0.5 disabled:opacity-70">
+        {ending ? <><Spinner /> Ending…</> : <><span className="text-lg leading-none">📞</span> End &amp; evaluate</>}
       </button>
     </div>
   );

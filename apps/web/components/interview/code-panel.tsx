@@ -48,7 +48,7 @@ function starter(lang: Lang): string {
 
 type RunState = { stdout?: string; stderr?: string; status?: string; unavailable?: boolean; message?: string };
 
-export function InterviewCodePanel({ docId, runnable, isLast }: { docId: string; runnable: boolean; isLast: boolean }) {
+export function InterviewCodePanel({ docId, question, runnable, isLast }: { docId: string; question: string; runnable: boolean; isLast: boolean }) {
   const [lang, setLang] = useState<Lang>("python");
   const [code, setCode] = useState<string>(starter("python"));
   const [explanation, setExplanation] = useState("");
@@ -103,6 +103,11 @@ export function InterviewCodePanel({ docId, runnable, isLast }: { docId: string;
 
   return (
     <div className="mt-5 flex flex-col gap-3">
+      <div className="rounded-2xl border border-line bg-card p-4">
+        <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-cyan">Coding task</p>
+        <p className="mb-3 whitespace-pre-wrap text-[13.5px] leading-relaxed text-soft">{question}</p>
+      </div>
+
       <div className="rounded-2xl border border-line bg-card p-4">
         <div className="mb-2 flex items-center justify-between">
           <label className="text-[12.5px] font-semibold text-muted">

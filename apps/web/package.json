@@ -27,6 +27,7 @@
     "verify:resume": "tsx scripts/verify-resume.ts",
     "verify:project": "tsx scripts/verify-project.ts",
     "verify:interview": "tsx scripts/verify-interview.ts",
+    "verify:interview-vapi": "tsx scripts/verify-interview-vapi.ts",
     "verify:dsa": "tsx scripts/verify-dsa.ts",
     "verify:dsa-grade": "tsx scripts/verify-dsa-grade.ts",
     "verify:interview-run": "tsx scripts/verify-interview-run.ts",

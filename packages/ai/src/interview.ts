@@ -65,6 +65,13 @@ export const NextQuestionSchema = z.object({
   kind: z.enum(["question", "coding"]),
   /** coding only: true = self-contained logic the candidate can write + RUN; false = design/conceptual. */
   runnable: z.boolean().default(false),
+  /**
+   * Dynamic, AI-decided termination. true = the interviewer has gathered enough signal and
+   * wants to END the interview now (the `question` is then ignored — evaluation follows).
+   * The candidate never sees a question counter; the model decides when to wrap up, bounded
+   * by minQuestions (don't end too early) and a hard maxQuestions cap on the caller side.
+   */
+  wrapUp: z.boolean().default(false),
 });
 export type NextQuestion = z.infer<typeof NextQuestionSchema>;
 
@@ -73,6 +80,10 @@ export type NextQuestionRequest = {
   round: InterviewRound;
   questionNumber: number; // 1-based
   totalQuestions: number;
+  /** Don't allow wrapUp before this many candidate answers (keeps interviews substantive). */
+  minQuestions: number;
+  /** Hard upper bound the caller also enforces — past this the caller ends regardless. */
+  maxQuestions: number;
   transcript: InterviewTurn[];
   brief?: ResumeBrief;
   department?: string;
@@ -80,8 +91,13 @@ export type NextQuestionRequest = {
   jobDescription?: string;
 };
 
-function stubQuestion(req: NextQuestionRequest): NextQuestion {
-  const { round, questionNumber } = req;
+function stubQuestion(req: NextQuestionRequest): z.input<typeof NextQuestionSchema> {
+  const { round, questionNumber, totalQuestions } = req;
+  // Deterministic termination for the stub/verify path: once we've gone past the planned
+  // slots, signal wrap-up instead of inventing more questions.
+  if (questionNumber > totalQuestions) {
+    return { kind: "question", runnable: false, wrapUp: true, question: "Thanks — that's everything I wanted to cover." };
+  }
   if (round === "coding") {
     // Alternate a runnable logic problem and a non-runnable design problem to exercise both paths.
     if (questionNumber % 2 === 0) {
@@ -130,11 +146,15 @@ export async function nextInterviewQuestion(req: NextQuestionRequest): Promise<{
     "- runnable=false for design / infrastructure / conceptual coding (e.g. 'write a Redis or WebSocket connection', 'design a rate limiter', 'what is a webhook') — there you assess approach and syntax, not execution.",
     "For non-coding questions set kind='question' (runnable=false).",
     "Make it realistic for a real interview — favour practical problems over the hardest puzzle. Keep it to a single, clear question. Do not evaluate or hint.",
+    "PACING — you decide when the interview ends; the candidate sees no question count or timer:",
+    `- Set wrapUp=true ONLY once you have enough signal across the chosen rounds. Never wrap up before ${req.minQuestions} answers; you must wrap up by ${req.maxQuestions}.`,
+    "- When wrapUp=true, the question text is ignored, so just put a brief closing line and stop asking.",
+    "- Otherwise wrapUp=false and ask the next question, covering the planned rounds before ending.",
   ].join("\n");
   const prompt = [
     `Candidate context:\n${briefLines(req.brief, req.department)}`,
     req.jobDescription ? `Target job description (tailor questions to it):\n${req.jobDescription.slice(0, 1500)}` : "",
-    `Question ${req.questionNumber} of ${req.totalQuestions}.`,
+    `This is answer #${req.questionNumber} of the interview (current round: ${req.round}). You may continue or wrap up per the pacing rules — do NOT tell the candidate any count.`,
     req.transcript.length ? `Conversation so far:\n${transcriptText(req.transcript)}` : "This is the first question.",
   ].filter(Boolean).join("\n\n");
 
@@ -148,6 +168,78 @@ export async function nextInterviewQuestion(req: NextQuestionRequest): Promise<{
     }
   }
   throw new Error(`Interview question failed: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
+}
+
+// ----------------------- Up-front question SET (VAPI voice flow) -----------------------
+// The live voice interview (adrianhajdin pattern) needs all questions generated up front so they
+// can be injected into the Vapi assistant via variableValues. Same grounding as nextInterviewQuestion,
+// but one batched call returning a question per planned round slot.
+
+export const QuestionItemSchema = z.object({
+  question: z.string().min(1),
+  kind: z.enum(["question", "coding"]),
+  runnable: z.boolean().default(false),
+  round: InterviewRoundSchema,
+});
+export type QuestionItem = z.infer<typeof QuestionItemSchema>;
+
+const QuestionSetSchema = z.object({ questions: z.array(QuestionItemSchema).min(1) });
+
+export type QuestionSetRequest = {
+  config: InterviewConfig;
+  /** Ordered rounds, one per question slot (e.g. [technical, technical, behavioral, coding]). */
+  plan: InterviewRound[];
+  brief?: ResumeBrief;
+  department?: string;
+  jobDescription?: string;
+};
+
+function stubQuestionSet(req: QuestionSetRequest): QuestionItem[] {
+  return req.plan.map((round, i) => {
+    const q = stubQuestion({
+      config: req.config, round, questionNumber: i + 1, totalQuestions: req.plan.length,
+      minQuestions: 0, maxQuestions: req.plan.length, transcript: [], brief: req.brief,
+      department: req.department, jobDescription: req.jobDescription,
+    });
+    return { question: q.question, kind: q.kind, runnable: q.runnable ?? false, round };
+  });
+}
+
+export async function generateInterviewQuestionSet(req: QuestionSetRequest): Promise<{ questions: QuestionItem[]; model: string }> {
+  if (process.env.AI_DRIVER === "stub") {
+    return { questions: stubQuestionSet(req).map((q) => QuestionItemSchema.parse(q)), model: "stub" };
+  }
+
+  const rounds = req.plan.map((r, i) => `${i + 1}. ${r}`).join("\n");
+  const system = [
+    INTERVIEWER_SYSTEM,
+    `This is a ${req.config.role} interview conducted by voice. Produce the FULL list of questions up front — one for each numbered slot below, matching that slot's round.`,
+    `Slots (round per slot):\n${rounds}`,
+    "Rules:",
+    "- Ground every question in the candidate's resume/skills/projects and the job description where given; make them specific, not generic.",
+    "- For a 'coding' slot set kind='coding'. runnable=true ONLY for a self-contained logic/algorithm problem they can write as a COMPLETE runnable program; runnable=false for design/conceptual coding.",
+    "- For 'technical'/'behavioral' slots set kind='question', runnable=false.",
+    "- One clear question per slot. Build a natural progression. Do NOT include answers or hints.",
+    "- These are spoken aloud by a voice agent: avoid markdown, code blocks, slashes and asterisks in the text.",
+    "Return exactly one question per slot, in order.",
+  ].join("\n");
+  const prompt = [
+    `Candidate context:\n${briefLines(req.brief, req.department)}`,
+    req.jobDescription ? `Target job description (tailor to it):\n${req.jobDescription.slice(0, 1500)}` : "",
+  ].filter(Boolean).join("\n\n");
+
+  let lastError: unknown;
+  for (const model of [PRIMARY_MODEL, FALLBACK_MODEL]) {
+    try {
+      const { object } = await generateObject({ model, schema: QuestionSetSchema, system, prompt });
+      // Align rounds to the plan defensively (model may drift); keep its question/kind.
+      const questions = object.questions.slice(0, req.plan.length).map((q, i) => ({ ...q, round: req.plan[i] ?? q.round }));
+      if (questions.length) return { questions, model };
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw new Error(`Interview question set failed: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
 }
 
 // ----------------------- Stuck-help nudge (5.3) -----------------------
