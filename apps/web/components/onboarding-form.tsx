@@ -7,6 +7,27 @@ import { DEPARTMENTS, SEMESTERS } from "@/lib/constants";
 import { CODING_DEPARTMENTS } from "@/lib/capabilities";
 import { Sparkle } from "@/components/icons";
 
+// Target roles for career-goal mapping (mockup: "What's your vision?").
+const CAREER_GOALS = [
+  "Software Engineer",
+  "Data Scientist",
+  "Product Manager",
+  "ML / AI Engineer",
+  "Core Engineering (Mech/Civil/Elec)",
+  "Higher Studies / Research",
+  "Entrepreneurship",
+  "Undecided",
+] as const;
+
+const CAREER_INSIGHT: Record<string, string> = {
+  "Software Engineer": "Strong DSA + system design skills see a 40% higher placement rate at top product companies.",
+  "Data Scientist": "Pairing statistics with a portfolio of real projects is the #1 differentiator recruiters look for.",
+  "Product Manager": "A public profile showing shipped projects beats a generic resume for PM internships.",
+  "ML / AI Engineer": "Reproducible notebooks + a deployed demo convert far better than coursework alone.",
+  "Higher Studies / Research": "Early research involvement and a strong SOP matter more than raw GPA for admits.",
+  "Entrepreneurship": "Building and shipping anything end-to-end is the strongest signal of founder potential.",
+};
+
 const fieldLabel = "mb-1.5 block text-[12.5px] font-semibold text-muted";
 const fieldBox =
   "w-full rounded-xl border border-line-strong bg-surface px-3.5 py-2.5 text-[14px] text-ink outline-none transition-colors focus:border-cyan/50";
@@ -18,6 +39,7 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
   const [coding, setCoding] = useState(false);
   const [codingTouched, setCodingTouched] = useState(false);
   const [accepted, setAccepted] = useState(false);
+  const [goal, setGoal] = useState("");
 
   function onDept(value: string) {
     setDept(value);
@@ -29,10 +51,10 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
     <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-12">
       <div className="w-full max-w-[440px]">
         <div className="mb-6 flex items-center gap-2.5">
-          <span className="flex size-9 items-center justify-center rounded-xl bg-accent-gradient shadow-[0_0_18px_rgba(34,211,238,0.4)]">
+          <span className="flex size-9 items-center justify-center rounded-xl bg-accent-gradient shadow-[0_0_18px_rgba(79,70,229,0.4)]">
             <Sparkle size={18} className="text-on-accent" />
           </span>
-          <span className="font-display text-lg font-bold text-ink">StudentOS</span>
+          <span className="font-display text-lg font-bold text-ink">Vidyas OS</span>
         </div>
 
         <h1 className="font-display text-[24px] font-bold leading-tight text-ink">
@@ -65,6 +87,21 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
             </select>
           </div>
 
+          {/* Career-goal mapping — "What's your vision?" */}
+          <div className="mb-4">
+            <label htmlFor="careerGoal" className={fieldLabel}>Career goal</label>
+            <select id="careerGoal" name="careerGoal" value={goal} onChange={(e) => setGoal(e.target.value)} className={fieldBox}>
+              <option value="">What&apos;s your vision? (optional)</option>
+              {CAREER_GOALS.map((g) => <option key={g} value={g}>{g}</option>)}
+            </select>
+            {CAREER_INSIGHT[goal] ? (
+              <div className="mt-2 rounded-lg border border-cyan/20 bg-cyan/[0.06] px-3 py-2">
+                <p className="text-[11px] font-bold uppercase tracking-wide text-cyan">Career Insight</p>
+                <p className="mt-0.5 text-[12px] text-soft">{CAREER_INSIGHT[goal]}</p>
+              </div>
+            ) : null}
+          </div>
+
           {/* Coding track — seeded by branch, but the student decides. */}
           <label className="mb-5 flex cursor-pointer items-start gap-2.5 rounded-xl border border-line-strong bg-surface/60 p-3">
             <input type="checkbox" name="codingEnabled" checked={coding} onChange={(e) => { setCoding(e.target.checked); setCodingTouched(true); }} className="mt-0.5 size-4 accent-cyan" />
@@ -91,9 +128,9 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
           <button
             type="submit"
             disabled={pending || !accepted}
-            className="w-full rounded-xl bg-accent-gradient py-3 text-[14px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(34,211,238,0.3)] transition-transform hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
+            className="w-full rounded-xl bg-accent-gradient py-3 text-[14px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(79,70,229,0.3)] transition-transform hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
           >
-            {pending ? "Setting up your workspace…" : "Enter StudentOS →"}
+            {pending ? "Setting up your workspace…" : "Enter Vidyas OS →"}
           </button>
         </form>
       </div>

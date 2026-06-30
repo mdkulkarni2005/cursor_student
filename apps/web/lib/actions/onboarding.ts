@@ -17,6 +17,7 @@ export async function completeOnboarding(
   const department = String(formData.get("department") ?? "").trim();
   const college = String(formData.get("college") ?? "").trim();
   const semester = String(formData.get("semester") ?? "").trim();
+  const careerGoal = String(formData.get("careerGoal") ?? "").trim();
   const codingEnabled = formData.get("codingEnabled") === "on";
   const acceptedLegal = formData.get("acceptedLegal") === "on";
 
@@ -36,6 +37,7 @@ export async function completeOnboarding(
     data: {
       department,
       semester,
+      careerGoal: careerGoal || null,
       institutionId: institution.id,
       codingEnabled,
       acceptedLegalAt: new Date(),

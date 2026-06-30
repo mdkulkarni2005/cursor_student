@@ -24,20 +24,20 @@ export type NavItem = {
 
 export const WORKSPACE_NAV: NavItem[] = [
   { label: "Home", href: "/dashboard", icon: Home, mobile: true },
-  { label: "Workspace", href: "/workspace", icon: LayersIcon },
+  { label: "Semester Hub", href: "/semester", icon: LayersIcon, mobile: true },
+  { label: "Vault", href: "/vault", icon: ArchiveIcon, mobile: true },
   { label: "Assignments", href: "/assignments", icon: PencilIcon, mobile: true },
   { label: "Reports & PPT", href: "/reports", icon: SlidesIcon, mobile: true },
   { label: "Viva Prep", href: "/viva", icon: HelpIcon },
   { label: "Resume Builder", href: "/resume", icon: ResumeIcon },
   { label: "Interview Prep", href: "/interview", icon: MicIcon },
   { label: "DSA Practice", href: "/dsa", icon: CodeIcon },
-  { label: "Project Ideas", href: "/projects", icon: GearIcon },
-  { label: "Vault", href: "/vault", icon: ArchiveIcon, mobile: true },
+  { label: "Project Ideas", href: "/projects", icon: StarIcon },
 ];
 
 export const YOU_NAV: NavItem[] = [
   { label: "Profile Link", href: "/profile", icon: LinkIcon },
-  { label: "Plans & Billing", href: "/plans", icon: StarIcon },
+  { label: "Settings", href: "/settings", icon: GearIcon },
 ];
 
 export const ALL_NAV = [...WORKSPACE_NAV, ...YOU_NAV];

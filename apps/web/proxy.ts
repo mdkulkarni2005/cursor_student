@@ -1,8 +1,18 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-// Everything is private except the auth screens and the public legal pages.
-const isPublicRoute = createRouteMatcher(["/", "/sign-in(.*)", "/sign-up(.*)", "/privacy(.*)", "/terms(.*)"]);
+// Everything is private except the auth screens, public legal pages, and
+// the shareable public academic profile at /u/[handle].
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/sign-in(.*)",
+  "/sign-up(.*)",
+  "/privacy(.*)",
+  "/terms(.*)",
+  "/u/(.*)",
+]);
+
+
 
 export default clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {

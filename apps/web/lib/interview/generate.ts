@@ -44,8 +44,10 @@ export type AnswerMeta = { language?: string; runOutput?: string };
  * decides when to wrap up (`wrapUp`) somewhere between these. MIN keeps it substantive; MAX
  * is a hard cost/length cap the caller enforces even if the model never wraps up.
  */
-const MIN_QUESTIONS = 5;
-const MAX_QUESTIONS = 8;
+const MIN_QUESTIONS = 6;
+// Hard cap on questions in one interview (the interviewer works through these, then prompts the
+// candidate to End). Kept at most ~10-15 per product requirement.
+const MAX_QUESTIONS = 14;
 
 /**
  * The interview opens like a real one: the interviewer greets the candidate and asks them to
@@ -67,7 +69,9 @@ const INTRO_TURN: InterviewTurn = {
 function buildPlan(rounds: InterviewRound[]): InterviewRound[] {
   const plan: InterviewRound[] = [];
   for (const r of rounds) {
-    const n = r === "coding" ? 2 : 3;
+    // A fuller interview: ~4 questions per spoken round, with coding kept to 2 (it's longer). The
+    // hard MAX cap keeps the whole session at most ~10-15 questions.
+    const n = r === "coding" ? 2 : 4;
     for (let i = 0; i < n; i++) plan.push(r);
   }
   return plan.slice(0, MAX_QUESTIONS);

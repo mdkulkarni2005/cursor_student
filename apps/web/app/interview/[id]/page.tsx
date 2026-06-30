@@ -26,8 +26,8 @@ export default async function InterviewSessionPage({ params }: { params: Promise
 
   return (
     <AppShell user={shellUserFrom(user)}>
-      <div className="mx-auto max-w-[780px]">
-        <Link href="/interview" className="text-[13px] text-muted transition-colors hover:text-soft">← All interviews</Link>
+      <div className={`mx-auto ${state.phase === "complete" && ev ? "max-w-[1000px]" : "max-w-[780px]"}`}>
+        <Link href="/interview" className="text-[13px] text-muted transition-colors hover:text-cyan">← All interviews</Link>
 
         <div className="mt-3 flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
@@ -92,53 +92,63 @@ export default async function InterviewSessionPage({ params }: { params: Promise
 
         {/* Evaluation report */}
         {state.phase === "complete" && ev ? (
-          <div className="mt-6 rounded-2xl border border-line bg-card p-6">
-            <div className="flex items-center gap-4">
-              <div className={`flex size-16 items-center justify-center rounded-full text-[22px] font-bold ${scoreColor(ev.overall)}`}>{ev.overall}</div>
+          <div className="mt-6 space-y-6">
+            {/* Score header */}
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-line bg-card p-6">
               <div>
-                <h2 className="font-display text-[16px] font-semibold text-ink">Evaluation</h2>
-                <p className="text-[13px] text-muted">{ev.verdict}</p>
+                <p className="text-[11px] font-bold uppercase tracking-widest text-cyan">Evaluation Report</p>
+                <h2 className="font-display text-[22px] font-bold text-ink">{state.config.role || loaded.title}</h2>
+                <p className="mt-1 text-[13.5px] text-muted">{ev.verdict}</p>
+              </div>
+              <div className={`flex size-[82px] flex-col items-center justify-center rounded-2xl ${scoreColor(ev.overall)}`}>
+                <span className="font-display text-[30px] font-bold leading-none">{ev.overall}</span>
+                <span className="text-[10px] font-semibold uppercase opacity-80">/ 100</span>
               </div>
             </div>
 
-            <div className="mt-5 space-y-2">
-              {ev.areas.map((a, i) => (
-                <div key={i} className="rounded-xl border border-line bg-surface/40 p-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-[13px] font-semibold text-ink">{a.name}</p>
-                    <span className={`rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold ${scoreColor(a.score)}`}>{a.score}</span>
-                  </div>
-                  <p className="mt-1 text-[12.5px] text-soft">{a.notes}</p>
-                </div>
-              ))}
+            {/* Proficiency bars */}
+            <div className="rounded-2xl border border-line bg-card p-6">
+              <h3 className="mb-5 font-display text-[16px] font-semibold text-ink">Performance Breakdown</h3>
+              <div className="grid grid-cols-1 gap-x-10 gap-y-5 sm:grid-cols-2">
+                {ev.areas.map((a, i) => {
+                  const tone = a.score >= 75 ? "bg-success" : a.score >= 50 ? "bg-warning" : "bg-danger";
+                  return (
+                    <div key={i}>
+                      <div className="mb-1.5 flex items-center justify-between text-[13px]">
+                        <span className="font-medium text-soft">{a.name}</span>
+                        <span className="font-bold text-ink">{a.score}%</span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-surface">
+                        <div className={`h-full rounded-full ${tone}`} style={{ width: `${Math.min(100, a.score)}%` }} />
+                      </div>
+                      {a.notes ? <p className="mt-1.5 text-[12px] leading-relaxed text-muted">{a.notes}</p> : null}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            {/* Improvement roadmap */}
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               {ev.strengths.length > 0 ? (
-                <div>
-                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-faint">Strengths</p>
-                  <ul className="space-y-1">
-                    {ev.strengths.map((s, i) => (
-                      <li key={i} className="flex gap-1.5 text-[12.5px] text-soft"><span className="text-success">✓</span>{s}</li>
-                    ))}
+                <div className="rounded-2xl border border-line bg-card p-6">
+                  <h3 className="mb-3 flex items-center gap-2 font-display text-[15px] font-semibold text-ink"><span className="text-success">✓</span> Strengths</h3>
+                  <ul className="space-y-2">
+                    {ev.strengths.map((s, i) => (<li key={i} className="flex gap-2 text-[13px] text-soft"><span className="mt-0.5 text-success">•</span>{s}</li>))}
                   </ul>
                 </div>
               ) : null}
               {ev.improvements.length > 0 ? (
-                <div>
-                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-faint">Where to improve</p>
-                  <ul className="space-y-1">
-                    {ev.improvements.map((s, i) => (
-                      <li key={i} className="flex gap-1.5 text-[12.5px] text-soft"><span className="text-cyan">→</span>{s}</li>
-                    ))}
+                <div className="rounded-2xl border border-cyan/25 bg-cyan/[0.05] p-6">
+                  <h3 className="mb-3 flex items-center gap-2 font-display text-[15px] font-semibold text-ink"><span className="text-cyan">✦</span> Personalized Improvement Roadmap</h3>
+                  <ul className="space-y-2">
+                    {ev.improvements.map((s, i) => (<li key={i} className="flex gap-2 text-[13px] text-soft"><span className="mt-0.5 text-cyan">→</span>{s}</li>))}
                   </ul>
                 </div>
               ) : null}
             </div>
 
-            <Link href="/interview" className="mt-5 inline-block rounded-xl border border-line-strong bg-surface px-4 py-2 text-[13px] font-semibold text-soft transition-colors hover:border-cyan/40 hover:text-cyan">
-              Practice again →
-            </Link>
+            <Link href="/interview" className="inline-block rounded-xl bg-cyan px-5 py-2.5 text-[13.5px] font-semibold text-on-accent transition-transform hover:-translate-y-0.5">Practice again →</Link>
           </div>
         ) : null}
       </div>

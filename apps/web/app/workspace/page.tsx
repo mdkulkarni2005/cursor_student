@@ -42,14 +42,14 @@ export default async function WorkspacePage() {
           </div>
           <Link
             href="/reports"
-            className="rounded-xl bg-accent-gradient px-4 py-2.5 text-[13.5px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(34,211,238,0.3)] transition-transform hover:-translate-y-0.5"
+            className="rounded-xl bg-accent-gradient px-4 py-2.5 text-[13.5px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(79,70,229,0.3)] transition-transform hover:-translate-y-0.5"
           >
             New report
           </Link>
         </div>
 
         {docs.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-dashed border-line-strong bg-card/50 p-10 text-center">
+          <div className="mt-6 rounded-2xl border border-dashed border-line-strong bg-card p-10 text-center">
             <p className="text-[14px] text-muted">This semester&apos;s workspace is empty.</p>
             <p className="mt-1 text-[12.5px] text-faint">
               Anything you generate this semester lands here, organized by type.

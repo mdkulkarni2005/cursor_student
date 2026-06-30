@@ -1,7 +1,7 @@
 import { prisma } from "@studentos/db";
 import { requireAdmin } from "@/lib/admin";
 
-export const metadata = { title: "Admin — StudentOS" };
+export const metadata = { title: "Admin — Vidyas OS" };
 
 function fmtDate(d: Date | null): string {
   if (!d) return "—";
@@ -9,7 +9,7 @@ function fmtDate(d: Date | null): string {
 }
 
 const PLAN_STYLE: Record<string, string> = {
-  FREE: "text-muted bg-white/5", PRO: "text-cyan bg-cyan/12", PREMIUM: "text-indigo bg-indigo/12",
+  FREE: "text-muted bg-surface", PRO: "text-cyan bg-cyan/12", PREMIUM: "text-indigo bg-indigo/12",
 };
 
 export default async function AdminPage() {
@@ -67,7 +67,7 @@ export default async function AdminPage() {
             </thead>
             <tbody>
               {users.map((u) => (
-                <tr key={u.id} className="border-b border-line/60 last:border-0 hover:bg-white/[0.02]">
+                <tr key={u.id} className="border-b border-line/60 last:border-0 hover:bg-surface">
                   <td className="px-3 py-2.5">
                     <p className="font-medium text-ink">{u.name ?? "—"}</p>
                     <p className="text-[11px] text-faint">{u.email}</p>

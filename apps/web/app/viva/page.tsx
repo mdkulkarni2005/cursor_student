@@ -30,7 +30,7 @@ export default async function VivaPage() {
         </p>
 
         {docs.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-line-strong bg-card/50 p-10 text-center">
+          <div className="rounded-2xl border border-dashed border-line-strong bg-card p-10 text-center">
             <p className="text-[14px] text-muted">Nothing to prepare from yet.</p>
             <p className="mt-1 text-[12.5px] text-faint">
               Generate a report, PPT or assignment first, then come back here.

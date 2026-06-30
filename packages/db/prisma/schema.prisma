@@ -7,9 +7,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
   // Neon: pooled connection for the app...
-  url = env("DATABASE_URL")
+  url       = env("DATABASE_URL")
   // ...and a direct (unpooled) connection for migrations.
   directUrl = env("DIRECT_URL")
 }
@@ -85,35 +85,42 @@ enum UsageKind {
 // ----------------------------- Core ---------------------------------------
 
 model User {
-  id         String   @id @default(cuid())
-  clerkId    String   @unique
-  email      String   @unique
-  name       String?
+  id           String    @id @default(cuid())
+  clerkId      String    @unique
+  email        String    @unique
+  name         String?
   // Academic context — powers department/semester-aware generation.
-  department String?
-  semester   String?
-  onboardedAt DateTime?
-  plan       Plan     @default(FREE)
+  department   String?
+  semester     String?
+  // Career intent captured at onboarding (e.g. "Software Engineer") — powers career-goal mapping.
+  careerGoal   String?
+  // Public shareable profile handle (e.g. "arjun-mehta-4f2a"). Null = the student hasn't shared
+  // their profile yet; set on first "Share Profile". Resolves /u/[handle].
+  publicHandle String?   @unique
+  onboardedAt  DateTime?
+  plan         Plan      @default(FREE)
 
   // Branch-aware capability: coding track (DSA + coding interview round). Department seeds the
   // default at onboarding, but the student can opt in/out. Default true = fail-open (show everything).
-  codingEnabled Boolean @default(true)
+  codingEnabled   Boolean   @default(true)
   // Legal acceptance — captured as the last step of onboarding.
   acceptedLegalAt DateTime?
   // Lightweight activity metrics for the admin panel (no per-token accounting).
-  lastSeenAt DateTime?
-  appOpens   Int       @default(0)
+  lastSeenAt      DateTime?
+  appOpens        Int       @default(0)
 
   institutionId String?
   institution   Institution? @relation(fields: [institutionId], references: [id])
 
-  workspaces   Workspace[]
-  documents    Document[]
-  uploads      Upload[]
-  subscription Subscription?
-  usageEvents  UsageEvent[]
-  dsaAttempts  DsaAttempt[]
+  workspaces      Workspace[]
+  documents       Document[]
+  uploads         Upload[]
+  subscription    Subscription?
+  usageEvents     UsageEvent[]
+  dsaAttempts     DsaAttempt[]
   assistantThread AssistantThread?
+  deadlines       Deadline[]
+  studyPlans      StudyPlan[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -122,12 +129,12 @@ model User {
 }
 
 model Institution {
-  id         String   @id @default(cuid())
+  id         String     @id @default(cuid())
   name       String // college name
   university String?
   users      User[]
   templates  Template[]
-  createdAt  DateTime @default(now())
+  createdAt  DateTime   @default(now())
 
   @@unique([name, university])
 }
@@ -175,6 +182,7 @@ model Subject {
   name        String
   code        String?
   documents   Document[]
+  deadlines   Deadline[]
 
   @@index([workspaceId])
 }
@@ -182,12 +190,12 @@ model Subject {
 // ----------------------------- Documents ----------------------------------
 
 model Document {
-  id     String         @id @default(cuid())
+  id      String         @id @default(cuid())
   ownerId String
-  owner   User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  type   DocumentType
-  title  String
-  status DocumentStatus @default(DRAFT)
+  owner   User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  type    DocumentType
+  title   String
+  status  DocumentStatus @default(DRAFT)
 
   workspaceId String?
   workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
@@ -329,4 +337,41 @@ model DsaAttempt {
 
   @@index([userId, createdAt])
   @@index([userId, problemSlug])
+}
+
+// ----------------------------- Semester planning --------------------------
+
+// A dated obligation (exam, quiz, lab, paper) — powers Semester Hub "Critical Deadlines"
+// and Subject Detail "Upcoming". Optionally tied to a subject.
+model Deadline {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId String?
+  subject   Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  title     String
+  // exam | quiz | lab | paper | assignment | other
+  kind      String   @default("other")
+  dueAt     DateTime
+  done      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, dueAt])
+}
+
+// An AI-generated exam-prep plan — powers the Exam Planner. `roadmap` holds the day-by-day
+// plan JSON; `readiness` is a 0–100 estimate.
+model StudyPlan {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetExam String
+  examDate   DateTime?
+  readiness  Int       @default(0)
+  // [{ day, label, items: [{ text, kind }] }]
+  roadmap    Json      @default("[]")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([userId, createdAt])
 }

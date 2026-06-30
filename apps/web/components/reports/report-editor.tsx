@@ -63,7 +63,7 @@ function parseDoc(root: HTMLElement): ReportData {
 function SaveButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" loading={pending} loadingText="Saving…" className="rounded-lg bg-accent-gradient px-4 py-2 text-[13px] font-semibold text-on-accent shadow-[0_4px_14px_rgba(34,211,238,0.3)]">
+    <Button type="submit" loading={pending} loadingText="Saving…" className="rounded-lg bg-accent-gradient px-4 py-2 text-[13px] font-semibold text-on-accent shadow-[0_4px_14px_rgba(79,70,229,0.3)]">
       Save to template
     </Button>
   );
@@ -72,7 +72,7 @@ function SaveButton() {
 function TBtn({ title, onRun, children }: { title: string; onRun: () => void; children: React.ReactNode }) {
   return (
     <button type="button" title={title} onMouseDown={(e) => { e.preventDefault(); onRun(); }}
-      className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-md px-2 text-[13px] font-semibold text-soft transition-colors hover:bg-white/10">
+      className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-md px-2 text-[13px] font-semibold text-soft transition-colors hover:bg-surface">
       {children}
     </button>
   );
@@ -86,8 +86,12 @@ const Sep = () => <span className="mx-0.5 h-5 w-px shrink-0 bg-line-strong" />;
  */
 function WordPreview({ docId, refreshKey }: { docId: string; refreshKey: number }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  // "pdf" = exact LibreOffice pages (Gotenberg up). "html" = docx-preview fallback (can't split
+  // long pages). "error" = nothing renderable.
   const [state, setState] = useState<"loading" | "pdf" | "html" | "error">("loading");
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  // Why the exact-PDF path wasn't used — surfaced to the user so this never silently spins.
+  const [note, setNote] = useState<string>("");
 
   const fit = useCallback(() => {
     const host = ref.current;
@@ -101,43 +105,63 @@ function WordPreview({ docId, refreshKey }: { docId: string; refreshKey: number 
     host.style.height = scale < 1 ? `${wrapper.scrollHeight * scale + 24}px` : "";
   }, []);
 
+  const renderHtml = useCallback(async (cancelled: () => boolean) => {
+    try {
+      const { renderAsync } = await import("docx-preview");
+      const res = await fetch(`/reports/${docId}/download`, { cache: "no-store" });
+      if (!res.ok) throw new Error("no export");
+      const blob = await res.blob();
+      if (cancelled() || !ref.current) return;
+      ref.current.innerHTML = "";
+      await renderAsync(blob, ref.current, undefined, {
+        className: "docx", inWrapper: true, breakPages: true, ignoreLastRenderedPageBreak: false, experimental: true,
+      });
+      if (cancelled()) return;
+      fit();
+      setState("html");
+    } catch {
+      if (!cancelled()) setState("error");
+    }
+  }, [docId, fit]);
+
   useEffect(() => {
-    let cancelled = false;
+    let done = false;
+    const cancelled = () => done;
     let objectUrl: string | null = null;
+    setPdfUrl(null);
+    setNote("");
     (async () => {
       setState("loading");
-      // 1) Try the exact PDF render.
+      // Fetch the exact page-PDF directly (one request = one LibreOffice conversion). A generous
+      // timeout means the first cold conversion has room, but the UI can never hang forever.
       try {
-        const res = await fetch(`/reports/${docId}/pdf`, { cache: "no-store" });
-        if (res.ok) {
+        const res = await fetch(`/reports/${docId}/pdf`, { cache: "no-store", signal: AbortSignal.timeout(45000) });
+        if (cancelled()) return;
+        if (res.ok && res.headers.get("content-type")?.includes("pdf")) {
           const blob = await res.blob();
-          if (cancelled) return;
+          if (cancelled()) return;
           objectUrl = URL.createObjectURL(blob);
-          setPdfUrl(objectUrl);
+          setPdfUrl(`${objectUrl}#toolbar=0&navpanes=0&scrollbar=0&statusbar=0&view=FitH`);
           setState("pdf");
           return;
         }
-      } catch { /* fall through to HTML renderer */ }
-      // 2) Fall back to the HTML docx renderer.
-      try {
-        const { renderAsync } = await import("docx-preview");
-        const res = await fetch(`/reports/${docId}/download`, { cache: "no-store" });
-        if (!res.ok) throw new Error("no export");
-        const blob = await res.blob();
-        if (cancelled || !ref.current) return;
-        ref.current.innerHTML = "";
-        await renderAsync(blob, ref.current, undefined, {
-          className: "docx", inWrapper: true, breakPages: true, ignoreLastRenderedPageBreak: false, experimental: true,
-        });
-        if (cancelled) return;
-        fit();
-        setState("html");
-      } catch {
-        if (!cancelled) setState("error");
+        // Not a PDF → explain why (503 = service not configured/up, 502 = conversion failed).
+        setNote(res.status === 503
+          ? "the page service isn't running"
+          : res.status === 502
+            ? "the page service couldn't convert this file"
+            : `the page service returned ${res.status}`);
+      } catch (e) {
+        if (cancelled()) return;
+        setNote(e instanceof DOMException && e.name === "TimeoutError"
+          ? "the page service didn't respond in time"
+          : "the page service is unreachable");
       }
+      // Fallback: docx-preview HTML (clean, no browser chrome, but can't split long pages).
+      await renderHtml(cancelled);
     })();
-    return () => { cancelled = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
-  }, [docId, refreshKey, fit]);
+    return () => { done = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [docId, refreshKey, renderHtml]);
 
   useEffect(() => {
     const onResize = () => fit();
@@ -148,15 +172,26 @@ function WordPreview({ docId, refreshKey }: { docId: string; refreshKey: number 
   return (
     <div className="relative">
       {state === "loading" ? (
-        <div className="flex items-center justify-center gap-2 py-16 text-[13px] text-faint"><Spinner /> Rendering your Word document…</div>
+        <div className="flex flex-col items-center justify-center gap-2 py-16 text-[13px] text-faint">
+          <Spinner /> Rendering exact A4 pages…
+          <span className="text-[11px]">the first one can take ~20–40s while LibreOffice warms up</span>
+        </div>
       ) : null}
       {state === "error" ? (
         <div className="py-12 text-center text-[13px] text-warning">Couldn&apos;t render the preview. Use <span className="font-semibold">Download DOCX</span> to open it in Word.</div>
       ) : null}
       {state === "pdf" && pdfUrl ? (
-        <iframe title="Report preview" src={pdfUrl} className="h-[78vh] w-full rounded-sm bg-white" />
+        <iframe title="Report preview" src={pdfUrl} className="h-[80vh] w-full rounded-lg border border-line bg-white" />
       ) : null}
-      <div className="docxp overflow-auto" ref={ref} style={{ display: state === "html" ? "block" : "none" }} />
+      {state === "html" ? (
+        <>
+          <div className="mb-3 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/[0.07] px-3.5 py-2.5 text-[12px] text-warning">
+            <span>⚠</span>
+            <span>Showing a simplified preview because <span className="font-semibold">{note || "the page service is unavailable"}</span> — long sections appear as one tall page. For exact A4 pages, run <span className="font-mono font-semibold">pnpm gotenberg</span> (needs Docker) and reopen this tab. The downloaded DOCX is always correctly paginated.</span>
+          </div>
+          <div className="docxp overflow-auto" ref={ref} />
+        </>
+      ) : null}
     </div>
   );
 }
@@ -165,8 +200,8 @@ export function ReportEditor({ docId, initial, editable = true, hasExport = fals
   const editorRef = useRef<HTMLDivElement>(null);
   const hiddenRef = useRef<HTMLInputElement>(null);
   const savedRange = useRef<Range | null>(null);
-  // Default to the faithful Word preview when a DOCX exists; else go straight to editing.
-  const [mode, setMode] = useState<"preview" | "edit">(hasExport ? "preview" : "edit");
+  // Default to the clean "academic submission" document view; the Word-accurate preview is secondary.
+  const [mode, setMode] = useState<"preview" | "edit">("edit");
   const [previewKey, setPreviewKey] = useState(0);
 
   useEffect(() => {
@@ -196,11 +231,11 @@ export function ReportEditor({ docId, initial, editable = true, hasExport = fals
 
   const Tabs = (
     <div className="flex items-center gap-1 rounded-lg bg-surface p-0.5">
-      {hasExport ? (
-        <button type="button" onClick={() => setMode("preview")} className={`rounded-md px-3 py-1.5 text-[12.5px] font-semibold transition-colors ${mode === "preview" ? "bg-cyan/20 text-cyan" : "text-muted hover:text-soft"}`}>Preview</button>
-      ) : null}
       {editable ? (
-        <button type="button" onClick={() => setMode("edit")} className={`rounded-md px-3 py-1.5 text-[12.5px] font-semibold transition-colors ${mode === "edit" ? "bg-cyan/20 text-cyan" : "text-muted hover:text-soft"}`}>Edit text</button>
+        <button type="button" onClick={() => setMode("edit")} className={`rounded-md px-3 py-1.5 text-[12.5px] font-semibold transition-colors ${mode === "edit" ? "bg-cyan/20 text-cyan" : "text-muted hover:text-soft"}`}>Document</button>
+      ) : null}
+      {hasExport ? (
+        <button type="button" onClick={() => setMode("preview")} className={`rounded-md px-3 py-1.5 text-[12.5px] font-semibold transition-colors ${mode === "preview" ? "bg-cyan/20 text-cyan" : "text-muted hover:text-soft"}`}>Word preview</button>
       ) : null}
     </div>
   );
@@ -208,12 +243,12 @@ export function ReportEditor({ docId, initial, editable = true, hasExport = fals
   // ---------- Preview (faithful Word render) ----------
   if (mode === "preview") {
     return (
-      <div className="mt-6 overflow-hidden rounded-2xl border border-line bg-[#0b0f1a]">
+      <div className="mt-6 overflow-hidden rounded-2xl border border-line bg-surface">
         <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
           {Tabs}
           <span className="text-[11px] text-faint">Page-accurate Word preview</span>
         </div>
-        <div className="bg-[#12161f] p-2 sm:p-6">
+        <div className="bg-surface p-2 sm:p-6">
           <WordPreview docId={docId} refreshKey={previewKey} />
         </div>
         <p className="border-t border-line px-4 py-2 text-[11px] text-faint">This is your actual Word file — pages, borders and images from your template, rendered exactly as it downloads.</p>
@@ -224,23 +259,25 @@ export function ReportEditor({ docId, initial, editable = true, hasExport = fals
   // ---------- Edit (text WYSIWYG) ----------
   if (!editable) {
     return (
-      <div className="mt-6 rounded-2xl border border-line bg-[#11151f] p-3 sm:p-5">
-        <p className="mb-3 text-center text-[12px] text-faint">Preview — editing unlocks once the report is ready.</p>
-        <div className="doc-surface mx-auto w-full max-w-[816px] rounded-sm bg-white px-[7%] py-10 text-black shadow-2xl sm:px-16 [&_h2]:mt-5 [&_h2]:text-[17px] [&_h2]:font-bold [&_p]:my-2 [&_p]:text-justify [&_p]:leading-relaxed"
-          style={{ fontFamily: "'Times New Roman', Times, serif" }} dangerouslySetInnerHTML={{ __html: buildHtml(initial) }} />
+      <div className="mt-6 rounded-2xl border border-line bg-canvas p-3 sm:p-6">
+        <p className="mb-4 text-center text-[12px] text-faint">Preview — editing unlocks once the report is ready.</p>
+        <div className="report-doc mx-auto w-full max-w-[760px] rounded-2xl border border-line bg-white px-8 py-10 shadow-[0_4px_24px_rgba(15,23,42,0.06)] sm:px-12">
+          <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-cyan">Academic Submission</p>
+          <div dangerouslySetInnerHTML={{ __html: buildHtml(initial) }} />
+        </div>
       </div>
     );
   }
 
   return (
     <form action={updateReportAction} onSubmit={() => setTimeout(() => { setPreviewKey((k) => k + 1); setMode(hasExport ? "preview" : "edit"); }, 50)}
-      className="mt-6 rounded-2xl border border-cyan/25 bg-[#11151f]">
+      className="mt-6 rounded-2xl border border-cyan/25 bg-surface">
       <input type="hidden" name="docId" value={docId} />
       <input ref={hiddenRef} type="hidden" name="report" />
 
       {/* Toolbar — sticky to the top of the page scroll so it's reachable while editing anywhere.
           (The form must NOT have overflow-hidden, or sticky positioning breaks.) */}
-      <div className="sticky top-0 z-30 rounded-t-2xl border-b border-line bg-[#0e1320]/95 px-2 py-2 shadow-[0_4px_12px_rgba(0,0,0,0.35)] backdrop-blur">
+      <div className="sticky top-0 z-30 rounded-t-2xl border-b border-line bg-card/95 px-2 py-2 shadow-[0_4px_12px_rgba(15,23,42,0.10)] backdrop-blur">
         <div className="mb-2 flex items-center justify-between gap-2">{Tabs}<SaveButton /></div>
         <div className="flex flex-nowrap items-center gap-1 overflow-x-auto sm:flex-wrap">
           <select aria-label="Paragraph style" onChange={(e) => { exec("formatBlock", e.target.value); e.target.selectedIndex = 0; }}
@@ -259,7 +296,7 @@ export function ReportEditor({ docId, initial, editable = true, hasExport = fals
           <TBtn title="Bold" onRun={() => exec("bold")}><span className="font-bold">B</span></TBtn>
           <TBtn title="Italic" onRun={() => exec("italic")}><span className="italic">I</span></TBtn>
           <TBtn title="Underline" onRun={() => exec("underline")}><span className="underline">U</span></TBtn>
-          <label title="Text color" className="flex h-8 shrink-0 cursor-pointer items-center rounded-md px-1 hover:bg-white/10" onMouseDown={(e) => e.preventDefault()}>
+          <label title="Text color" className="flex h-8 shrink-0 cursor-pointer items-center rounded-md px-1 hover:bg-surface" onMouseDown={(e) => e.preventDefault()}>
             <span className="text-[13px] font-semibold text-soft">A</span>
             <input type="color" defaultValue="#000000" onChange={(e) => exec("foreColor", e.target.value)} className="ml-0.5 size-4 cursor-pointer border-0 bg-transparent p-0" />
           </label>
@@ -277,14 +314,16 @@ export function ReportEditor({ docId, initial, editable = true, hasExport = fals
         </div>
       </div>
 
-      <div className="doc-surface bg-[#12161f] px-1 py-4 sm:px-6 sm:py-8">
-        <div ref={editorRef} contentEditable suppressContentEditableWarning spellCheck
-          onInput={sync} onMouseUp={saveSel} onKeyUp={saveSel} onBlur={() => { saveSel(); sync(); }}
-          className="mx-auto min-h-[60vh] w-full max-w-[816px] rounded-sm bg-white px-[6%] py-10 text-black shadow-2xl outline-none sm:px-16 sm:py-14 [&_h1]:mt-6 [&_h1]:text-[22px] [&_h1]:font-bold [&_h2]:mt-5 [&_h2]:text-[17px] [&_h2]:font-bold [&_h3]:mt-4 [&_h3]:text-[15px] [&_h3]:font-semibold [&_li]:mb-1 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-2 [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-6"
-          style={{ fontFamily: "'Times New Roman', Times, serif" }} />
+      <div className="bg-canvas px-2 py-5 sm:px-6 sm:py-8">
+        <div className="mx-auto w-full max-w-[760px] rounded-2xl border border-line bg-white px-8 py-10 shadow-[0_4px_24px_rgba(15,23,42,0.06)] sm:px-12">
+          <p className="mb-1 text-[11px] font-bold uppercase tracking-widest text-cyan">Academic Submission</p>
+          <div ref={editorRef} contentEditable suppressContentEditableWarning spellCheck
+            onInput={sync} onMouseUp={saveSel} onKeyUp={saveSel} onBlur={() => { saveSel(); sync(); }}
+            className="report-doc min-h-[55vh] outline-none" />
+        </div>
       </div>
 
-      <p className="border-t border-line px-4 py-2 text-[11px] text-faint">Edit the words here; on save we write them back into <span className="text-soft">your uploaded template</span> and re-render the Word file.</p>
+      <p className="border-t border-line px-4 py-2 text-[11px] text-faint">Edit the words here; on save we write them back into <span className="text-soft">your uploaded template</span> and re-render the Word file (use <span className="text-soft">Word preview</span> to see the exact pages).</p>
     </form>
   );
 }

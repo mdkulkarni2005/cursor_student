@@ -16,7 +16,7 @@ async function bumpActivity(user: User): Promise<void> {
 }
 
 /**
- * Returns the StudentOS DB user for the signed-in Clerk user, creating the row
+ * Returns the Vidyas OS DB user for the signed-in Clerk user, creating the row
  * on first sight (lazy upsert). This keeps Clerk as the source of truth for auth
  * while our Neon `User` table owns academic context (department, semester, plan).
  *

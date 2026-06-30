@@ -1,42 +1,49 @@
 @import "tailwindcss";
 
 /* ============================================================
-   POLARIS — StudentOS design system (dark / premium)
-   Imported from claude.ai/design "Polaris" foundations.
-   Tokens are exposed as Tailwind utilities via @theme.
+   VIDYAS OS — light design system (Material-3 / indigo)
+   Tokens imported from stitch_vidhyaos/*_light mockups.
+   Semantic names are preserved from the previous dark system so
+   existing utilities (bg-canvas, text-ink, border-line, text-cyan…)
+   keep working — they now resolve to light values.
    ============================================================ */
 @theme {
-  /* Surfaces (dark slate canvas) */
-  --color-canvas: #070a12; /* app background           */
-  --color-base: #0a0e1a; /* sidebar / deepest panel  */
-  --color-surface: #131a2b; /* inputs, secondary panels */
-  --color-card: #0e1422; /* cards                    */
-  --color-raised: #1c2740; /* raised buttons / hover   */
-  --color-input: #0f1626; /* topbar search field      */
+  /* Surfaces (white / cool-grey canvas) */
+  --color-canvas: #f8fafc; /* app background           */
+  --color-base: #ffffff; /* sidebar / deepest panel  */
+  --color-surface: #f2f4f6; /* inputs, secondary panels */
+  --color-card: #ffffff; /* cards                    */
+  --color-raised: #eceef0; /* raised buttons / hover   */
+  --color-input: #ffffff; /* topbar search field      */
 
-  /* Accent system: cyan → indigo */
-  --color-cyan: #22d3ee;
-  --color-indigo: #818cf8;
-  /* Dark ink for text/icons sitting ON the accent gradient.
-     NOTE: kept separate from `base` because `text-base` collides with
-     Tailwind's core font-size utility — use `text-on-accent` for color. */
-  --color-on-accent: #0a0e1a;
+  /* Accent system: indigo (primary) → violet.
+     `cyan` is the legacy primary-accent token name, repointed to the
+     Vidyas indigo so existing text-cyan/bg-cyan render on-brand. */
+  --color-cyan: #4f46e5; /* primary indigo           */
+  --color-indigo: #6366f1; /* gradient companion       */
+  /* Deep indigo for emphasised headings / active states */
+  --color-primary-deep: #3525cd;
+  /* Teal secondary (from the mockups) for variety on new screens */
+  --color-teal: #006a61;
+  --color-teal-soft: #86f2e4;
+  /* Light text/icons sitting ON the accent gradient. */
+  --color-on-accent: #ffffff;
 
-  /* Semantic */
-  --color-success: #34d399;
-  --color-warning: #fbbf24;
-  --color-danger: #fb7185;
+  /* Semantic (tuned for a light background) */
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-danger: #ba1a1a;
 
-  /* Text ramp */
-  --color-ink: #f1f5f9; /* high-contrast headings   */
-  --color-soft: #cbd5e1; /* body                     */
-  --color-muted: #94a3b8; /* secondary                */
-  --color-faint: #64748b; /* tertiary / placeholder   */
-  --color-dim: #475569; /* labels / disabled        */
+  /* Text ramp (dark ink on light) */
+  --color-ink: #191c1e; /* high-contrast headings   */
+  --color-soft: #334155; /* body                     */
+  --color-muted: #464555; /* secondary                */
+  --color-faint: #777587; /* tertiary / placeholder   */
+  --color-dim: #9aa0ab; /* labels / disabled        */
 
   /* Hairlines */
-  --color-line: rgba(255, 255, 255, 0.07);
-  --color-line-strong: rgba(255, 255, 255, 0.1);
+  --color-line: rgba(15, 23, 42, 0.08);
+  --color-line-strong: rgba(15, 23, 42, 0.12);
 
   /* Typography */
   --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
@@ -88,13 +95,13 @@
 }
 @keyframes pulseRing {
   0% {
-    box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.45);
+    box-shadow: 0 0 0 0 rgba(79,70,229, 0.45);
   }
   70% {
-    box-shadow: 0 0 0 16px rgba(34, 211, 238, 0);
+    box-shadow: 0 0 0 16px rgba(79,70,229, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(34, 211, 238, 0);
+    box-shadow: 0 0 0 0 rgba(79,70,229, 0);
   }
 }
 @keyframes flameWobble {
@@ -122,7 +129,73 @@
   background: #b4d7ff;
   color: #000;
 }
-/* docx-preview faithful render: center the white A4 pages on a soft desk. */
+
+/* ---- Clean "academic submission" document view (matches reports_ppt_editor_light) ----
+   A soft white sheet (not a stark A4), with auto-numbered section headings in the accent. */
+.report-doc {
+  counter-reset: report-section;
+}
+.report-doc h1 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: #191c1e;
+  margin: 0 0 1.25rem;
+}
+.report-doc h2 {
+  counter-increment: report-section;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+  color: #191c1e;
+  margin: 1.75rem 0 0.6rem;
+}
+.report-doc h2::before {
+  content: counter(report-section) ". ";
+  color: var(--color-cyan);
+  font-weight: 700;
+}
+.report-doc h3 {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: #191c1e;
+  margin: 1.25rem 0 0.4rem;
+}
+.report-doc p {
+  font-size: 14.5px;
+  line-height: 1.75;
+  color: #334155;
+  margin: 0.65rem 0;
+  text-align: justify;
+}
+.report-doc ul,
+.report-doc ol {
+  margin: 0.65rem 0;
+  padding-left: 1.4rem;
+  color: #334155;
+  font-size: 14.5px;
+  line-height: 1.7;
+}
+.report-doc ul {
+  list-style: disc;
+}
+.report-doc ol {
+  list-style: decimal;
+}
+.report-doc blockquote {
+  margin: 1rem 0;
+  padding: 0.75rem 1.1rem;
+  border-left: 3px solid var(--color-cyan);
+  background: rgba(79, 70, 229, 0.05);
+  border-radius: 0 0.5rem 0.5rem 0;
+  font-style: italic;
+  color: #475569;
+}
+/* docx-preview faithful render: center the white A4 pages on a soft desk, with each page
+   a consistent sheet (white bg, rounded, shadow) so multi-page docs read cleanly. */
 .docxp .docx-wrapper {
   background: transparent;
   padding: 0;
@@ -132,7 +205,14 @@
   gap: 1.25rem;
 }
 .docxp .docx {
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  background: #ffffff !important;
+  margin: 0 auto !important;
+  border-radius: 6px;
+  box-shadow: 0 10px 40px rgba(15, 23, 42, 0.14);
+}
+/* Keep every rendered page the same A4 footprint so pages don't appear "longer". */
+.docxp .docx-wrapper > section.docx {
+  box-sizing: border-box;
 }
 
 /* Voice "stone in a lake" ripple — rings expand outward from the active speaker. */
@@ -163,8 +243,8 @@
   100% { background-position: 200% center; }
 }
 @keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(34, 211, 238, 0.15); }
-  50%      { box-shadow: 0 0 40px rgba(34, 211, 238, 0.3); }
+  0%, 100% { box-shadow: 0 0 20px rgba(79,70,229, 0.15); }
+  50%      { box-shadow: 0 0 40px rgba(79,70,229, 0.3); }
 }
 @keyframes iconBounce {
   0%, 100% { transform: scale(1); }
@@ -220,7 +300,7 @@
 
 html {
   background: var(--color-canvas);
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
@@ -232,8 +312,8 @@ body {
 }
 
 ::selection {
-  background: rgba(34, 211, 238, 0.3);
-  color: #fff;
+  background: rgba(79, 70, 229, 0.18);
+  color: #191c1e;
 }
 
 /* Polaris accent gradient — reused on logos, primary CTAs, avatars */
@@ -247,15 +327,15 @@ body {
   color: transparent;
 }
 
-/* Thin custom scrollbar to match the dark canvas */
+/* Thin custom scrollbar to match the light canvas */
 ::-webkit-scrollbar {
   width: 9px;
   height: 9px;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.18);
+  background: rgba(71, 85, 105, 0.22);
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.32);
+  background: rgba(71, 85, 105, 0.38);
 }

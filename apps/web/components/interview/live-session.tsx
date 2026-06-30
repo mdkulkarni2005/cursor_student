@@ -10,8 +10,11 @@ import { cpp } from "@codemirror/lang-cpp";
 import { oneDark } from "@codemirror/theme-one-dark";
 import type { Extension } from "@codemirror/state";
 import { Button, Spinner } from "@/components/ui/button";
-import type { QuestionItem } from "@studentos/ai";
+import type { QuestionItem, CodeReview } from "@studentos/ai";
 import { interviewer, interviewerVariableValues } from "@/lib/interview/vapi-assistant";
+
+/** The exact hand-off phrase the assistant is told to say when a coding task begins (see system prompt). */
+const CODING_HANDOFF = "move to the code editor";
 
 const CodeMirror = dynamic(() => import("@uiw/react-codemirror"), { ssr: false });
 
@@ -26,7 +29,10 @@ const EXT: Record<Lang, () => Extension> = {
 type VapiMsg = { type?: string; role?: string; transcript?: string; transcriptType?: string };
 type Turn = { role: "assistant" | "user"; content: string };
 
-const MAX_CALL_MS = 20 * 60_000; // hard cap on the whole session (credit guard)
+// Client-side backstop only — a full 10-15 question interview can run long, so this sits just under
+// VAPI's own 60-min ceiling. The interview normally ends when the interviewer finishes or the
+// candidate presses End, NOT on this timer.
+const MAX_CALL_MS = 58 * 60_000;
 
 /**
  * Live voice interview (adrianhajdin/ai_mock_interviews pattern): an inline VAPI assistant conducts
@@ -62,12 +68,15 @@ export function InterviewLiveSession({
   const [speaking, setSpeaking] = useState(false);
   const [volume, setVolume] = useState(0);
 
-  // coding editor (available throughout when the interview has a coding round)
+  // coding editor — hidden until the AI springs a coding question (surprise). `editorOpen` is a
+  // manual safety net so a missed auto-detection never strands the candidate.
   const [lang, setLang] = useState<Lang>("python");
   const [code, setCode] = useState("");
-  const [runOutput, setRunOutput] = useState("");
-  const [running, setRunning] = useState(false);
-  const [editorOpen, setEditorOpen] = useState(codingIncluded);
+  const [reviewing, setReviewing] = useState(false);
+  const [codeReview, setCodeReview] = useState<CodeReview | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [activeCoding, setActiveCoding] = useState<QuestionItem | null>(null);
+  const codingIdxRef = useRef(0); // which coding question we're on (advances each hand-off)
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const camStreamRef = useRef<MediaStream | null>(null);
@@ -78,10 +87,9 @@ export function InterviewLiveSession({
   const finalizingRef = useRef(false);
   const endingRef = useRef(false);
   const codeRef = useRef("");
-  const runOutputRef = useRef("");
   const langRef = useRef<Lang>("python");
+  const codingOpen = activeCoding !== null || editorOpen; // coding mode is showing
   useEffect(() => { codeRef.current = code; }, [code]);
-  useEffect(() => { runOutputRef.current = runOutput; }, [runOutput]);
   useEffect(() => { langRef.current = lang; }, [lang]);
 
   const publicKey = process.env.NEXT_PUBLIC_VAPI_PUBLIC_KEY;
@@ -149,19 +157,34 @@ export function InterviewLiveSession({
       vapi.on("speech-end", () => { setSpeaking(false); setVolume(0); });
       vapi.on("volume-level", (v: number) => setVolume(typeof v === "number" ? v : 0));
       vapi.on("error", (e: unknown) => {
-        // VAPI/Daily emits an "error" when the meeting simply ends — not a failure.
-        const msg = (typeof e === "string" ? e : (e as { message?: string; errorMsg?: string } | null)?.message ?? (e as { errorMsg?: string } | null)?.errorMsg ?? "").toLowerCase();
-        const benignEnd = /ended|ejection|meeting has ended|left the meeting/.test(msg);
-        // A benign "meeting ended" just stops the speaking animation; the `call-end` handler decides
-        // whether to finalize or offer a rejoin. Only surface a real connection failure.
-        if (benignEnd || endingRef.current) { setSpeaking(false); return; }
-        setError("Voice connection dropped. Try rejoining."); setCallStatus("error"); console.warn("[vapi]", e);
+        console.warn("[vapi] error event", e);
+        setSpeaking(false);
+        // Already wrapping up (End button / cap / call-end) — nothing to do.
+        if (endingRef.current || finalizingRef.current) return;
+        // If there's a real interview underway, ANY error/end (e.g. Daily "ejection: meeting ended")
+        // just means "wrap up" — evaluate what was answered instead of crashing the session.
+        const userTurns = messagesRef.current.filter((t) => t.role === "user").length;
+        if (userTurns >= 2) { void finalize(); return; }
+        // Genuinely early: distinguish a benign meeting-end from a real connection failure.
+        const msg = (typeof e === "string" ? e : (e as { message?: string; errorMsg?: string; error?: { message?: string; msg?: string } } | null)?.message ?? (e as { errorMsg?: string } | null)?.errorMsg ?? (e as { error?: { message?: string; msg?: string } } | null)?.error?.message ?? (e as { error?: { msg?: string } } | null)?.error?.msg ?? "").toLowerCase();
+        if (/ended|ejection|meeting has ended|left the meeting/.test(msg)) return; // benign end, no real turns
+        setError("Voice connection dropped. Try rejoining."); setCallStatus("error");
       });
       vapi.on("message", (m: VapiMsg) => {
         if (m.type !== "transcript" || m.transcriptType !== "final" || !m.transcript) return;
         const turn: Turn = { role: m.role === "user" ? "user" : "assistant", content: m.transcript };
         messagesRef.current = [...messagesRef.current, turn];
         setLastLine(m.transcript);
+        // Surprise coding round: when the interviewer says the hand-off phrase, flip the UI to the
+        // code editor and reveal THAT coding question (never shown before this moment).
+        if (turn.role === "assistant" && codingIncluded && turn.content.toLowerCase().includes(CODING_HANDOFF)) {
+          const q = codingQuestions[Math.min(codingIdxRef.current, codingQuestions.length - 1)];
+          if (q) {
+            codingIdxRef.current += 1;
+            setCode(""); setCodeReview(null); setEditorOpen(false);
+            setActiveCoding(q);
+          }
+        }
       });
       await vapi.start(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -188,18 +211,40 @@ export function InterviewLiveSession({
     setCamOn(track.enabled);
   }
 
-  async function runCode() {
-    setRunning(true);
-    setRunOutput("");
+  /**
+   * Submit the candidate's code for a STATIC review (syntax + approach, never executed). We show the
+   * verdict on screen AND inject it into the live call so the voice interviewer acknowledges it and
+   * moves on. The code is folded into the transcript so the final evaluation stays consistent.
+   */
+  async function submitForReview() {
+    if (reviewing || !code.trim()) return;
+    setReviewing(true);
+    setCodeReview(null);
+    const question = activeCoding?.question ?? codingQuestions[0]?.question ?? "the coding task";
     try {
-      const res = await fetch("/api/interview/run", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ docId, language: lang, code }) });
+      const res = await fetch("/api/interview/review", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ docId, language: lang, code, question, role }),
+      });
       const d = await res.json();
-      if (d.unavailable) setRunOutput(d.message);
-      else setRunOutput([d.stdout, d.stderr ? `stderr: ${d.stderr}` : ""].filter(Boolean).join("\n") || "(no output)");
+      const review: CodeReview | undefined = d.review;
+      if (d.error || !review) { setCodeReview({ syntaxValid: true, onTrack: true, verdict: "minor_issues", issues: [], spokenFeedback: "Submitted — let's keep going." }); return; }
+      setCodeReview(review);
+      // Record the submission + verdict in the transcript the evaluator reads.
+      messagesRef.current = [...messagesRef.current, { role: "user", content: `[My code for "${question}" (${langRef.current})]:\n${codeRef.current}\n\n[Static review — ${review.verdict}; syntaxValid=${review.syntaxValid}; onTrack=${review.onTrack}]` }];
+      // Hand the verdict to the live interviewer so it responds by voice and advances.
+      try {
+        vapiRef.current?.send?.({
+          type: "add-message",
+          // triggerResponseEnabled → the interviewer speaks back right away instead of waiting in silence.
+          triggerResponseEnabled: true,
+          message: { role: "system", content: `[CODE REVIEW] The candidate submitted their code for the current coding task. Static review (no execution): verdict=${review.verdict}, syntaxValid=${review.syntaxValid}, onTrack=${review.onTrack}. Notes: ${review.issues.join("; ") || "none"}. Now acknowledge this to the candidate in one or two sentences (tell them if they're on the right track), then move on to the next question.` },
+        });
+      } catch { /* injection best-effort; on-screen verdict + transcript still captured */ }
     } catch {
-      setRunOutput("Couldn't run right now.");
+      setCodeReview({ syntaxValid: true, onTrack: true, verdict: "minor_issues", issues: [], spokenFeedback: "Submitted — let's keep going." });
     } finally {
-      setRunning(false);
+      setReviewing(false);
     }
   }
 
@@ -208,13 +253,13 @@ export function InterviewLiveSession({
     if (finalizingRef.current) return;
     finalizingRef.current = true;
     endingRef.current = true;
+    setError(null); // clear any stale "connection dropped" so the wrap-up screen is clean
     setEnding(true);
     const turns: Turn[] = [...messagesRef.current];
-    if (codingIncluded && codeRef.current.trim()) {
-      turns.push({
-        role: "user",
-        content: `[My code solution (${langRef.current})]:\n${codeRef.current}${runOutputRef.current ? `\n\n[Program output]:\n${runOutputRef.current}` : ""}`,
-      });
+    // Fold in code that was written but never submitted for review (so it's still evaluated).
+    const alreadyCaptured = messagesRef.current.some((t) => t.content.startsWith("[My code"));
+    if (codingIncluded && codeRef.current.trim() && !alreadyCaptured) {
+      turns.push({ role: "user", content: `[My code solution (${langRef.current})]:\n${codeRef.current}` });
     }
     stopEverything();
     setSpeaking(false);
@@ -251,7 +296,7 @@ export function InterviewLiveSession({
             <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-warning/15 text-2xl">⚠️</div>
             <p className="text-[15px] font-semibold text-ink">Couldn’t generate your feedback</p>
             <p className="mt-1 text-[12.5px] text-warning">{error}</p>
-            <Button type="button" onClick={() => { setError(null); void finalize(); }} className="mt-4 rounded-xl bg-accent-gradient px-5 py-2.5 text-[13px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(34,211,238,0.3)]">Retry →</Button>
+            <Button type="button" onClick={() => { setError(null); void finalize(); }} className="mt-4 rounded-xl bg-accent-gradient px-5 py-2.5 text-[13px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(79,70,229,0.3)]">Retry →</Button>
           </>
         ) : (
           <>
@@ -273,7 +318,6 @@ export function InterviewLiveSession({
         permission={permission}
         camOn={camOn}
         error={error}
-        codingIncluded={codingIncluded}
         onRequest={requestMedia}
         onJoin={startSession}
         onLeave={onExit}
@@ -282,66 +326,93 @@ export function InterviewLiveSession({
   }
 
   // ---------------------------------------------------------------- live room
+  const codingQ = activeCoding ?? (editorOpen ? codingQuestions[Math.min(codingIdxRef.current, codingQuestions.length - 1)] ?? null : null);
+
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-[#0b0f1a]">
+    <div className="overflow-hidden rounded-2xl border border-line bg-card">
       {/* top bar */}
       <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
         <div className="flex items-center gap-2.5">
           {callStatus === "live"
             ? <span className="flex items-center gap-1.5 rounded-full bg-danger/15 px-2.5 py-1 text-[11px] font-semibold text-danger"><span className="size-1.5 animate-pulse rounded-full bg-danger" /> REC</span>
             : <span className="flex items-center gap-1.5 text-[12px] text-faint"><Spinner /> Connecting…</span>}
-          <span className="text-[12px] text-soft">Mock Interview</span>
+          <span className="text-[12px] font-semibold text-soft">{codingOpen ? "Coding Round" : "Mock Interview"}</span>
         </div>
-        {codingIncluded ? (
-          <button type="button" onClick={() => setEditorOpen((v) => !v)} className="rounded-lg border border-line-strong bg-surface px-2.5 py-1 text-[11px] font-semibold text-soft transition-colors hover:text-cyan">
-            {editorOpen ? "Hide editor" : "💻 Open editor"}
-          </button>
+        {codingOpen ? (
+          <span className="flex items-center gap-1.5 rounded-full bg-success/12 px-2.5 py-1 text-[11px] font-semibold text-success"><span className="size-1.5 animate-pulse rounded-full bg-success" /> Monitoring code…</span>
+        ) : codingIncluded ? (
+          <button type="button" onClick={() => { setEditorOpen(true); setCodeReview(null); }} title="Open the editor manually if the AI's hand-off was missed" className="rounded-lg border border-line-strong bg-surface px-2.5 py-1 text-[11px] font-semibold text-soft transition-colors hover:text-cyan">💻 Open editor</button>
         ) : <span className="text-[11px] uppercase tracking-wide text-faint">Voice round</span>}
       </div>
 
-      {/* google-meet stage: interviewer big + self PiP */}
-      <div className="relative p-3">
-        <div className="relative mx-auto aspect-video w-full overflow-hidden rounded-2xl bg-gradient-to-br from-[#0f1a2e] to-[#0c1020]">
-          <InterviewerTile speaking={speaking} scale={scale} />
-          <div className="absolute bottom-3 right-3 w-32 overflow-hidden rounded-xl border border-line-strong bg-black shadow-lg sm:w-40">
-            <SelfTile videoRef={videoRef} camOn={camOn} muted={muted} compact />
-          </div>
-        </div>
-      </div>
-
-      {/* coding editor — available throughout when the interview includes a coding round */}
-      {codingIncluded && editorOpen ? (
-        <div className="mx-3 mb-1 rounded-xl border border-line-strong bg-card p-3">
-          {codingQuestions.length ? (
-            <div className="mb-2 rounded-lg border border-cyan/20 bg-cyan/[0.05] px-3 py-2">
-              <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-cyan">Coding task{codingQuestions.length > 1 ? "s" : ""}</p>
-              {codingQuestions.map((q, i) => (
-                <p key={i} className="whitespace-pre-wrap text-[12.5px] leading-relaxed text-soft">{codingQuestions.length > 1 ? `${i + 1}. ` : ""}{q.question}</p>
-              ))}
+      {codingOpen ? (
+        /* -------------------------------- CODING MODE -------------------------------- */
+        <div className="grid grid-cols-1 gap-3 p-3 lg:grid-cols-[300px_1fr]">
+          {/* left: interviewer + the (just-revealed) coding task */}
+          <div className="flex flex-col gap-3">
+            <div className="relative h-40 overflow-hidden rounded-2xl bg-gradient-to-br from-[#11203a] to-[#0c1224]">
+              <InterviewerTile speaking={speaking} scale={scale} />
+              <div className="absolute bottom-2 right-2 w-20 overflow-hidden rounded-lg border border-line-strong bg-black">
+                <SelfTile videoRef={videoRef} camOn={camOn} muted={muted} compact />
+              </div>
             </div>
-          ) : null}
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-[12px] font-semibold text-muted">Your editor</span>
-            <select value={lang} onChange={(e) => { setLang(e.target.value as Lang); setRunOutput(""); }} className="rounded-lg border border-line-strong bg-surface px-2.5 py-1 text-[12px] text-soft outline-none focus:border-cyan/50">
-              {LANGS.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
-            </select>
+            <div className="rounded-xl border border-cyan/20 bg-cyan/[0.05] p-3">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-cyan">Coding Task</p>
+              <p className="whitespace-pre-wrap text-[12.5px] leading-relaxed text-soft">{codingQ?.question ?? "Listen to the interviewer for your task."}</p>
+            </div>
+            {lastLine ? <p className="truncate px-1 text-[11.5px] italic text-faint">“{lastLine}”</p> : null}
           </div>
-          <div className="overflow-hidden rounded-xl border border-line-strong">
-            <CodeMirror value={code} height="220px" theme={oneDark} extensions={[EXT[lang]()]} onChange={setCode} basicSetup={{ lineNumbers: true, foldGutter: true, autocompletion: true, highlightActiveLine: true, bracketMatching: true, closeBrackets: true }} />
-          </div>
-          <Button type="button" onClick={runCode} loading={running} loadingText="Running…" className="mt-2 rounded-lg border border-cyan/35 bg-cyan/10 px-3 py-1.5 text-[12px] font-semibold text-cyan">▶ Run</Button>
-          {runOutput ? <pre className="mt-2 max-h-32 overflow-auto whitespace-pre-wrap rounded-lg bg-[#0a0e1a] p-3 font-mono text-[11.5px] text-soft">{runOutput}</pre> : null}
-        </div>
-      ) : null}
 
-      {/* ambient status — the assistant drives the whole interview */}
-      <div className="px-3 pb-2 pt-3">
-        <div className="flex items-center gap-2 rounded-xl border border-line bg-card px-3.5 py-2.5">
-          <span className="text-[12.5px] text-muted">🎙️ The interview is live — just talk naturally. {codingIncluded ? "Use the editor when asked, and say “I’m done”. " : ""}Press <span className="font-semibold text-soft">End &amp; evaluate</span> when you’re finished.</span>
+          {/* right: editor + submit-for-review */}
+          <div className="flex min-w-0 flex-col rounded-xl border border-line-strong bg-card p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <span className="font-mono text-[12px] font-semibold text-muted">Solution.{lang === "cpp" ? "cpp" : lang === "javascript" ? "js" : lang === "typescript" ? "ts" : lang === "java" ? "java" : "py"}</span>
+              <select value={lang} onChange={(e) => { setLang(e.target.value as Lang); setCodeReview(null); }} className="rounded-lg border border-line-strong bg-surface px-2.5 py-1 text-[12px] text-soft outline-none focus:border-cyan/50">
+                {LANGS.map((l) => <option key={l.id} value={l.id}>{l.label}</option>)}
+              </select>
+            </div>
+            <div className="overflow-hidden rounded-xl border border-line-strong">
+              <CodeMirror value={code} height="260px" theme={oneDark} extensions={[EXT[lang]()]} onChange={(v) => { setCode(v); if (codeReview) setCodeReview(null); }} basicSetup={{ lineNumbers: true, foldGutter: true, autocompletion: true, highlightActiveLine: true, bracketMatching: true, closeBrackets: true }} />
+            </div>
+
+            {codeReview ? <ReviewVerdict review={codeReview} /> : null}
+
+            <div className="mt-2 flex items-center gap-2">
+              <Button type="button" onClick={submitForReview} loading={reviewing} loadingText="Reviewing…" disabled={!code.trim()} className="rounded-lg bg-accent-gradient px-4 py-2 text-[12.5px] font-semibold text-on-accent shadow-[0_4px_14px_rgba(79,70,229,0.3)] disabled:opacity-50">
+                Submit for Review
+              </Button>
+              {editorOpen && !activeCoding ? (
+                <button type="button" onClick={() => setEditorOpen(false)} className="rounded-lg border border-line-strong bg-surface px-3 py-2 text-[12px] font-semibold text-faint hover:text-soft">Close editor</button>
+              ) : null}
+              <span className="ml-auto text-[10.5px] text-faint">AI checks syntax &amp; approach — it does not run the code.</span>
+            </div>
+          </div>
         </div>
-        {lastLine ? <p className="mt-1.5 truncate px-1 text-[11.5px] italic text-faint">“{lastLine}”</p> : null}
-        {error ? <p className="mt-1.5 px-1 text-[12px] text-warning">{error}</p> : null}
-      </div>
+      ) : (
+        /* -------------------------------- MEETING MODE -------------------------------- */
+        <>
+          <div className="relative p-3">
+            <div className="relative mx-auto aspect-video w-full overflow-hidden rounded-2xl bg-gradient-to-br from-[#0f1a2e] to-[#0c1020]">
+              <InterviewerTile speaking={speaking} scale={scale} />
+              {lastLine ? (
+                <div className="absolute inset-x-3 bottom-3 mr-[8.5rem] rounded-xl bg-black/55 px-3.5 py-2 backdrop-blur sm:mr-[10.5rem]">
+                  <p className="line-clamp-3 text-[12.5px] leading-relaxed text-white/90">“{lastLine}”</p>
+                </div>
+              ) : null}
+              <div className="absolute bottom-3 right-3 w-32 overflow-hidden rounded-xl border border-line-strong bg-black shadow-lg sm:w-40">
+                <SelfTile videoRef={videoRef} camOn={camOn} muted={muted} compact />
+              </div>
+            </div>
+          </div>
+          <div className="px-3 pb-2 pt-1">
+            <div className="flex items-center gap-2 rounded-xl border border-line bg-card px-3.5 py-2.5">
+              <span className="text-[12.5px] text-muted">🎙️ The interview is live — talk naturally. {codingIncluded ? "A coding task may come up; the editor opens on its own when it does. " : ""}Press <span className="font-semibold text-soft">End &amp; evaluate</span> when you’re finished.</span>
+            </div>
+          </div>
+        </>
+      )}
+
+      {error ? <p className="px-4 pb-1 pt-0.5 text-[12px] text-warning">{error}</p> : null}
 
       {/* control bar — red button ends the interview and produces the evaluation */}
       <ControlBar muted={muted} camOn={camOn} ending={ending} onToggleMute={toggleMute} onToggleCam={toggleCam} onEnd={() => void finalize()} />
@@ -349,24 +420,48 @@ export function InterviewLiveSession({
   );
 }
 
+/** Verdict card shown after the candidate submits code for static review (no execution). */
+function ReviewVerdict({ review }: { review: CodeReview }) {
+  const tone = review.verdict === "correct"
+    ? { box: "border-success/30 bg-success/10", text: "text-success", label: "Looks correct" }
+    : review.verdict === "minor_issues"
+      ? { box: "border-warning/30 bg-warning/10", text: "text-warning", label: "Minor issues" }
+      : { box: "border-danger/30 bg-danger/10", text: "text-danger", label: "Needs work" };
+  return (
+    <div className={`mt-2 rounded-lg border px-3 py-2.5 ${tone.box}`}>
+      <div className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide">
+        <span className={tone.text}>{tone.label}</span>
+        <span className="text-faint">· syntax {review.syntaxValid ? "valid" : "errors"}</span>
+      </div>
+      <p className="text-[12.5px] leading-relaxed text-soft">{review.spokenFeedback}</p>
+      {review.issues.length > 0 ? (
+        <ul className="mt-1.5 space-y-0.5">
+          {review.issues.slice(0, 3).map((it, i) => (
+            <li key={i} className="flex gap-1.5 text-[11.5px] text-muted"><span className={tone.text}>•</span>{it}</li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 /* ---------------------------------------------------------------- pieces */
 
 function Lobby({
-  videoRef, permission, camOn, error, codingIncluded, onRequest, onJoin, onLeave,
+  videoRef, permission, camOn, error, onRequest, onJoin, onLeave,
 }: {
   videoRef: React.RefObject<HTMLVideoElement | null>;
   permission: "idle" | "requesting" | "granted" | "denied";
   camOn: boolean;
   error: string | null;
-  codingIncluded: boolean;
   onRequest: () => void;
   onJoin: () => void;
   onLeave: () => void;
 }) {
   const granted = permission === "granted";
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-[#0b0f1a] p-4">
-      <p className="mb-3 text-center text-[13px] text-soft">Live voice interview. The interviewer introduces itself, asks you to introduce yourself, then works through your questions — talk naturally, and you can interrupt it like a real call.{codingIncluded ? " For coding questions, write your solution in the editor and say “I’m done”." : ""} Press End when finished to get your feedback.</p>
+    <div className="overflow-hidden rounded-2xl border border-line bg-card p-4">
+      <p className="mb-3 text-center text-[13px] text-soft">Live voice interview. The interviewer introduces itself, asks you to introduce yourself, then works through your questions — talk naturally, and you can interrupt it like a real call. Answer like a real interview: you won’t see what’s coming next. Press End when finished to get your feedback.</p>
       <div className="relative mx-auto aspect-video w-full max-w-[440px] overflow-hidden rounded-2xl bg-black">
         <video ref={videoRef} autoPlay muted playsInline className="size-full -scale-x-100 object-cover" />
         {!camOn || !granted ? (
@@ -391,7 +486,7 @@ function Lobby({
           {permission === "denied" ? (
             <Button type="button" onClick={onRequest} className="rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[13px] font-semibold text-soft hover:text-cyan">Retry permissions</Button>
           ) : (
-            <Button type="button" onClick={onJoin} loading={permission === "requesting"} loadingText="Joining…" disabled={!granted} className="rounded-xl bg-accent-gradient px-6 py-2.5 text-[13.5px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(34,211,238,0.3)] disabled:opacity-50">
+            <Button type="button" onClick={onJoin} loading={permission === "requesting"} loadingText="Joining…" disabled={!granted} className="rounded-xl bg-accent-gradient px-6 py-2.5 text-[13.5px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(79,70,229,0.3)] disabled:opacity-50">
               Join interview →
             </Button>
           )}
@@ -414,13 +509,13 @@ function InterviewerTile({ speaking, scale, compact = false }: { speaking: boole
           </>
         ) : null}
         <div
-          className={`relative flex items-center justify-center rounded-full bg-accent-gradient font-display font-bold text-on-accent shadow-[0_0_30px_rgba(34,211,238,0.35)] transition-transform duration-100 ${compact ? "size-14 text-lg" : "size-24 text-3xl"}`}
+          className={`relative flex items-center justify-center rounded-full bg-accent-gradient font-display font-bold text-on-accent shadow-[0_0_30px_rgba(79,70,229,0.35)] transition-transform duration-100 ${compact ? "size-14 text-lg" : "size-24 text-3xl"}`}
           style={{ transform: speaking ? `scale(${scale})` : "scale(1)" }}
         >
           AI
         </div>
       </div>
-      <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-md bg-black/40 px-2 py-0.5 text-[11px] text-soft backdrop-blur">
+      <div className="absolute bottom-2 left-2 flex items-center gap-1.5 rounded-md bg-black/40 px-2 py-0.5 text-[11px] text-white/90 backdrop-blur">
         {speaking ? <span className="size-1.5 animate-pulse rounded-full bg-cyan" /> : null}
         Interviewer
       </div>
@@ -433,7 +528,7 @@ function SelfTile({ videoRef, camOn, muted, compact = false }: { videoRef: React
     <div className={`relative overflow-hidden rounded-xl bg-black ${compact ? "aspect-square w-full" : "size-full"}`}>
       <video ref={videoRef} autoPlay muted playsInline className={`size-full -scale-x-100 object-cover ${camOn ? "" : "opacity-0"}`} />
       {!camOn ? <div className="absolute inset-0 flex items-center justify-center text-2xl">🙈</div> : null}
-      <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-md bg-black/40 px-1.5 py-0.5 text-[10px] text-soft backdrop-blur">
+      <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-md bg-black/40 px-1.5 py-0.5 text-[10px] text-white/90 backdrop-blur">
         {muted ? <span className="text-danger">🔇</span> : null}You
       </div>
     </div>
@@ -443,7 +538,7 @@ function SelfTile({ videoRef, camOn, muted, compact = false }: { videoRef: React
 function ControlBar({ muted, camOn, ending, onToggleMute, onToggleCam, onEnd }: { muted: boolean; camOn: boolean; ending: boolean; onToggleMute: () => void; onToggleCam: () => void; onEnd: () => void }) {
   const pill = "flex size-11 items-center justify-center rounded-full border text-lg transition-colors";
   return (
-    <div className="flex items-center justify-center gap-3 border-t border-line bg-[#0a0e1a] py-3">
+    <div className="flex items-center justify-center gap-3 border-t border-line bg-surface py-3">
       <button type="button" onClick={onToggleMute} title={muted ? "Unmute" : "Mute"} className={`${pill} ${muted ? "border-danger/40 bg-danger/15 text-danger" : "border-line-strong bg-surface text-soft hover:text-cyan"}`}>
         {muted ? "🔇" : "🎙️"}
       </button>

@@ -21,13 +21,13 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "StudentOS — your academic operating system",
+  title: "Vidyas OS — your academic operating system",
   description:
     "Assignments, reports, PPTs, projects and viva prep — generated in your college's format. The Cursor for students.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#070a12",
+  themeColor: "#f8fafc",
   width: "device-width",
   initialScale: 1,
 };
@@ -45,12 +45,12 @@ export default function RootLayout({
       signUpFallbackRedirectUrl="/dashboard"
       appearance={{
         variables: {
-          colorPrimary: "#22d3ee",
-          colorBackground: "#0a0e1a",
-          colorInputBackground: "#131a2b",
-          colorText: "#f1f5f9",
-          colorTextSecondary: "#94a3b8",
-          colorInputText: "#f1f5f9",
+          colorPrimary: "#4f46e5",
+          colorBackground: "#ffffff",
+          colorInputBackground: "#f2f4f6",
+          colorText: "#191c1e",
+          colorTextSecondary: "#464555",
+          colorInputText: "#191c1e",
           borderRadius: "0.75rem",
         },
       }}

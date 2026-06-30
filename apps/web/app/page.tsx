@@ -65,15 +65,15 @@ export default async function LandingPage() {
       <header className="animate-fade-in-up fixed inset-x-0 top-0 z-50 border-b border-line bg-base/80 backdrop-blur-lg">
         <div className="mx-auto flex h-[64px] max-w-7xl items-center justify-between px-5">
           <Link href="/" className="flex items-center gap-2.5">
-            <span className="flex size-[28px] items-center justify-center rounded-lg bg-accent-gradient shadow-[0_0_16px_rgba(34,211,238,0.4)]">
+            <span className="flex size-[28px] items-center justify-center rounded-lg bg-accent-gradient shadow-[0_0_16px_rgba(79,70,229,0.4)]">
               <Sparkle size={15} className="text-on-accent" />
             </span>
-            <span className="font-display text-[16px] font-bold text-ink">StudentOS</span>
+            <span className="font-display text-[16px] font-bold text-ink">Vidyas OS</span>
           </Link>
           <div className="flex items-center gap-3">
             <Link
               href="/sign-in"
-              className="rounded-xl px-4 py-2 text-[13px] font-semibold text-soft transition-colors hover:bg-white/5"
+              className="rounded-xl px-4 py-2 text-[13px] font-semibold text-soft transition-colors hover:bg-surface"
             >
               Sign in
             </Link>
@@ -90,7 +90,7 @@ export default async function LandingPage() {
       {/* HERO */}
       <section className="relative mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center px-5 pt-20 text-center">
         {/* Background orbs */}
-        <div className="pointer-events-none absolute -top-40 left-1/2 size-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(34,211,238,0.08),transparent_70%)] animate-float-drift" />
+        <div className="pointer-events-none absolute -top-40 left-1/2 size-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(79,70,229,0.08),transparent_70%)] animate-float-drift" />
         <div className="pointer-events-none absolute -bottom-20 right-10 size-[300px] animate-float-drift rounded-full bg-[radial-gradient(circle,rgba(129,140,248,0.06),transparent_70%)]" style={{ animationDelay: "-5s" }} />
         <div className="pointer-events-none absolute -left-20 top-1/3 size-[250px] animate-float-drift rounded-full bg-[radial-gradient(circle,rgba(251,191,36,0.04),transparent_70%)]" style={{ animationDelay: "-9s" }} />
 
@@ -113,7 +113,7 @@ export default async function LandingPage() {
 
           {/* Subtitle */}
           <p className="animate-fade-in-up stagger-3 mx-auto mt-5 max-w-[580px] text-[16px] leading-relaxed text-muted">
-            StudentOS generates assignments, reports, presentations, resumes, and more — all formatted to
+            Vidyas OS generates assignments, reports, presentations, resumes, and more — all formatted to
             your college&apos;s standards. So you can focus on learning, not formatting.
           </p>
 
@@ -121,14 +121,14 @@ export default async function LandingPage() {
           <div className="animate-fade-in-up stagger-4 mt-8 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/sign-up"
-              className="group relative rounded-xl bg-accent-gradient px-[26px] py-3 text-[15px] font-semibold text-on-accent shadow-[0_8px_28px_rgba(34,211,238,0.3)] transition-all hover:-translate-y-0.5"
+              className="group relative rounded-xl bg-accent-gradient px-[26px] py-3 text-[15px] font-semibold text-on-accent shadow-[0_8px_28px_rgba(79,70,229,0.3)] transition-all hover:-translate-y-0.5"
             >
               <span className="absolute -inset-1 rounded-xl bg-accent-gradient opacity-0 blur-lg transition-opacity group-hover:opacity-60" />
               <span className="relative z-10">Get started free →</span>
             </Link>
             <Link
               href="/sign-in"
-              className="rounded-xl border border-line-strong bg-white/5 px-[26px] py-3 text-[15px] font-semibold text-soft transition-all hover:bg-white/10 hover:border-cyan/30"
+              className="rounded-xl border border-line-strong bg-surface px-[26px] py-3 text-[15px] font-semibold text-soft transition-all hover:bg-surface hover:border-cyan/30"
             >
               Sign in
             </Link>
@@ -158,7 +158,7 @@ export default async function LandingPage() {
             {FEATURES.map((f) => (
               <Reveal key={f.title} delay={f.delay}>
                 <div
-                  className={`group relative overflow-hidden rounded-2xl border border-line bg-card p-6 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_14px_40px_rgba(0,0,0,0.4)] ${f.accent.replace("from-", "hover:border-").split(" ")[2] || "hover:border-cyan/20"}`}
+                  className={`group relative overflow-hidden rounded-2xl border border-line bg-card p-6 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_14px_40px_rgba(15,23,42,0.12)] ${f.accent.replace("from-", "hover:border-").split(" ")[2] || "hover:border-cyan/20"}`}
                 >
                   <div className="pointer-events-none absolute -right-10 -top-10 size-24 rounded-full bg-gradient-to-br from-white/3 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
                   <span
@@ -232,18 +232,18 @@ export default async function LandingPage() {
 
       {/* CTA */}
       <section className="relative border-t border-line overflow-hidden">
-        <div className="pointer-events-none absolute -left-20 -top-20 size-[400px] animate-float-drift rounded-full bg-[radial-gradient(circle,rgba(34,211,238,0.05),transparent_70%)]" />
+        <div className="pointer-events-none absolute -left-20 -top-20 size-[400px] animate-float-drift rounded-full bg-[radial-gradient(circle,rgba(79,70,229,0.05),transparent_70%)]" />
         <Reveal>
           <div className="relative mx-auto max-w-3xl px-5 py-24 text-center">
             <h2 className="font-display text-[30px] font-bold text-ink sm:text-[36px]">
               Ready to stop fighting formatting?
             </h2>
             <p className="mt-3 text-[15px] text-muted">
-              Join thousands of students who are already using StudentOS to get their work done.
+              Join thousands of students who are already using Vidyas OS to get their work done.
             </p>
             <Link
               href="/sign-up"
-              className="group relative mt-8 inline-block rounded-xl bg-accent-gradient px-[26px] py-3 text-[15px] font-semibold text-on-accent shadow-[0_8px_28px_rgba(34,211,238,0.3)] transition-all hover:-translate-y-0.5"
+              className="group relative mt-8 inline-block rounded-xl bg-accent-gradient px-[26px] py-3 text-[15px] font-semibold text-on-accent shadow-[0_8px_28px_rgba(79,70,229,0.3)] transition-all hover:-translate-y-0.5"
             >
               <span className="absolute -inset-1 rounded-xl bg-accent-gradient opacity-0 blur-lg transition-opacity group-hover:opacity-50" />
               <span className="relative z-10">Get started free →</span>
@@ -258,7 +258,7 @@ export default async function LandingPage() {
           <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-6">
             <div className="flex items-center gap-2.5">
               <Sparkle size={14} className="text-cyan" />
-              <span className="font-display text-[14px] font-bold text-ink">StudentOS</span>
+              <span className="font-display text-[14px] font-bold text-ink">Vidyas OS</span>
             </div>
             <div className="flex gap-5 text-[12.5px] text-faint">
               <Link href="/privacy" className="transition-colors hover:text-soft">Privacy</Link>

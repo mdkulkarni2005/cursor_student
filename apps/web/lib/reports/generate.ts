@@ -1,14 +1,17 @@
 import { prisma, type User } from "@studentos/db";
 import { getObjectBuffer, putObject, keys } from "@studentos/storage";
-import { renderReportDocx, inspectTemplate, fillTemplate, type PlaceholderFields } from "@studentos/documents";
+import { renderReportDocx, renderReportDocxProgrammatic, inspectTemplate, fillTemplate, type PlaceholderFields, type ReportContent } from "@studentos/documents";
 import {
   generateReportContent,
   generateTemplateContent,
   expandPptToReport,
   assessContext,
   answersToContext,
+  generateSlideImage,
+  suggestReportFigures,
   withAiRetry,
   type ClarifyQuestion,
+  type FigureSuggestion,
 } from "@studentos/ai";
 import { assertWithinQuota, recordUsage } from "@/lib/entitlements";
 import { getOrCreateCurrentWorkspace } from "@/lib/workspace";
@@ -17,6 +20,25 @@ import { intakeQuestions } from "@/lib/reports/intake";
 
 const DOCX_MIME =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+const PNG_MIME = "image/png";
+
+/** Resolve each section's figure (R2 key → PNG bytes) for the programmatic renderer. */
+async function resolveFigureBuffers(content: ReportContent): Promise<Map<number, Buffer>> {
+  const images = new Map<number, Buffer>();
+  await Promise.all(
+    content.sections.map(async (s, i) => {
+      if (s.image) {
+        try { images.set(i, await getObjectBuffer(s.image)); } catch { /* missing figure → render without it */ }
+      }
+    }),
+  );
+  return images;
+}
+
+/** Render the DEFAULT (no custom template) report with the programmatic builder + embedded figures. */
+async function renderDefaultReport(content: ReportContent): Promise<Buffer> {
+  return renderReportDocxProgrammatic(content, await resolveFigureBuffers(content));
+}
 
 export type GenerateReportInput = {
   userId: string;
@@ -119,7 +141,9 @@ async function produceContent(user: User & { institution: { name: string } | nul
     data: gen.content,
     model: gen.model,
     templateIdToSet: template.id,
-    render: async () => renderReportDocx(gen.content, await getObjectBuffer(template.storageKey)).buffer,
+    // Default format → programmatic builder (supports embedded AI figures). Custom uploaded
+    // templates keep the docxtemplater path above.
+    render: async () => renderDefaultReport(gen.content),
   };
 }
 
@@ -409,16 +433,27 @@ export async function resumeReportGeneration(
 export async function updateReportContent(userId: string, docId: string, data: ReportLike): Promise<{ reRendered: boolean }> {
   const doc = await prisma.document.findFirst({
     where: { id: docId, ownerId: userId, type: "REPORT" },
-    include: { template: true, job: true, exports: { where: { format: "DOCX" }, take: 1 } },
+    include: { template: true, job: true, content: true, exports: { where: { format: "DOCX" }, take: 1 } },
   });
   if (!doc) throw new Error("Report not found.");
 
+  // The editor sends only {heading, content}; carry over each section's existing figure
+  // (image/caption/imagePrompt) from the stored content so an edit never wipes an approved figure.
+  const stored = (doc.content?.data ?? null) as ReportContent | null;
+  const merged: ReportLike = {
+    ...data,
+    sections: (data.sections ?? []).map((s) => {
+      const prev = stored?.sections?.find((p) => p.heading === s.heading) ?? null;
+      return prev?.image ? { ...s, image: prev.image, caption: prev.caption, imagePrompt: prev.imagePrompt } : s;
+    }),
+  };
+
   await prisma.documentContent.upsert({
     where: { documentId: docId },
-    create: { documentId: docId, data: data as unknown as object },
-    update: { data: data as unknown as object },
+    create: { documentId: docId, data: merged as unknown as object },
+    update: { data: merged as unknown as object },
   });
-  await prisma.document.update({ where: { id: docId }, data: { quality: analyzeReport(data) } });
+  await prisma.document.update({ where: { id: docId }, data: { quality: analyzeReport(merged) } });
 
   const exportKey = doc.exports[0]?.storageKey ?? keys.exportFile(docId, "DOCX");
   const saveExport = async (buffer: Buffer) => {
@@ -430,9 +465,13 @@ export async function updateReportContent(userId: string, docId: string, data: R
     }
   };
 
-  // Default-template report: re-render from structured data.
+  // Default report → programmatic builder (embeds figures). Custom uploaded templates below.
+  if (doc.template?.isDefault) {
+    await saveExport(await renderDefaultReport(merged as unknown as ReportContent));
+    return { reRendered: true };
+  }
   if (doc.templateId && doc.template?.storageKey) {
-    await saveExport(renderReportDocx(data, await getObjectBuffer(doc.template.storageKey)).buffer);
+    await saveExport(renderReportDocx(merged, await getObjectBuffer(doc.template.storageKey)).buffer);
     return { reRendered: true };
   }
 
@@ -448,4 +487,65 @@ export async function updateReportContent(userId: string, docId: string, data: R
   }
 
   return { reRendered: false };
+}
+
+// ----------------------- Report figures (suggest → approve → embed) -----------------------
+// Figures are AI-generated images embedded into the DEFAULT report format. We PROPOSE figures
+// (text only — no credits), the student approves each, and only then do we call the image model.
+
+/** Re-render a default-format report and update its DOCX export in place. */
+async function reRenderDefaultReportExport(
+  docId: string,
+  content: ReportContent,
+  existingExport?: { id: string; storageKey: string } | null,
+): Promise<void> {
+  const buffer = await renderDefaultReport(content);
+  const exportKey = existingExport?.storageKey ?? keys.exportFile(docId, "DOCX");
+  await putObject(exportKey, buffer, DOCX_MIME);
+  if (existingExport) await prisma.documentExport.update({ where: { id: existingExport.id }, data: { sizeBytes: buffer.length } });
+  else await prisma.documentExport.create({ data: { documentId: docId, format: "DOCX", storageKey: exportKey, sizeBytes: buffer.length } });
+}
+
+/** Propose figures for a report (no image generated). Empty for custom-template reports. */
+export async function getReportFigureSuggestions(userId: string, docId: string): Promise<FigureSuggestion[]> {
+  const doc = await prisma.document.findFirst({ where: { id: docId, ownerId: userId, type: "REPORT" }, include: { content: true, template: true } });
+  if (!doc?.content) return [];
+  if (doc.template && !doc.template.isDefault) return []; // custom template can't embed figures
+  const content = doc.content.data as unknown as ReportContent;
+  const { figures } = await withAiRetry(() => suggestReportFigures({ title: content.title, sections: content.sections }), { label: "report.figures.suggest" });
+  // Skip sections that already have an approved figure.
+  return figures.filter((f) => f.sectionIndex < content.sections.length && !content.sections[f.sectionIndex]?.image);
+}
+
+/** Generate + embed an approved figure (the only step that spends image credits). */
+export async function approveReportFigure(userId: string, docId: string, sectionIndex: number, imagePrompt: string, caption: string): Promise<{ ok: boolean; error?: string }> {
+  const doc = await prisma.document.findFirst({ where: { id: docId, ownerId: userId, type: "REPORT" }, include: { content: true, template: true, exports: { where: { format: "DOCX" }, take: 1 } } });
+  if (!doc?.content) return { ok: false, error: "Report not found." };
+  const content = doc.content.data as unknown as ReportContent;
+  if (sectionIndex < 0 || sectionIndex >= content.sections.length) return { ok: false, error: "Invalid section." };
+
+  const img = await generateSlideImage(imagePrompt, "1536x1024");
+  if (!img) return { ok: false, error: "Image generation isn't available right now — try again." };
+  const bytes = Buffer.from(img.dataUrl.split(",")[1] ?? "", "base64");
+  const imageKey = `figures/${docId}/section-${sectionIndex}.png`;
+  await putObject(imageKey, bytes, PNG_MIME);
+
+  content.sections[sectionIndex] = { ...content.sections[sectionIndex], image: imageKey, caption, imagePrompt };
+  await prisma.documentContent.update({ where: { documentId: docId }, data: { data: content as unknown as object } });
+  await reRenderDefaultReportExport(docId, content, doc.exports[0]);
+  return { ok: true };
+}
+
+/** Remove an embedded figure and re-render. */
+export async function removeReportFigure(userId: string, docId: string, sectionIndex: number): Promise<{ ok: boolean }> {
+  const doc = await prisma.document.findFirst({ where: { id: docId, ownerId: userId, type: "REPORT" }, include: { content: true, exports: { where: { format: "DOCX" }, take: 1 } } });
+  if (!doc?.content) return { ok: false };
+  const content = doc.content.data as unknown as ReportContent;
+  if (content.sections[sectionIndex]) {
+    const { image: _i, caption: _c, imagePrompt: _p, ...rest } = content.sections[sectionIndex];
+    content.sections[sectionIndex] = rest;
+  }
+  await prisma.documentContent.update({ where: { documentId: docId }, data: { data: content as unknown as object } });
+  await reRenderDefaultReportExport(docId, content, doc.exports[0]);
+  return { ok: true };
 }

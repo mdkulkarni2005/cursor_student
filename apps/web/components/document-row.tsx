@@ -26,9 +26,9 @@ const TYPE_META: Record<DocType, TypeMeta> = {
 const STATUS_STYLE: Record<string, string> = {
   READY: "text-success bg-success/12",
   GENERATING: "text-cyan bg-cyan/12",
-  QUEUED: "text-muted bg-white/5",
+  QUEUED: "text-muted bg-surface",
   FAILED: "text-danger bg-danger/12",
-  DRAFT: "text-muted bg-white/5",
+  DRAFT: "text-muted bg-surface",
 };
 
 export type DocumentRowData = {
@@ -64,7 +64,7 @@ export function DocumentRow({ doc }: { doc: DocumentRowData }) {
         </div>
         <NavSpinner className="text-cyan" />
         <span
-          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-opacity group-hover:opacity-0 ${STATUS_STYLE[doc.status] ?? "text-muted bg-white/5"}`}
+          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-opacity group-hover:opacity-0 ${STATUS_STYLE[doc.status] ?? "text-muted bg-surface"}`}
         >
           {doc.status.toLowerCase()}
         </span>

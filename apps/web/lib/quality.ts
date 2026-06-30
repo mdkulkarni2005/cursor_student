@@ -3,7 +3,8 @@ import type { ReportContent } from "@studentos/documents";
 /** Loose shape so quality works for both default reports and user-template reports. */
 export type ReportLike = {
   abstract?: string;
-  sections?: { heading: string; content: string }[];
+  /** Optional figure fields (image = R2 key) carried through edits/re-renders. */
+  sections?: { heading: string; content: string; image?: string; caption?: string; imagePrompt?: string }[];
   references?: string[];
 };
 

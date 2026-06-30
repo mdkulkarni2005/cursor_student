@@ -12,6 +12,10 @@ export const ReportSectionSchema = z.object({
   heading: z.string().min(1),
   /** Body prose. Newlines become line breaks in the rendered document. */
   content: z.string().min(1),
+  /** Optional AI-generated figure for this section (default report format only). */
+  image: z.string().optional(), // R2 object key; resolved to bytes at render time
+  caption: z.string().optional(), // figure caption shown under the image
+  imagePrompt: z.string().optional(), // the prompt used (kept for regenerate)
 });
 
 export const ReportContentSchema = z.object({

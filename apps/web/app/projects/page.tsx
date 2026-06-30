@@ -14,60 +14,55 @@ export default async function ProjectsPage() {
     take: 20,
   });
 
-  const intro = (
-    <>
-      <h1 className="font-display text-[22px] font-bold text-ink">Project Ideas & Builder</h1>
-      <p className="mb-4 mt-1.5 text-[14px] text-muted">
-        Get department-matched ideas, compare them, finalize one — then generate the whole bundle
-        (report, PPT, viva questions) from it.
-      </p>
-    </>
-  );
-
   return (
     <AppShell user={shellUserFrom(user)}>
-      {projects.length === 0 ? (
-        <div className="mx-auto max-w-[560px]">
-          {intro}
+      <div className="mx-auto max-w-[1100px]">
+        <div className="mb-6">
+          <h1 className="font-display text-[30px] font-semibold tracking-tight text-ink">Project Idea Catalyst</h1>
+          <p className="mt-1 text-[14px] text-muted">Generate, curate, and finalize high-impact engineering projects with integrated planning.</p>
+        </div>
+
+        {/* Idea Generator */}
+        <div className="mb-8 rounded-2xl border border-line bg-card p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <span className="flex size-7 items-center justify-center rounded-lg bg-cyan/12 text-cyan">✦</span>
+            <h2 className="font-display text-[16px] font-semibold text-ink">Idea Generator</h2>
+          </div>
           <ProjectIdeasForm />
         </div>
-      ) : (
-        <div className="mx-auto flex max-w-[1080px] flex-col gap-6 lg:flex-row">
-          <div className="w-full lg:max-w-[460px] lg:sticky lg:top-0 lg:self-start">
-            {intro}
-            <ProjectIdeasForm />
-          </div>
 
-          <div className="min-w-0 flex-1">
-            <div className="mb-3.5 flex items-center justify-between">
-              <h2 className="font-display text-base font-semibold text-ink">Your projects</h2>
-              <span className="text-[12.5px] text-faint">{projects.length}</span>
-            </div>
-            <div className="flex flex-col gap-2.5">
-              {projects.map((p) => (
-                <div key={p.id} className="group relative">
-                  <Link
-                    href={`/projects/${p.id}`}
-                    className="flex items-center gap-3.5 rounded-xl border border-line bg-card p-3.5 pr-12 transition-colors hover:border-cyan/30"
-                  >
-                    <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-warning/12 text-[18px]">⚙</span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-[14px] font-semibold text-ink">{p.title}</p>
-                      <p className="text-[12px] text-faint">
-                        Project · {new Date(p.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                      </p>
-                    </div>
-                    <NavSpinner className="text-cyan" />
-                  </Link>
-                  <div className="absolute right-2.5 top-1/2 -translate-y-1/2 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
-                    <DeleteDocButton docId={p.id} kind="project" compact />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* Suggested / saved concepts */}
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-display text-[18px] font-semibold text-ink">Your Project Concepts</h2>
+          <span className="text-[12.5px] text-muted">{projects.length}</span>
         </div>
-      )}
+        {projects.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-line-strong bg-card p-12 text-center">
+            <p className="text-[14px] text-muted">No projects yet.</p>
+            <p className="mt-1 text-[12.5px] text-faint">Use the generator above to create your first project bundle.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {projects.map((p) => (
+              <div key={p.id} className="group relative rounded-2xl border border-line bg-card p-5 transition-all hover:-translate-y-1 hover:border-cyan/40 hover:shadow-[0_12px_28px_rgba(15,23,42,0.07)]">
+                <Link href={`/projects/${p.id}`} className="block">
+                  <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-warning/15 text-[20px]">⚙</span>
+                  <p className="line-clamp-2 text-[15px] font-semibold text-ink group-hover:text-cyan">{p.title}</p>
+                  <p className="mt-2 text-[12px] text-muted">
+                    Bundle · {new Date(p.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                  </p>
+                  <span className="mt-4 inline-flex items-center gap-1 text-[12.5px] font-semibold text-cyan">
+                    Open <NavSpinner className="text-cyan" /> →
+                  </span>
+                </Link>
+                <div className="absolute right-2.5 top-2.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
+                  <DeleteDocButton docId={p.id} kind="project" compact />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </AppShell>
   );
 }

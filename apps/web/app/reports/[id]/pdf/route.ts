@@ -5,6 +5,37 @@ import { getOrCreateUser } from "@/lib/user";
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 /**
+ * Cheap availability probe (no conversion): does an exact page-PDF preview work right now?
+ * 200 = Gotenberg is configured AND reachable AND a DOCX export exists. 503 otherwise.
+ * The client uses this to decide between the exact PDF and the HTML fallback.
+ */
+export async function HEAD(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const user = await getOrCreateUser();
+  if (!user) return new Response(null, { status: 401 });
+
+  const gotenberg = process.env.GOTENBERG_URL;
+  if (!gotenberg) return new Response(null, { status: 503 });
+
+  const exp = await prisma.documentExport.findFirst({
+    where: { format: "DOCX", document: { id, ownerId: user.id, type: "REPORT" } },
+    select: { id: true },
+  });
+  if (!exp) return new Response(null, { status: 404 });
+
+  // Ping the service so we don't promise a preview the (Docker) container can't deliver.
+  try {
+    const ping = await fetch(`${gotenberg.replace(/\/$/, "")}/health`, {
+      method: "GET",
+      signal: AbortSignal.timeout(2500),
+    });
+    return new Response(null, { status: ping.ok ? 200 : 503 });
+  } catch {
+    return new Response(null, { status: 503 });
+  }
+}
+
+/**
  * Page-accurate preview: convert the report's generated .docx to PDF so the browser shows
  * EXACT Word pages + a real page count. Conversion runs on a Gotenberg service (LibreOffice in
  * a container) addressed by GOTENBERG_URL — this keeps the heavy binary off Vercel's functions.

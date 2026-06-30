@@ -6,9 +6,27 @@ import { updateResumeAction } from "@/lib/actions/resume";
 
 const label = "mb-1 block text-[11.5px] font-semibold text-muted";
 const box =
-  "w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-[13px] text-ink outline-none transition-colors focus:border-cyan/50 placeholder:text-faint";
+  "w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] text-ink outline-none transition-colors focus:border-cyan/50 placeholder:text-faint";
 const btnSm =
-  "rounded-lg border border-line-strong bg-surface px-2.5 py-1 text-[12px] font-semibold text-soft transition-colors hover:border-cyan/40 hover:text-cyan";
+  "rounded-lg border border-cyan/30 bg-cyan/5 px-2.5 py-1 text-[12px] font-semibold text-cyan transition-colors hover:bg-cyan/10";
+const sectionCard = "rounded-2xl border border-line bg-card p-4";
+
+const CONTACT_LABELS: Record<string, string> = {
+  name: "Full Name", email: "Email", phone: "Phone", location: "Location", linkedin: "LinkedIn", github: "GitHub",
+};
+
+/** Section header with an accent dot + title and optional action on the right. */
+function SectionHead({ title, action }: { title: string; action?: React.ReactNode }) {
+  return (
+    <div className="mb-3 flex items-center justify-between">
+      <h3 className="flex items-center gap-2 text-[13px] font-semibold text-ink">
+        <span className="size-2 rounded-full bg-cyan" />
+        {title}
+      </h3>
+      {action}
+    </div>
+  );
+}
 
 type EntryKind = "experience" | "projects" | "education";
 
@@ -42,28 +60,26 @@ export function ResumeEditor({ docId, resume }: { docId: string; resume: Resume 
       <input type="hidden" name="docId" value={docId} />
       <input type="hidden" name="resume" value={JSON.stringify(r)} />
 
-      {/* Contact */}
-      <div className="grid grid-cols-2 gap-3">
-        {(["name", "email", "phone", "location", "linkedin", "github"] as const).map((k) => (
-          <div key={k}>
-            <label className={label}>{k}</label>
-            <input className={box} value={r.contact[k] ?? ""} onChange={(e) => setContact(k, e.target.value)} />
-          </div>
-        ))}
-      </div>
-
-      {/* Summary */}
-      <div>
-        <label className={label}>Professional summary</label>
-        <textarea className={`${box} resize-none`} rows={3} value={r.summary ?? ""} onChange={(e) => setR((p) => ({ ...p, summary: e.target.value }))} />
+      {/* Personal Information */}
+      <div className={sectionCard}>
+        <SectionHead title="Personal Information" />
+        <div className="grid grid-cols-2 gap-3">
+          {(["name", "email", "phone", "location", "linkedin", "github"] as const).map((k) => (
+            <div key={k}>
+              <label className={label}>{CONTACT_LABELS[k]}</label>
+              <input className={box} value={r.contact[k] ?? ""} onChange={(e) => setContact(k, e.target.value)} />
+            </div>
+          ))}
+        </div>
+        <div className="mt-3">
+          <label className={label}>Professional Summary</label>
+          <textarea className={`${box} resize-none`} rows={3} value={r.summary ?? ""} onChange={(e) => setR((p) => ({ ...p, summary: e.target.value }))} />
+        </div>
       </div>
 
       {/* Skills */}
-      <div>
-        <div className="mb-1.5 flex items-center justify-between">
-          <p className="text-[12.5px] font-semibold text-ink">Skills</p>
-          <button type="button" className={btnSm} onClick={() => setR((p) => ({ ...p, skills: [...p.skills, { category: "New", items: [] }] }))}>+ group</button>
-        </div>
+      <div className={sectionCard}>
+        <SectionHead title="Skills" action={<button type="button" className={btnSm} onClick={() => setR((p) => ({ ...p, skills: [...p.skills, { category: "New", items: [] }] }))}>+ Group</button>} />
         <div className="space-y-2">
           {r.skills.map((g, i) => (
             <div key={i} className="flex gap-2">
@@ -87,17 +103,14 @@ export function ResumeEditor({ docId, resume }: { docId: string; resume: Resume 
 
       {/* Experience + Projects (same shape) */}
       {(["experience", "projects"] as const).map((kind) => (
-        <div key={kind}>
-          <div className="mb-1.5 flex items-center justify-between">
-            <p className="text-[12.5px] font-semibold capitalize text-ink">{kind}</p>
-            <button type="button" className={btnSm} onClick={() => addEntry(kind)}>+ add</button>
-          </div>
+        <div key={kind} className={sectionCard}>
+          <SectionHead title={kind === "experience" ? "Experience" : "Projects"} action={<button type="button" className={btnSm} onClick={() => addEntry(kind)}>+ Add {kind === "experience" ? "Role" : "Project"}</button>} />
           <div className="space-y-3">
             {r[kind].map((e, i) => {
               const isProj = kind === "projects";
               const main = isProj ? (e as Resume["projects"][number]).name : (e as Resume["experience"][number]).organization;
               return (
-                <div key={i} className="rounded-xl border border-line bg-surface/40 p-3">
+                <div key={i} className="rounded-xl border border-line bg-surface p-3">
                   <div className="grid grid-cols-2 gap-2">
                     <input className={box} value={main} placeholder={isProj ? "Project name" : "Organization"} onChange={(ev) => updateEntry(kind, i, isProj ? { name: ev.target.value } : { organization: ev.target.value })} />
                     <input className={box} value={(e as { role?: string }).role ?? ""} placeholder="Role" onChange={(ev) => updateEntry(kind, i, { role: ev.target.value })} />
@@ -123,14 +136,11 @@ export function ResumeEditor({ docId, resume }: { docId: string; resume: Resume 
       ))}
 
       {/* Education */}
-      <div>
-        <div className="mb-1.5 flex items-center justify-between">
-          <p className="text-[12.5px] font-semibold text-ink">Education</p>
-          <button type="button" className={btnSm} onClick={() => addEntry("education")}>+ add</button>
-        </div>
+      <div className={sectionCard}>
+        <SectionHead title="Education" action={<button type="button" className={btnSm} onClick={() => addEntry("education")}>+ Add</button>} />
         <div className="space-y-3">
           {r.education.map((ed, i) => (
-            <div key={i} className="rounded-xl border border-line bg-surface/40 p-3">
+            <div key={i} className="rounded-xl border border-line bg-surface p-3">
               <div className="grid grid-cols-2 gap-2">
                 <input className={box} value={ed.institution} placeholder="Institution" onChange={(ev) => updateEntry("education", i, { institution: ev.target.value })} />
                 <input className={box} value={ed.degree ?? ""} placeholder="Degree" onChange={(ev) => updateEntry("education", i, { degree: ev.target.value })} />
@@ -145,9 +155,9 @@ export function ResumeEditor({ docId, resume }: { docId: string; resume: Resume 
 
       <button
         type="submit"
-        className="w-full rounded-xl bg-accent-gradient py-2.5 text-[13.5px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(34,211,238,0.3)] transition-transform hover:-translate-y-0.5"
+        className="w-full rounded-xl bg-cyan py-3 text-[14px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(79,70,229,0.25)] transition-transform hover:-translate-y-0.5"
       >
-        Save & re-render →
+        ✦ Optimize &amp; Save →
       </button>
     </form>
   );

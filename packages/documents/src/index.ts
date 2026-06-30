@@ -10,3 +10,4 @@ export * from "./resume";
 export * from "./resume-pdf";
 export * from "./resume-parse";
 export * from "./template-fill";
+export * from "./report-render";

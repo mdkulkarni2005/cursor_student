@@ -131,7 +131,7 @@ export function InterviewAnswerPanel({ docId, question, isCoding, isLast }: { do
         />
         <button
           type="submit"
-          className="mt-3 w-full rounded-xl bg-accent-gradient py-2.5 text-[13.5px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(34,211,238,0.3)] transition-transform hover:-translate-y-0.5"
+          className="mt-3 w-full rounded-xl bg-accent-gradient py-2.5 text-[13.5px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(79,70,229,0.3)] transition-transform hover:-translate-y-0.5"
         >
           {isLast ? "Submit & finish →" : "Submit answer →"}
         </button>

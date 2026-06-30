@@ -13,49 +13,44 @@ export default async function InterviewPage() {
 
   return (
     <AppShell user={shellUserFrom(user)}>
-      <div className="mx-auto flex max-w-[1080px] flex-col gap-6 lg:flex-row">
-        <div className="w-full lg:max-w-[440px]">
-          <h1 className="font-display text-[22px] font-bold text-ink">Interview Prep</h1>
-          <p className="mb-4 mt-1.5 text-[14px] text-muted">
-            A realistic mock interview — technical, behavioral, and a coding round — grounded in your resume.
-            You answer; at the end you get an honest evaluation with where to improve.
-          </p>
+      <div className="mx-auto max-w-[1100px]">
+        <div className="mb-6">
+          <h1 className="font-display text-[30px] font-semibold tracking-tight text-ink">Interview Prep</h1>
+          <p className="mt-1 text-[14px] text-muted">A realistic mock interview — technical, behavioral, and a coding round — grounded in your resume, with an honest evaluation at the end.</p>
+        </div>
+
+        {/* Start a round (the form provides its own card) */}
+        <div className="mb-8">
+          <h2 className="mb-3 flex items-center gap-2 font-display text-[16px] font-semibold text-ink">
+            <span className="flex size-7 items-center justify-center rounded-lg bg-indigo/15 text-indigo">🎤</span> New Mock Interview
+          </h2>
           <StartInterviewForm resumes={resumes} codingEnabled={user.codingEnabled !== false} />
         </div>
 
-        <div className="min-w-0 flex-1">
-          <div className="mb-3.5 flex items-center justify-between">
-            <h2 className="font-display text-base font-semibold text-ink">Your interviews</h2>
-            <span className="text-[12.5px] text-faint">{interviews.length}</span>
-          </div>
-          {interviews.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-line-strong bg-card/50 p-10 text-center">
-              <p className="text-[14px] text-muted">No interviews yet.</p>
-              <p className="mt-1 text-[12.5px] text-faint">Start one and it&apos;ll appear here with your score.</p>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2.5">
-              {interviews.map((iv) => (
-                <Link
-                  key={iv.id}
-                  href={`/interview/${iv.id}`}
-                  className="flex items-center gap-3.5 rounded-xl border border-line bg-card p-3.5 transition-colors hover:border-cyan/30"
-                >
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-indigo/12 text-[18px]">🎤</span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14px] font-semibold text-ink">{iv.title}</p>
-                    <p className="text-[12px] text-faint">
-                      Interview · {new Date(iv.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
-                    </p>
-                  </div>
-                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${iv.status === "READY" ? "text-success bg-success/12" : "text-cyan bg-cyan/12"}`}>
-                    {iv.status === "GENERATING" ? "thinking" : "open"}
-                  </span>
-                </Link>
-              ))}
-            </div>
-          )}
+        {/* History grid */}
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="font-display text-[18px] font-semibold text-ink">Your Interviews</h2>
+          <span className="text-[12.5px] text-muted">{interviews.length}</span>
         </div>
+        {interviews.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-line-strong bg-card p-12 text-center">
+            <p className="text-[14px] text-muted">No interviews yet.</p>
+            <p className="mt-1 text-[12.5px] text-faint">Start one above — it&apos;ll appear here with your score.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {interviews.map((iv) => (
+              <Link key={iv.id} href={`/interview/${iv.id}`} className="group rounded-2xl border border-line bg-card p-5 transition-all hover:-translate-y-1 hover:border-cyan/40 hover:shadow-[0_12px_28px_rgba(15,23,42,0.07)]">
+                <div className="mb-4 flex items-start justify-between">
+                  <span className="flex size-10 items-center justify-center rounded-xl bg-indigo/15 text-[18px]">🎤</span>
+                  <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase ${iv.status === "READY" ? "bg-success/12 text-success" : "bg-cyan/12 text-cyan"}`}>{iv.status === "GENERATING" ? "Thinking" : iv.status === "READY" ? "Done" : "Open"}</span>
+                </div>
+                <p className="line-clamp-2 text-[14.5px] font-semibold text-ink group-hover:text-cyan">{iv.title}</p>
+                <p className="mt-2 text-[12px] text-muted">{new Date(iv.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</p>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </AppShell>
   );

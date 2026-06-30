@@ -170,7 +170,7 @@ export function InterviewCodePanel({ docId, question, runnable, isLast }: { docI
           run.unavailable ? (
             <p className="mt-3 rounded-lg border border-warning/25 bg-warning/10 p-2.5 text-[12px] text-warning">{run.message}</p>
           ) : (
-            <div className="mt-3 rounded-lg bg-[#0a0e1a] p-3 font-mono text-[12px]">
+            <div className="mt-3 rounded-lg bg-surface p-3 font-mono text-[12px]">
               <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-faint">Output {run.status && run.status !== "ok" ? `· ${run.status}` : ""}</p>
               {run.stdout ? <pre className="whitespace-pre-wrap text-soft">{run.stdout}</pre> : null}
               {run.stderr ? <pre className="whitespace-pre-wrap text-danger">{run.stderr}</pre> : null}
@@ -195,7 +195,7 @@ export function InterviewCodePanel({ docId, question, runnable, isLast }: { docI
         />
         <button
           type="submit"
-          className="mt-3 w-full rounded-xl bg-accent-gradient py-2.5 text-[13.5px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(34,211,238,0.3)] transition-transform hover:-translate-y-0.5"
+          className="mt-3 w-full rounded-xl bg-accent-gradient py-2.5 text-[13.5px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(79,70,229,0.3)] transition-transform hover:-translate-y-0.5"
         >
           {isLast ? "Submit & finish →" : "Submit answer →"}
         </button>

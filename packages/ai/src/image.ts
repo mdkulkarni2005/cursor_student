@@ -7,16 +7,18 @@ import { experimental_generateImage as generateImage } from "ai";
  * same way as our text models). Override the model with IMAGE_MODEL; set IMAGE_DEBUG=1 to log why a
  * generation failed (the gateway must have the chosen image model enabled).
  */
-const IMAGE_MODEL = process.env.IMAGE_MODEL || "openai/dall-e-3";
+// gpt-image-1 is verified on the AI Gateway; dall-e-3 is NOT available there. Override with IMAGE_MODEL.
+const IMAGE_MODEL = process.env.IMAGE_MODEL || "openai/gpt-image-1";
 
 export type SlideImage = { dataUrl: string };
+export type ImageSize = "1024x1024" | "1536x1024" | "1024x1536";
 
-export async function generateSlideImage(prompt: string): Promise<SlideImage | null> {
+export async function generateSlideImage(prompt: string, size: ImageSize = "1024x1024"): Promise<SlideImage | null> {
   if (process.env.AI_DRIVER === "stub") return null;
   if (!prompt.trim()) return null;
 
   try {
-    const { image } = await generateImage({ model: IMAGE_MODEL, prompt, size: "1024x1024" });
+    const { image } = await generateImage({ model: IMAGE_MODEL, prompt, size });
     const mediaType = image.mediaType || "image/png";
     return { dataUrl: `data:${mediaType};base64,${image.base64}` };
   } catch (err) {

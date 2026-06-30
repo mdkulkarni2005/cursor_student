@@ -21,7 +21,7 @@ export function GeneratingPoller({ stages, current }: { stages: readonly Stage[]
   const idx = Math.max(0, stages.findIndex((s) => s.key === current));
 
   return (
-    <div className="mt-6 overflow-hidden rounded-2xl border border-cyan/25 bg-gradient-to-br from-[#0f1a2e] to-[#101428] p-6 sm:p-8">
+    <div className="mt-6 overflow-hidden rounded-2xl border border-cyan/25 bg-gradient-to-br from-cyan/[0.07] to-indigo/[0.07] p-6 sm:p-8">
       <div className="flex items-center gap-3">
         <span className="flex size-9 items-center justify-center rounded-full bg-cyan/15 text-cyan"><Spinner /></span>
         <div>
@@ -37,7 +37,7 @@ export function GeneratingPoller({ stages, current }: { stages: readonly Stage[]
           return (
             <li key={s.key} className="flex items-center gap-3">
               <span className={`flex size-6 shrink-0 items-center justify-center rounded-full text-[12px] font-bold ${
-                done ? "bg-success/20 text-success" : active ? "bg-cyan/20 text-cyan" : "bg-white/5 text-faint"}`}>
+                done ? "bg-success/20 text-success" : active ? "bg-cyan/20 text-cyan" : "bg-surface text-faint"}`}>
                 {done ? "✓" : active ? <Spinner /> : i + 1}
               </span>
               <span className={`text-[13.5px] ${done ? "text-soft" : active ? "font-semibold text-ink" : "text-faint"}`}>{s.label}</span>
@@ -46,7 +46,7 @@ export function GeneratingPoller({ stages, current }: { stages: readonly Stage[]
         })}
       </ul>
 
-      <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-white/5">
+      <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-surface">
         <div className="h-full rounded-full bg-accent-gradient transition-all duration-700" style={{ width: `${((idx + 0.5) / stages.length) * 100}%` }} />
       </div>
     </div>

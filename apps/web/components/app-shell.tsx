@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { WORKSPACE_NAV, YOU_NAV, ALL_NAV, type NavItem } from "@/lib/nav";
-import { Sparkle, SearchIcon } from "@/components/icons";
+import { SearchIcon, PlusIcon } from "@/components/icons";
 import { AssistantPanel } from "@/components/assistant/assistant-panel";
 
 export type ShellUser = {
@@ -42,25 +42,34 @@ function userMeta(user: ShellUser): string {
 
 function Sidebar({ pathname, user }: { pathname: string; user: ShellUser }) {
   return (
-    <aside className="hidden h-screen w-[236px] shrink-0 flex-col overflow-y-auto border-r border-line bg-base px-4 py-5 lg:flex">
-      <Link href="/dashboard" className="mb-6 flex items-center gap-2.5 px-2">
-        <span className="flex size-[30px] items-center justify-center rounded-lg bg-accent-gradient shadow-[0_0_16px_rgba(34,211,238,0.4)]">
-          <Sparkle size={16} className="text-on-accent" />
+    <aside className="hidden h-screen w-[256px] shrink-0 flex-col overflow-y-auto border-r border-line bg-base px-4 py-6 lg:flex">
+      <Link href="/dashboard" className="mb-7 block px-2">
+        <span className="font-display text-[19px] font-bold text-cyan">Vidyas OS</span>
+        <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-[0.18em] text-faint">
+          Academic Intelligence
         </span>
-        <span className="font-display text-[17px] font-bold text-ink">StudentOS</span>
       </Link>
 
-      <p className="px-2.5 pb-2 text-[10px] font-bold tracking-[0.1em] text-dim">WORKSPACE</p>
-      {WORKSPACE_NAV.filter((item) => user.codingEnabled || item.href !== "/dsa").map((item) => (
-        <NavRow key={item.href} item={item} active={pathname === item.href} />
-      ))}
+      <Link
+        href="/workspace"
+        className="mb-6 flex items-center justify-center gap-2 rounded-xl bg-cyan px-4 py-3 text-[13.5px] font-semibold text-on-accent transition-transform active:scale-[0.97]"
+      >
+        <PlusIcon size={17} />
+        New Project
+      </Link>
 
-      <p className="px-2.5 pb-2 pt-4 text-[10px] font-bold tracking-[0.1em] text-dim">YOU</p>
+      <nav className="flex-1">
+        {WORKSPACE_NAV.filter((item) => user.codingEnabled || item.href !== "/dsa").map((item) => (
+          <NavRow key={item.href} item={item} active={pathname === item.href} />
+        ))}
+      </nav>
+
+      <div className="my-3 h-px bg-line" />
       {YOU_NAV.map((item) => (
         <NavRow key={item.href} item={item} active={pathname === item.href} />
       ))}
 
-      <div className="mt-auto flex items-center gap-2.5 rounded-xl border border-line bg-surface p-2.5">
+      <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-line bg-surface p-2.5">
         <UserButton appearance={{ elements: { avatarBox: "width:34px;height:34px" } }} />
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13px] font-semibold text-ink">{user.name}</p>
@@ -76,19 +85,16 @@ function Topbar() {
     <header className="flex h-[66px] shrink-0 items-center gap-4 border-b border-line px-5 lg:px-7">
       {/* Mobile brand */}
       <Link href="/dashboard" className="flex items-center gap-2 lg:hidden">
-        <span className="flex size-7 items-center justify-center rounded-lg bg-accent-gradient">
-          <Sparkle size={14} className="text-on-accent" />
-        </span>
-        <span className="font-display text-[15px] font-bold text-ink">StudentOS</span>
+        <span className="font-display text-[16px] font-bold text-cyan">Vidyas OS</span>
       </Link>
 
-      {/* Search routes to the Vault, where the real search lives. */}
+      {/* Global search across the workspace. */}
       <Link
-        href="/vault"
-        className="hidden max-w-[420px] flex-1 items-center gap-2.5 rounded-xl border border-line-strong bg-input px-3.5 py-2.5 text-left transition-colors hover:border-cyan/40 lg:flex"
+        href="/search"
+        className="hidden max-w-[460px] flex-1 items-center gap-2.5 rounded-xl border border-line-strong bg-input px-3.5 py-2.5 text-left transition-colors hover:border-cyan/40 lg:flex"
       >
         <SearchIcon size={15} className="text-faint" />
-        <span className="text-[13.5px] text-faint">Search your work…</span>
+        <span className="text-[13.5px] text-faint">Search academic vault, tasks, or commands…</span>
       </Link>
 
       {/* Account — visible on mobile, where there's no sidebar. */}

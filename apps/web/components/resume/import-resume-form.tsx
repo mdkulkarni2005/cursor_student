@@ -8,7 +8,7 @@ export function ImportResumeForm() {
   const [state, action, pending] = useActionState<ImportResumeState, FormData>(importResumeAction, {});
 
   return (
-    <form action={action} className="rounded-2xl border border-dashed border-line-strong bg-card/50 p-4">
+    <form action={action} className="rounded-2xl border border-dashed border-line-strong bg-card p-4">
       <GeneratingOverlay label="Importing your resume…" sub="Reading and re-rendering your resume into the template. Keep this tab open." />
       <p className="text-[13px] font-semibold text-ink">Already have a resume?</p>
       <p className="mb-3 mt-0.5 text-[12px] text-muted">

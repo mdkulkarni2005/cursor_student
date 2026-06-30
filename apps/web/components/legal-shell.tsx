@@ -8,10 +8,10 @@ export function LegalShell({ title, updated, children }: { title: string; update
       <header className="border-b border-line">
         <div className="mx-auto flex max-w-[760px] items-center justify-between px-5 py-4">
           <Link href="/" className="flex items-center gap-2.5">
-            <span className="flex size-[28px] items-center justify-center rounded-lg bg-accent-gradient shadow-[0_0_16px_rgba(34,211,238,0.4)]">
+            <span className="flex size-[28px] items-center justify-center rounded-lg bg-accent-gradient shadow-[0_0_16px_rgba(79,70,229,0.4)]">
               <Sparkle size={15} className="text-on-accent" />
             </span>
-            <span className="font-display text-[16px] font-bold text-ink">StudentOS</span>
+            <span className="font-display text-[16px] font-bold text-ink">Vidyas OS</span>
           </Link>
           <div className="flex gap-4 text-[12.5px] text-muted">
             <Link href="/privacy" className="hover:text-soft">Privacy</Link>

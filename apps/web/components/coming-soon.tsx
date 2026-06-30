@@ -17,7 +17,7 @@ export function ComingSoon({
   return (
     <div className="mx-auto max-w-[560px] pt-6">
       <div className="rounded-2xl border border-line bg-card p-8 text-center sm:p-10">
-        <span className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-accent-gradient shadow-[0_0_20px_rgba(34,211,238,0.35)]">
+        <span className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-accent-gradient shadow-[0_0_20px_rgba(79,70,229,0.35)]">
           <Sparkle size={22} className="text-on-accent" />
         </span>
         <span className="mb-3 inline-block rounded-full border border-cyan/25 bg-cyan/10 px-3 py-1 text-[11.5px] font-semibold tracking-wide text-cyan">
@@ -39,7 +39,7 @@ export function ComingSoon({
 
         <Link
           href="/dashboard"
-          className="mt-7 inline-block rounded-xl border border-line-strong bg-white/5 px-5 py-2.5 text-[13.5px] font-semibold text-soft transition-colors hover:bg-white/10"
+          className="mt-7 inline-block rounded-xl border border-line-strong bg-surface px-5 py-2.5 text-[13.5px] font-semibold text-soft transition-colors hover:bg-surface"
         >
           ← Back to home
         </Link>

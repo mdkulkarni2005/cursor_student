@@ -202,19 +202,19 @@ export function DeckViewer({ docId, deck, editable = false }: { docId: string; d
   return (
     <div className="mt-4">
       {/* Toolbar row */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <button onClick={() => setPresenting(true)} className="rounded-lg border border-line-strong bg-surface px-3 py-1.5 text-[13px] font-semibold text-soft transition-colors hover:border-cyan/40 hover:text-cyan">▶ Present</button>
+      <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-line bg-card p-2">
+        <button onClick={() => setPresenting(true)} className="flex items-center gap-1.5 rounded-lg bg-cyan px-3.5 py-1.5 text-[13px] font-semibold text-on-accent transition-transform active:scale-95">▶ Present</button>
         {editable ? (
-          <button onClick={() => setEditing((e) => !e)} className={`rounded-lg px-3 py-1.5 text-[13px] font-semibold transition-colors ${editing ? "bg-cyan/15 text-cyan" : "border border-line-strong bg-surface text-soft hover:text-cyan"}`}>{editing ? "Done editing" : "✎ Edit"}</button>
+          <button onClick={() => setEditing((e) => !e)} className={`rounded-lg px-3 py-1.5 text-[13px] font-semibold transition-colors ${editing ? "bg-cyan/15 text-cyan" : "border border-line bg-surface text-soft hover:text-cyan"}`}>{editing ? "Done editing" : "✎ Edit"}</button>
         ) : null}
         {editing ? (
           <>
-            <button onClick={addSlide} className="rounded-lg border border-line-strong bg-surface px-3 py-1.5 text-[13px] font-semibold text-soft hover:text-cyan">+ Slide</button>
-            <button onClick={save} disabled={saving || !dirty} className="rounded-lg bg-accent-gradient px-4 py-1.5 text-[13px] font-semibold text-on-accent disabled:opacity-40">{saving ? "Saving…" : dirty ? "Save" : "Saved"}</button>
+            <button onClick={addSlide} className="rounded-lg border border-line bg-surface px-3 py-1.5 text-[13px] font-semibold text-soft hover:text-cyan">+ Slide</button>
+            <button onClick={save} disabled={saving || !dirty} className="rounded-lg border border-cyan/30 bg-cyan/5 px-4 py-1.5 text-[13px] font-semibold text-cyan disabled:opacity-40">{saving ? "Saving…" : dirty ? "Save" : "✓ Saved"}</button>
           </>
         ) : null}
         {msg ? <span className="text-[12.5px] text-faint">{msg}</span> : null}
-        {!editable ? <span className="text-[12px] text-faint">Template deck — download to edit in PowerPoint.</span> : null}
+        {!editable ? <span className="ml-auto text-[12px] text-faint">Template deck — download to edit in PowerPoint.</span> : null}
       </div>
 
       {/* Rich-text formatting toolbar (sticky) */}
@@ -259,7 +259,7 @@ export function DeckViewer({ docId, deck, editable = false }: { docId: string; d
             />
           ) : (
             <>
-              <div className="overflow-hidden rounded-xl border border-line shadow-[0_8px_30px_rgba(0,0,0,0.25)]"><SlideCanvas slide={current} theme={deck.theme} /></div>
+              <div className="overflow-hidden rounded-xl border border-line shadow-[0_8px_30px_rgba(15,23,42,0.08)]"><SlideCanvas slide={current} theme={deck.theme} /></div>
               <div className="mt-4 flex items-center justify-between text-[12px] text-faint">
                 <span>Slide {active + 1} of {canvasSlides.length}</span>
                 <span className="flex gap-1.5">
@@ -285,19 +285,19 @@ export function DeckViewer({ docId, deck, editable = false }: { docId: string; d
 const FONTS = ["Arial", "Calibri", "Georgia", "Times New Roman", "Verdana"];
 const SIZES = [10, 12, 14, 16, 18, 20, 24, 28, 32, 40];
 function TBtn({ title, run, children }: { title: string; run: () => void; children: React.ReactNode }) {
-  return <button type="button" title={title} onMouseDown={(e) => { e.preventDefault(); run(); }} className="flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-[13px] font-semibold text-soft hover:bg-white/10">{children}</button>;
+  return <button type="button" title={title} onMouseDown={(e) => { e.preventDefault(); run(); }} className="flex h-8 min-w-8 items-center justify-center rounded-md px-2 text-[13px] font-semibold text-soft hover:bg-surface">{children}</button>;
 }
 function RichToolbar({ exec, setFontSize }: { exec: (c: string, v?: string) => void; setFontSize: (px: string) => void }) {
   const sel = "h-8 shrink-0 rounded-md border border-line-strong bg-surface px-2 text-[12px] text-soft outline-none focus:border-cyan/50";
   return (
-    <div className="sticky top-0 z-30 mb-3 flex flex-wrap items-center gap-1 rounded-lg border border-line bg-[#0e1320]/95 px-2 py-1.5 backdrop-blur">
+    <div className="sticky top-0 z-30 mb-3 flex flex-wrap items-center gap-1 rounded-lg border border-line bg-card/95 px-2 py-1.5 backdrop-blur">
       <select aria-label="Font" defaultValue="Arial" className={`${sel} max-w-[120px]`} onMouseDown={(e) => e.stopPropagation()} onChange={(e) => exec("fontName", e.target.value)}>{FONTS.map((f) => <option key={f} value={f}>{f}</option>)}</select>
       <select aria-label="Size" defaultValue="18" className={sel} onChange={(e) => setFontSize(e.target.value)}>{SIZES.map((s) => <option key={s} value={s}>{s}</option>)}</select>
       <span className="mx-0.5 h-5 w-px bg-line-strong" />
       <TBtn title="Bold" run={() => exec("bold")}><b>B</b></TBtn>
       <TBtn title="Italic" run={() => exec("italic")}><i>I</i></TBtn>
       <TBtn title="Underline" run={() => exec("underline")}><u>U</u></TBtn>
-      <label title="Text color" className="flex h-8 cursor-pointer items-center rounded-md px-1 hover:bg-white/10" onMouseDown={(e) => e.preventDefault()}>
+      <label title="Text color" className="flex h-8 cursor-pointer items-center rounded-md px-1 hover:bg-surface" onMouseDown={(e) => e.preventDefault()}>
         <span className="text-[13px] font-semibold text-soft">A</span>
         <input type="color" defaultValue="#000000" onChange={(e) => exec("foreColor", e.target.value)} className="ml-0.5 size-4 cursor-pointer border-0 bg-transparent p-0" />
       </label>
@@ -355,7 +355,7 @@ function SlideEditSurface({
   // ----- Title slide: edit directly on the dark cover -----
   if (isTitle) {
     return (
-      <div className="aspect-video w-full overflow-hidden rounded-xl border border-cyan/30 shadow-[0_8px_30px_rgba(0,0,0,0.3)]" style={{ containerType: "size", background: hx(t.dark) }}>
+      <div className="aspect-video w-full overflow-hidden rounded-xl border border-cyan/30 shadow-[0_8px_30px_rgba(15,23,42,0.10)]" style={{ containerType: "size", background: hx(t.dark) }}>
         <div className="flex h-full w-full flex-col items-center justify-center px-[8cqw] text-center">
           <RichLine plain value={title} onChange={(r) => onTitle(r as string)} onFocusSave={onFocusSave} className={`${onSlide} text-center`} style={{ color: hx(t.light), fontFamily: t.headFont, fontSize: "5.4cqw", fontWeight: 700, lineHeight: 1.15 }} />
           <RichLine plain value={subtitle} onChange={(r) => onSubtitle(r as string)} onFocusSave={onFocusSave} className={`${onSlide} mt-[2.5cqw] text-center`} style={{ color: hx(t.accent), fontFamily: t.headFont, fontSize: "2.7cqw" }} />
@@ -380,7 +380,7 @@ function SlideEditSurface({
 
   // The editable slide canvas (text layouts) — looks like the slide; type on it directly.
   const editableSlide = (
-    <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-cyan/30 shadow-[0_8px_30px_rgba(0,0,0,0.3)]" style={{ containerType: "size", background: layout === "section" ? hx(t.dark) : "#FFFFFF" }}>
+    <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-cyan/30 shadow-[0_8px_30px_rgba(15,23,42,0.10)]" style={{ containerType: "size", background: layout === "section" ? hx(t.dark) : "#FFFFFF" }}>
       {layout !== "section" ? <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1.2cqw", background: hx(t.accent) }} /> : null}
 
       {layout === "section" ? (

@@ -121,13 +121,13 @@ export function AssistantPanel({ name }: { name?: string }) {
       {/* Launcher bubble */}
       {!open ? (
         <div className="fixed bottom-20 right-4 z-50 flex items-center gap-3 lg:bottom-6 lg:right-6">
-          <div className="hidden animate-floaty rounded-xl border border-line-strong bg-card px-3.5 py-2.5 text-[12.5px] text-muted shadow-[0_10px_30px_rgba(0,0,0,0.4)] sm:block">
-            Ask StudentOS anything →
+          <div className="hidden animate-floaty rounded-xl border border-line-strong bg-card px-3.5 py-2.5 text-[12.5px] text-muted shadow-[0_10px_30px_rgba(15,23,42,0.12)] sm:block">
+            Ask Vidyas OS anything →
           </div>
           <button
             onClick={() => setOpen(true)}
             aria-label="Open AI mentor"
-            className="flex size-14 items-center justify-center rounded-full bg-accent-gradient shadow-[0_10px_30px_rgba(34,211,238,0.45)] animate-pulse-ring"
+            className="flex size-14 items-center justify-center rounded-full bg-accent-gradient shadow-[0_10px_30px_rgba(79,70,229,0.45)] animate-pulse-ring"
           >
             <ChatIcon size={26} className="text-on-accent" />
           </button>
@@ -136,7 +136,7 @@ export function AssistantPanel({ name }: { name?: string }) {
 
       {/* Chat panel — desktop dock (bottom-right), mobile full-screen */}
       {open ? (
-        <div className="fixed inset-0 z-50 flex flex-col bg-base sm:inset-auto sm:bottom-6 sm:right-6 sm:h-[600px] sm:max-h-[80vh] sm:w-[400px] sm:rounded-2xl sm:border sm:border-line-strong sm:bg-card sm:shadow-[0_20px_60px_rgba(0,0,0,0.5)]">
+        <div className="fixed inset-0 z-50 flex flex-col bg-base sm:inset-auto sm:bottom-6 sm:right-6 sm:h-[600px] sm:max-h-[80vh] sm:w-[400px] sm:rounded-2xl sm:border sm:border-line-strong sm:bg-card sm:shadow-[0_20px_60px_rgba(15,23,42,0.14)]">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
             <div className="flex items-center gap-2.5">
@@ -144,7 +144,7 @@ export function AssistantPanel({ name }: { name?: string }) {
                 <ChatIcon size={16} className="text-on-accent" />
               </span>
               <div>
-                <p className="text-[13.5px] font-semibold text-ink">StudentOS Assistant</p>
+                <p className="text-[13.5px] font-semibold text-ink">Vidyas OS Assistant</p>
                 <p className="text-[11px] text-faint">Grounded in your work</p>
               </div>
             </div>

@@ -213,14 +213,22 @@ export async function generateInterviewQuestionSet(req: QuestionSetRequest): Pro
   const rounds = req.plan.map((r, i) => `${i + 1}. ${r}`).join("\n");
   const system = [
     INTERVIEWER_SYSTEM,
-    `This is a ${req.config.role} interview conducted by voice. Produce the FULL list of questions up front — one for each numbered slot below, matching that slot's round.`,
+    `This is a ${req.config.role} interview conducted by voice at a strong product company. Produce the FULL list of questions up front — one for each numbered slot below, matching that slot's round.`,
     `Slots (round per slot):\n${rounds}`,
-    "Rules:",
-    "- Ground every question in the candidate's resume/skills/projects and the job description where given; make them specific, not generic.",
-    "- For a 'coding' slot set kind='coding'. runnable=true ONLY for a self-contained logic/algorithm problem they can write as a COMPLETE runnable program; runnable=false for design/conceptual coding.",
+    "QUALITY BAR — these must read like questions a senior interviewer at a top company would actually ask:",
+    "- Specific and grounded: tie each question to a concrete item from the candidate's resume (a named project, a skill, a role) or the job description. Name the thing. Never generic 'tell me about a challenge'.",
+    "- Probe depth, not trivia: ask WHY and HOW (trade-offs, failure modes, scaling, decisions they made) rather than definitions a junior could recite.",
+    "- Natural progression across the slots: open with an approachable warm-up, then increase difficulty toward the core of the role; keep each question self-contained (don't depend on a previous answer).",
+    "- Behavioral slots: target a real situation from their experience and invite a STAR-style answer (situation, what they did, the outcome).",
+    "- Technical slots: realistic, role-appropriate scenarios from the actual day-to-day of a " + req.config.role + ".",
+    "CODING slots (kind='coding'):",
+    "- Make it a crisp, self-contained problem solvable in ~10-15 minutes with a clear input/output — not a vague 'design a system'. State the problem precisely enough to code against.",
+    "- runnable=true ONLY for a self-contained logic/algorithm problem (the candidate writes a complete solution); runnable=false for design/conceptual coding.",
+    "- Do NOT restate or preview the coding problem in any non-coding slot — the coding question must be a surprise revealed only at its own slot.",
+    "Format:",
     "- For 'technical'/'behavioral' slots set kind='question', runnable=false.",
-    "- One clear question per slot. Build a natural progression. Do NOT include answers or hints.",
-    "- These are spoken aloud by a voice agent: avoid markdown, code blocks, slashes and asterisks in the text.",
+    "- One clear question per slot. Do NOT include answers, hints, or the expected approach.",
+    "- These are spoken aloud by a voice agent: plain sentences only — no markdown, code blocks, slashes, asterisks, or numbered lists inside a question.",
     "Return exactly one question per slot, in order.",
   ].join("\n");
   const prompt = [
@@ -342,4 +350,69 @@ export async function evaluateInterview(req: EvaluateRequest): Promise<{ evaluat
     }
   }
   throw new Error(`Interview evaluation failed: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
+}
+
+// ----------------------- Live coding review (static, NO execution) -----------------------
+// During the live interview, when the candidate submits their code for a coding question, we
+// review it STATICALLY — check syntax validity and whether the approach solves the problem — and
+// hand a one-line verdict back to the voice interviewer. We never run the code.
+
+export const CodeReviewSchema = z.object({
+  /** Does it parse with no syntax errors for the stated language? */
+  syntaxValid: z.boolean(),
+  /** Is the overall approach correct / on the right track for the problem? */
+  onTrack: z.boolean(),
+  verdict: z.enum(["correct", "minor_issues", "needs_work"]),
+  /** Specific issues found (syntax errors, bugs, missed edge cases) — short phrases. */
+  issues: z.array(z.string()).max(5).default([]),
+  /** One or two plain sentences the voice interviewer can say aloud. No spoilers / full solution. */
+  spokenFeedback: z.string().min(1),
+});
+export type CodeReview = z.infer<typeof CodeReviewSchema>;
+
+export type CodeReviewRequest = { question: string; language: string; code: string; role?: string };
+
+function stubCodeReview(req: CodeReviewRequest): CodeReview {
+  const has = req.code.trim().length > 20;
+  return {
+    syntaxValid: has,
+    onTrack: has,
+    verdict: has ? "minor_issues" : "needs_work",
+    issues: has ? [] : ["The editor looks empty or too short to evaluate."],
+    spokenFeedback: has
+      ? "Thanks — your solution looks reasonable at a glance. Let's move on."
+      : "It looks like there isn't much code yet — give it a try and submit again.",
+  };
+}
+
+export async function reviewInterviewCode(req: CodeReviewRequest): Promise<{ review: CodeReview; model: string }> {
+  if (process.env.AI_DRIVER === "stub") {
+    return { review: CodeReviewSchema.parse(stubCodeReview(req)), model: "stub" };
+  }
+
+  const system = [
+    INTERVIEWER_SYSTEM,
+    "You are doing a STATIC review of the candidate's code during a live interview. DO NOT execute the code and DO NOT assume runtime output.",
+    "Assess three things: (1) syntax validity for the stated language, (2) whether the overall approach is correct for the asked problem, (3) obvious bugs or missed edge cases.",
+    "Be fair and encouraging but honest. Keep spokenFeedback to ONE or TWO plain sentences the interviewer can say aloud.",
+    "Never reveal the full correct solution or give the complete answer — at most a gentle nudge if something is clearly wrong.",
+    "If the code is essentially empty or unrelated to the problem, verdict='needs_work'.",
+  ].join("\n");
+  const prompt = [
+    req.role ? `Role: ${req.role}.` : "",
+    `Coding question asked:\n${req.question}`,
+    `Language: ${req.language}`,
+    `Candidate's code:\n\`\`\`\n${req.code.slice(0, 6000)}\n\`\`\``,
+  ].filter(Boolean).join("\n\n");
+
+  let lastError: unknown;
+  for (const model of [PRIMARY_MODEL, FALLBACK_MODEL]) {
+    try {
+      const { object } = await generateObject({ model, schema: CodeReviewSchema, system, prompt });
+      return { review: object, model };
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw new Error(`Code review failed: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
 }

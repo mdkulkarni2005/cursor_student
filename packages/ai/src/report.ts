@@ -202,3 +202,51 @@ export async function generateReportContent(req: ReportRequest): Promise<Generat
     `Report generation failed on both models: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
   );
 }
+
+// ----------------------- Figure suggestions (propose, don't generate) -----------------------
+// Proposes which sections would benefit from a figure + a precise image prompt and caption. We
+// generate NOTHING here — the student approves each suggestion before any image model is called
+// (so a "Skip" costs zero credits).
+
+export const FigureSuggestionSchema = z.object({
+  sectionIndex: z.number().int().min(0),
+  caption: z.string().min(3),
+  /** A precise, self-contained prompt for an image model. Flat, clean, academic, NO text in image. */
+  imagePrompt: z.string().min(10),
+});
+export type FigureSuggestion = z.infer<typeof FigureSuggestionSchema>;
+const FigureSuggestionsSchema = z.object({ figures: z.array(FigureSuggestionSchema).max(6) });
+
+export type SuggestFiguresRequest = {
+  title: string;
+  sections: { heading: string; content: string }[];
+  /** Max figures to propose (keeps reports clean and credit-cheap). */
+  max?: number;
+};
+
+export async function suggestReportFigures(req: SuggestFiguresRequest): Promise<{ figures: FigureSuggestion[]; model: string }> {
+  if (process.env.AI_DRIVER === "stub") return { figures: [], model: "stub" };
+
+  const max = req.max ?? 3;
+  const outline = req.sections.map((s, i) => `[${i}] ${s.heading}: ${s.content.slice(0, 240)}`).join("\n");
+  const system = [
+    "You decide which sections of an academic report would genuinely benefit from a FIGURE (diagram, architecture, flowchart, labelled illustration), and write a precise image prompt for each.",
+    `Propose at most ${max} figures — only where a visual truly adds value (skip purely textual sections like the abstract, references, or pure discussion).`,
+    "Each imagePrompt must be self-contained and produce a clean, modern, FLAT vector academic illustration with NO text/labels/words in the image, suitable to sit inside a report. Describe the concept concretely.",
+    "caption is a short figure caption (e.g. 'Figure 1: System architecture of the proposed pipeline').",
+    "Return sectionIndex matching the [n] index of the section the figure belongs to.",
+  ].join("\n");
+  const prompt = `Report title: ${req.title}\n\nSections:\n${outline}`;
+
+  let lastError: unknown;
+  for (const model of [PRIMARY_MODEL, FALLBACK_MODEL]) {
+    try {
+      const { object } = await generateObject({ model, schema: FigureSuggestionsSchema, system, prompt });
+      const figures = object.figures.filter((f) => f.sectionIndex < req.sections.length).slice(0, max);
+      return { figures, model };
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw new Error(`Figure suggestion failed: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
+}
