@@ -8,7 +8,10 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "turbo dev",
+    "dev": "node scripts/dev.mjs",
+    "dev:app": "turbo dev",
+    "dev:services": "docker compose up -d",
+    "dev:down": "docker compose down",
     "build": "turbo build",
     "lint": "turbo lint",
     "check-types": "turbo check-types",

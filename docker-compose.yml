@@ -1,0 +1,33 @@
+# Local dev background services for StudentOS.
+# Brought up automatically by `pnpm run dev` (see scripts/dev.mjs).
+# Manage manually with: docker compose up -d   /   docker compose down
+services:
+  # Exact PDF preview of reports (LibreOffice in a container).
+  # App addresses it via GOTENBERG_URL=http://localhost:9000
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: studentos_gotenberg
+    ports:
+      - "9000:3000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Code execution sandbox for DSA / code grading.
+  # App addresses it via PISTON_URL=http://localhost:2000/api/v2
+  # Language runtimes are installed on first `pnpm run dev` (scripts/dev.mjs).
+  piston:
+    image: ghcr.io/engineer-man/piston:latest
+    container_name: studentos_piston
+    privileged: true
+    ports:
+      - "2000:2000"
+    restart: unless-stopped
+    volumes:
+      - piston_data:/piston
+
+volumes:
+  piston_data:

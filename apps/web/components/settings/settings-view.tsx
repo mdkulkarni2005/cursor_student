@@ -16,6 +16,8 @@ export type SettingsData = {
   plan: string;
   /** Plan allowance (FREE=limited number/month, paid=null=unlimited). Usage metering not yet tracked. */
   creditsLimit: number | null;
+  /** Intelligence Pulse — generations used this period vs total allowance (null limit = unlimited). */
+  usage: { used: number; limit: number | null };
 };
 
 const TABS: { id: Tab; label: string }[] = [
@@ -127,11 +129,25 @@ export function SettingsView({ data }: { data: SettingsData }) {
                 </Link>
               </div>
               <div className="rounded-xl border border-line bg-surface p-5">
-                <p className="text-[12px] font-bold uppercase tracking-widest text-muted">Monthly Allowance</p>
-                <p className="mt-1 text-[13.5px] text-soft">
-                  {data.creditsLimit === null
+                <div className="flex items-start justify-between">
+                  <div>
+                    <p className="text-[12px] font-bold uppercase tracking-widest text-muted">Intelligence Pulse</p>
+                    <p className="mt-0.5 text-[13px] text-soft">Generations used this period</p>
+                  </div>
+                  <span className="font-display text-[15px] font-semibold text-ink">
+                    {data.usage.used} / {data.usage.limit === null ? "∞" : data.usage.limit}
+                  </span>
+                </div>
+                <div className="mt-3 h-3 overflow-hidden rounded-full bg-card">
+                  <div
+                    className="h-full rounded-full bg-cyan"
+                    style={{ width: `${data.usage.limit ? Math.min(100, Math.round((data.usage.used / data.usage.limit) * 100)) : 8}%` }}
+                  />
+                </div>
+                <p className="mt-3 text-[13px] text-soft">
+                  {data.usage.limit === null
                     ? "Unlimited reports, PPTs, assignments and prep on your plan."
-                    : `Your ${data.plan} plan includes a generous monthly allowance for reports, PPTs and assignments. Upgrade for unlimited.`}
+                    : `Your ${data.plan} plan includes a generous monthly allowance for reports, PPTs and assignments. Limits reset on the 1st.`}
                 </p>
                 <Link href="/plans" className="mt-3 inline-block text-[13px] font-semibold text-cyan hover:underline">Compare plans →</Link>
               </div>
