@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
  * all — so what the user sees matches what they download. When the page service isn't
  * running/configured we fall back to `children` (the in-app canvas), which is brand-approximate.
  */
-export function TemplatePreview({ docId, children }: { docId: string; children: React.ReactNode }) {
+export function TemplatePreview({ docId, version = 0, children }: { docId: string; version?: number; children: React.ReactNode }) {
   const [state, setState] = useState<"loading" | "pdf" | "fallback">("loading");
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [note, setNote] = useState<string>("");
@@ -21,7 +21,8 @@ export function TemplatePreview({ docId, children }: { docId: string; children: 
     setNote("");
     (async () => {
       try {
-        const res = await fetch(`/ppt/${docId}/pdf`, { cache: "no-store", signal: AbortSignal.timeout(45000) });
+        // `version` busts both the browser and the route's max-age cache after an in-app edit.
+        const res = await fetch(`/ppt/${docId}/pdf?v=${version}`, { cache: "no-store", signal: AbortSignal.timeout(45000) });
         if (done) return;
         if (res.ok && res.headers.get("content-type")?.includes("pdf")) {
           const blob = await res.blob();
@@ -45,7 +46,7 @@ export function TemplatePreview({ docId, children }: { docId: string; children: 
       if (!done) setState("fallback");
     })();
     return () => { done = true; if (objectUrl) URL.revokeObjectURL(objectUrl); };
-  }, [docId]);
+  }, [docId, version]);
 
   if (state === "loading") {
     return (

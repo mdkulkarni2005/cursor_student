@@ -52,6 +52,8 @@ type Produced = {
   structure?: PptxStructure;
   /** Info-table values to write (field label → value), for the structured path. */
   fieldValues?: Record<string, string>;
+  /** Storage key of the uploaded .pptx — persisted so a later in-app edit can re-fill THIS template. */
+  templateKey?: string;
   /** Unknown info-table fields we must ask the user about before finishing. */
   fieldQuestions?: ClarifyQuestion[];
 };
@@ -137,7 +139,7 @@ async function produceStructured(
     }
   }
 
-  return { content, model, theme, templateBuffer, structure, fieldValues, fieldQuestions };
+  return { content, model, theme, templateBuffer, structure, fieldValues, fieldQuestions, templateKey: input.templateKey };
 }
 
 /** Generate the deck content (no rendering yet), plus the user's theme if a template was given. */
@@ -193,7 +195,16 @@ async function produceContent(
  *  `templated` marks decks bound to an uploaded .pptx (in-app editing is disabled for those so an
  *  edit can't silently abandon the user's template; they download to edit in PowerPoint). */
 function contentWithTheme(produced: Produced): object {
-  return { ...produced.content, theme: resolvePptTheme(produced.theme), templated: !!produced.templateBuffer };
+  return {
+    ...produced.content,
+    theme: resolvePptTheme(produced.theme),
+    templated: !!produced.templateBuffer,
+    // Structured-template decks only: persist the link + filled info-table values so the in-app
+    // editor can re-fill THIS template on save (never a generic deck) without losing identity data.
+    ...(produced.structure?.structured
+      ? { templateKey: produced.templateKey, fieldValues: produced.fieldValues ?? {} }
+      : {}),
+  };
 }
 
 /**

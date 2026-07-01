@@ -5,8 +5,8 @@ import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@studentos/db";
 import { type ClarifyQuestion, generateSlideImage, slideImagePrompt } from "@studentos/ai";
-import { PptContentSchema, richToPlain } from "@studentos/documents";
-import { putObject, keys } from "@studentos/storage";
+import { PptContentSchema, richToPlain, inspectPptxStructure, fillPptxTemplateInPlace } from "@studentos/documents";
+import { putObject, getObjectBuffer, keys } from "@studentos/storage";
 import { getOrCreateUser } from "@/lib/user";
 import { createPptDoc, runPptGeneration, resumePptGeneration, markPptGenerating, rerenderPptExport } from "@/lib/ppt/generate";
 import { createConvertedReportDoc, runConvertedReport } from "@/lib/reports/generate";
@@ -169,6 +169,93 @@ export async function savePptDeckAction(docId: string, rawContent: unknown): Pro
   } catch (e) {
     return { error: friendlyError(e) };
   }
+  revalidatePath(`/ppt/${docId}`);
+  return { ok: true };
+}
+
+export type TemplateDeckEdit = {
+  /** Edited bullet lines per section, in the template's section order. */
+  sections: string[][];
+  /** Edited info-table values (field label → value). */
+  fields: Record<string, string>;
+};
+
+/**
+ * Save edits to a deck bound to an uploaded STRUCTURED template — the template-preserving path.
+ * Re-fills the ORIGINAL .pptx (never a generic deck): loads the stored template, re-detects its
+ * structure, writes the edited section bullets (mapped by section order) + info-table fields, and
+ * only replaces the export if the fill succeeds. Requires a deck generated after template linking
+ * was added (older decks have no `templateKey` and must be regenerated to edit in-app).
+ */
+export async function saveTemplateDeckAction(docId: string, edit: TemplateDeckEdit): Promise<SaveDeckState> {
+  const user = await getOrCreateUser();
+  if (!user) return { error: "You must be signed in." };
+  try { rateLimit(user.id, "ppt"); } catch (e) { return { error: friendlyError(e) }; }
+
+  const doc = await prisma.document.findFirst({
+    where: { id: docId, ownerId: user.id, type: "PPT" },
+    include: { content: true },
+  });
+  if (!doc) return { error: "Presentation not found." };
+  const data = (doc.content?.data ?? {}) as {
+    templated?: boolean; templateKey?: string; fieldValues?: Record<string, string>; [k: string]: unknown;
+  };
+  if (!data.templated || !data.templateKey) {
+    return { error: "This deck isn't linked to a template file — regenerate it once to enable in-app editing." };
+  }
+
+  let templateBuffer: Buffer;
+  try {
+    templateBuffer = await getObjectBuffer(data.templateKey);
+  } catch {
+    return { error: "We couldn't find your uploaded template file." };
+  }
+
+  const structure = inspectPptxStructure(templateBuffer);
+  if (!structure.ok || !structure.structured) return { error: "This template can no longer be read." };
+
+  // Map edited bullets to the template's section slides BY ORDER (headings stay the template's own).
+  const sectionHeadings = structure.slides
+    .filter((s): s is Extract<(typeof structure.slides)[number], { kind: "section" }> => s.kind === "section")
+    .map((s) => s.heading);
+  const contentByHeading: Record<string, string[]> = {};
+  sectionHeadings.forEach((heading, i) => {
+    const bullets = (edit.sections[i] ?? []).map((b) => b.trim()).filter(Boolean);
+    contentByHeading[heading] = bullets.length ? bullets : ["(add content)"];
+  });
+
+  // Persisted field values are the baseline (so identity data never reverts to the template's XYZ);
+  // the user's non-empty edits win.
+  const fieldValues: Record<string, string> = { ...(data.fieldValues ?? {}) };
+  for (const [label, value] of Object.entries(edit.fields)) {
+    const v = String(value ?? "").trim();
+    if (v) fieldValues[label] = v;
+  }
+
+  const filled = fillPptxTemplateInPlace(templateBuffer, structure, contentByHeading, fieldValues);
+  if (!filled.ok || !filled.buffer) {
+    return { error: "We couldn't apply your edits to the template — your saved deck is unchanged." };
+  }
+
+  const exportKey = keys.exportFile(docId, "PPTX");
+  await putObject(exportKey, filled.buffer, PPTX_MIME);
+
+  const newData = {
+    ...data,
+    slides: sectionHeadings.map((heading) => ({ layout: "bullets", heading, bullets: contentByHeading[heading] })),
+    fieldValues,
+  };
+  await prisma.$transaction([
+    prisma.documentContent.upsert({
+      where: { documentId: docId },
+      create: { documentId: docId, data: newData as object },
+      update: { data: newData as object },
+    }),
+    prisma.documentExport.deleteMany({ where: { documentId: docId, format: "PPTX" } }),
+    prisma.documentExport.create({
+      data: { documentId: docId, format: "PPTX", storageKey: exportKey, sizeBytes: filled.buffer.length },
+    }),
+  ]);
   revalidatePath(`/ppt/${docId}`);
   return { ok: true };
 }

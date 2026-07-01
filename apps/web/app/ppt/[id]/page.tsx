@@ -10,7 +10,8 @@ import { DeleteDocButton } from "@/components/delete-doc-button";
 import { PPT_STAGES } from "@/lib/ppt/generate";
 import { stageOf } from "@/lib/jobs";
 import { DeckViewer, type Deck } from "@/components/ppt/deck-viewer";
-import { TemplatePreview } from "@/components/ppt/template-preview";
+import { TemplateDeck } from "@/components/ppt/template-deck";
+import { richToPlain } from "@studentos/documents";
 import { GeneratingOverlay } from "@/components/generating-overlay";
 import type { ClarifyQuestion } from "@studentos/ai";
 import type { PptTheme, PptSlide } from "@studentos/documents";
@@ -20,8 +21,11 @@ type PptData = {
   subtitle?: string;
   slides?: PptSlide[];
   theme?: PptTheme;
-  /** Deck bound to an uploaded .pptx template — in-app editing is disabled for these. */
+  /** Deck bound to an uploaded .pptx template — shown via the faithful PDF preview. */
   templated?: boolean;
+  /** Present for STRUCTURED template decks: link + filled info-table values that enable in-app editing. */
+  templateKey?: string;
+  fieldValues?: Record<string, string>;
 };
 
 export default async function PptDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -118,11 +122,17 @@ export default async function PptDetailPage({ params }: { params: Promise<{ id: 
             Generation failed: {doc.job?.error ?? "unknown error"}. Try generating again.
           </div>
         ) : data.templated && hasExport ? (
-          // Template deck: show the EXACT rendered slides (matches the download); the generic
-          // canvas is only a fallback when the page-render service is unavailable.
-          <TemplatePreview docId={doc.id}>
-            <DeckViewer docId={doc.id} deck={deck} editable={false} />
-          </TemplatePreview>
+          // Template deck: faithful PDF preview + a template-safe editor. Editing is enabled only
+          // when the deck is linked to its uploaded template file (`templateKey`, newer decks).
+          <TemplateDeck
+            docId={doc.id}
+            canEdit={!!data.templateKey}
+            sections={slides.map((s) => ({
+              heading: richToPlain(s.heading),
+              bullets: (s.bullets ?? []).map((b) => richToPlain(b)),
+            }))}
+            fields={Object.entries(data.fieldValues ?? {}).map(([label, value]) => ({ label, value: String(value) }))}
+          />
         ) : (
           <DeckViewer docId={doc.id} deck={deck} editable={!data.templated} />
         )}
