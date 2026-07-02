@@ -7,6 +7,7 @@ import {
   type InterviewRound,
   type InterviewTurn,
   type InterviewConfig,
+  type InterviewDifficulty,
   type InterviewEvaluation,
   type QuestionItem,
   type ResumeBrief,
@@ -34,6 +35,8 @@ export type StartInterviewInput = {
   rounds: InterviewRound[];
   resumeDocId?: string;
   jobDescription?: string;
+  /** "auto" (default) infers seniority from role/JD; an explicit pick overrides that. */
+  difficulty?: InterviewDifficulty;
 };
 
 /** Extra metadata for a coding answer — what was run and what it produced (feeds the evaluator). */
@@ -94,7 +97,7 @@ export async function startInterview(input: StartInterviewInput): Promise<{ docI
   if (input.rounds.length === 0) throw new Error("Pick at least one interview round.");
 
   const workspace = await getOrCreateCurrentWorkspace(user);
-  const config: InterviewConfig = { role: input.role, rounds: input.rounds };
+  const config: InterviewConfig = { role: input.role, rounds: input.rounds, difficulty: input.difficulty ?? "auto" };
   const plan = buildPlan(input.rounds);
   const brief = await resumeBrief(input.userId, input.resumeDocId);
 

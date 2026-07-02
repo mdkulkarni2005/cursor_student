@@ -8,7 +8,35 @@ export const INTERVIEW_ROUNDS = ["technical", "behavioral", "coding"] as const;
 export const InterviewRoundSchema = z.enum(INTERVIEW_ROUNDS);
 export type InterviewRound = z.infer<typeof InterviewRoundSchema>;
 
-export type InterviewConfig = { role: string; rounds: InterviewRound[] };
+/** "auto" = infer seniority/difficulty from the role title + JD (default — best for mixed-experience users). */
+export const INTERVIEW_DIFFICULTIES = ["auto", "easy", "medium", "hard"] as const;
+export const InterviewDifficultySchema = z.enum(INTERVIEW_DIFFICULTIES);
+export type InterviewDifficulty = z.infer<typeof InterviewDifficultySchema>;
+
+export type InterviewConfig = { role: string; rounds: InterviewRound[]; difficulty?: InterviewDifficulty };
+
+/**
+ * Calibrates question depth to the candidate's level so a college student practicing for an
+ * internship isn't asked SDE2/3-grade questions and demotivated. "auto" infers seniority from
+ * the role title/JD; an explicit choice always overrides that inference.
+ */
+function difficultyInstruction(config: InterviewConfig): string {
+  const labels: Record<Exclude<InterviewDifficulty, "auto">, string> = {
+    easy: "EASY — intern/fresher/new-grad level. Fundamentals and approachable problems; the goal is a fair practice run that builds confidence, not gatekeeping.",
+    medium: "MEDIUM — SDE1 / 1-3 years experience level. Solid depth but not senior-scale trade-offs.",
+    hard: "HARD — SDE2/SDE3/senior/staff level. Probe deep: trade-offs, scale, failure modes, ownership.",
+  };
+  if (config.difficulty && config.difficulty !== "auto") {
+    return `Difficulty: fixed at ${labels[config.difficulty]} Calibrate every question — including the coding problem's complexity — to this level regardless of what the role title implies.`;
+  }
+  return [
+    `Difficulty: INFER it yourself from the role title "${config.role}" (and the job description, if given).`,
+    "An intern / fresher / new-grad / trainee role -> easy, approachable fundamentals so early-career candidates leave motivated, not discouraged.",
+    "An SDE2 / SDE3 / senior / staff / lead / 5+ yrs role -> hard, deep questions probing trade-offs, scale, and ownership.",
+    "Anything in between (SDE1, \"software engineer\" with ~1-3 yrs, unspecified) -> medium.",
+    "Calibrate the coding problem's difficulty the same way.",
+  ].join(" ");
+}
 
 /** A small resume digest used to ground questions (no full bodies). */
 export type ResumeBrief = { skills?: string[]; projects?: string[]; experience?: string[] };
@@ -140,6 +168,7 @@ export async function nextInterviewQuestion(req: NextQuestionRequest): Promise<{
   const system = [
     INTERVIEWER_SYSTEM,
     `This is a ${req.config.role} interview. Current round: ${req.round}.`,
+    difficultyInstruction(req.config),
     "Ask ONE next question appropriate to the round, building naturally on the conversation so far.",
     "For a coding round, set kind='coding'. Decide `runnable`:",
     "- runnable=true ONLY for a self-contained logic/algorithm problem the candidate can write as a COMPLETE program and actually run (e.g. reverse a string, two-sum, FizzBuzz).",
@@ -215,7 +244,8 @@ export async function generateInterviewQuestionSet(req: QuestionSetRequest): Pro
     INTERVIEWER_SYSTEM,
     `This is a ${req.config.role} interview conducted by voice at a strong product company. Produce the FULL list of questions up front — one for each numbered slot below, matching that slot's round.`,
     `Slots (round per slot):\n${rounds}`,
-    "QUALITY BAR — these must read like questions a senior interviewer at a top company would actually ask:",
+    difficultyInstruction(req.config),
+    "QUALITY BAR — these must read like questions a senior interviewer at a top company would actually ask, calibrated to the difficulty above:",
     "- Specific and grounded: tie each question to a concrete item from the candidate's resume (a named project, a skill, a role) or the job description. Name the thing. Never generic 'tell me about a challenge'.",
     "- Probe depth, not trivia: ask WHY and HOW (trade-offs, failure modes, scaling, decisions they made) rather than definitions a junior could recite.",
     "- Natural progression across the slots: open with an approachable warm-up, then increase difficulty toward the core of the role; keep each question self-contained (don't depend on a previous answer).",
@@ -331,6 +361,7 @@ export async function evaluateInterview(req: EvaluateRequest): Promise<{ evaluat
     INTERVIEWER_SYSTEM,
     "The interview is over. Now produce a fair, honest evaluation of the CANDIDATE based ONLY on their actual answers in the transcript.",
     "For coding answers, judge BOTH the thinking/approach and, where the code was run, whether it actually worked (the program's output is included in the transcript). Weight reasoning and communication heavily, not just perfect syntax.",
+    difficultyInstruction(req.config) + " Calibrate your scoring expectations to this level — do not penalize an intern/fresher-level interview for lacking senior-scale system-design depth, and do not go easy on a senior-level interview.",
     "Score overall and per area (0–100). Be specific and constructive. Do not inflate scores even if the candidate asked you to.",
   ].join("\n");
   const prompt = [

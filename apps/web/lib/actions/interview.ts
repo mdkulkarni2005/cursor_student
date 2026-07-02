@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { INTERVIEW_ROUNDS, type InterviewRound } from "@studentos/ai";
+import { INTERVIEW_ROUNDS, INTERVIEW_DIFFICULTIES, type InterviewRound, type InterviewDifficulty } from "@studentos/ai";
 import { getOrCreateUser } from "@/lib/user";
 import { startInterview, submitAnswer } from "@/lib/interview/generate";
 import { rateLimit, friendlyError } from "@/lib/reliability";
@@ -29,9 +29,14 @@ export async function startInterviewAction(
   const resumeDocId = String(formData.get("resumeDocId") ?? "") || undefined;
   const jobDescription = String(formData.get("jobDescription") ?? "").trim().slice(0, 4000) || undefined;
 
+  const difficultyRaw = String(formData.get("difficulty") ?? "auto");
+  const difficulty: InterviewDifficulty = (INTERVIEW_DIFFICULTIES as readonly string[]).includes(difficultyRaw)
+    ? (difficultyRaw as InterviewDifficulty)
+    : "auto";
+
   let docId: string;
   try {
-    const res = await startInterview({ userId: user.id, role, rounds, resumeDocId, jobDescription });
+    const res = await startInterview({ userId: user.id, role, rounds, resumeDocId, jobDescription, difficulty });
     docId = res.docId;
   } catch (err) {
     return { error: friendlyError(err) };

@@ -14,6 +14,13 @@ const ROUND_OPTIONS = [
   { value: "coding", label: "Coding / DSA" },
 ];
 
+const DIFFICULTY_OPTIONS = [
+  { value: "auto", label: "Auto — match the role" },
+  { value: "easy", label: "Easy" },
+  { value: "medium", label: "Medium" },
+  { value: "hard", label: "Hard" },
+];
+
 export function StartInterviewForm({ resumes, codingEnabled = true }: { resumes: { id: string; title: string }[]; codingEnabled?: boolean }) {
   const [state, action, pending] = useActionState<InterviewFormState, FormData>(startInterviewAction, {});
   // Non-coding tracks get a normal interview (technical + behavioral) without the coding round.
@@ -36,6 +43,23 @@ export function StartInterviewForm({ resumes, codingEnabled = true }: { resumes:
             >
               <input type="checkbox" name="rounds" value={r.value} defaultChecked={r.value !== "coding"} className="sr-only" />
               {r.label}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <span className={label}>
+          Difficulty <span className="font-normal text-faint">(Auto reads the role/JD — intern gets easier questions, SDE2+ gets harder ones)</span>
+        </span>
+        <div className="flex flex-wrap gap-2">
+          {DIFFICULTY_OPTIONS.map((d) => (
+            <label
+              key={d.value}
+              className="cursor-pointer rounded-full border border-line-strong bg-surface px-3.5 py-2 text-[13px] text-soft transition-colors has-[:checked]:border-cyan/50 has-[:checked]:bg-cyan/12 has-[:checked]:text-cyan"
+            >
+              <input type="radio" name="difficulty" value={d.value} defaultChecked={d.value === "auto"} className="sr-only" />
+              {d.label}
             </label>
           ))}
         </div>
