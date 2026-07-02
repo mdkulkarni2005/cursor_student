@@ -1,0 +1,40 @@
+@import "tailwindcss";
+
+/* Shares the Vidyas OS light design tokens (apps/web/app/globals.css) so the
+   admin app reads as the same product, not a bolted-on tool. */
+@theme {
+  --color-canvas: #f8fafc;
+  --color-base: #ffffff;
+  --color-surface: #f2f4f6;
+  --color-card: #ffffff;
+  --color-raised: #eceef0;
+  --color-input: #ffffff;
+
+  --color-cyan: #4f46e5;
+  --color-indigo: #6366f1;
+  --color-primary-deep: #3525cd;
+  --color-teal: #006a61;
+  --color-teal-soft: #86f2e4;
+  --color-on-accent: #ffffff;
+
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-danger: #ba1a1a;
+
+  --color-ink: #191c1e;
+  --color-soft: #334155;
+  --color-muted: #464555;
+  --color-faint: #777587;
+  --color-dim: #9aa0ab;
+
+  --color-line: rgba(15, 23, 42, 0.08);
+  --color-line-strong: rgba(15, 23, 42, 0.12);
+
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+}
+
+body {
+  background: var(--color-canvas);
+}

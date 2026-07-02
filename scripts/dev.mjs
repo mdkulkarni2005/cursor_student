@@ -169,6 +169,7 @@ async function main() {
   }
 
   log("Launching app (turbo dev)…");
+  // Unfiltered — runs every workspace's `dev` script, including admin (port 3100).
   const app = spawn("pnpm", ["exec", "turbo", "dev"], { cwd: ROOT, stdio: "inherit" });
 
   const forward = (sig) => () => {
