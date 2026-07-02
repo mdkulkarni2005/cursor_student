@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Resume } from "@studentos/documents";
 import { updateResumeAction } from "@/lib/actions/resume";
+import { SubmitButton } from "@/components/ui/button";
 
 const label = "mb-1 block text-[11.5px] font-semibold text-muted";
 const box =
@@ -153,12 +154,12 @@ export function ResumeEditor({ docId, resume }: { docId: string; resume: Resume 
         </div>
       </div>
 
-      <button
-        type="submit"
-        className="w-full rounded-xl bg-cyan py-3 text-[14px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(79,70,229,0.25)] transition-transform hover:-translate-y-0.5"
+      <SubmitButton
+        loadingText="Saving…"
+        className="w-full rounded-xl bg-cyan py-3 text-[14px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(79,70,229,0.25)] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
       >
         ✦ Optimize &amp; Save →
-      </button>
+      </SubmitButton>
     </form>
   );
 }

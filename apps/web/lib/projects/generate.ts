@@ -1,5 +1,7 @@
-import { prisma } from "@studentos/db";
-import type { ProjectIdea } from "@studentos/ai";
+import { prisma, type User } from "@studentos/db";
+import type { ProjectIdea, ProjectBreakdown } from "@studentos/ai";
+import { generateProjectBreakdown, generateProjectIdeas, generateSlideImage, ProjectIdeaSchema } from "@studentos/ai";
+import { putObject, keys } from "@studentos/storage";
 import { getOrCreateCurrentWorkspace } from "@/lib/workspace";
 import { generateAndStoreReport } from "@/lib/reports/generate";
 import { generateAndStorePpt } from "@/lib/ppt/generate";
@@ -9,10 +11,25 @@ import { QuotaExceededError } from "@/lib/entitlements";
 /** A finalized project's stored content (the chosen idea + the generated-bundle pointers). */
 export type BundleItem = { docId?: string; status: "ready" | "needs_input" | "failed" | "skipped"; error?: string };
 export type ProjectBundle = { report?: BundleItem; ppt?: BundleItem; viva?: BundleItem };
+/** A generated illustrative (non-diagram) image — PNG bytes live in storage, the key here. */
+export type ProjectImage = { label: string; key: string };
+/** The persisted build plan: the AI breakdown, minus the raw image prompts, plus the generated image keys. */
+export type ProjectBreakdownContent = {
+  problemStatement: string;
+  solution: string;
+  diagrams: ProjectBreakdown["diagrams"];
+  phases: ProjectBreakdown["phases"];
+  components: ProjectBreakdown["components"];
+  research: ProjectBreakdown["research"];
+  differentiators: string[];
+  images: ProjectImage[];
+};
 export type ProjectContent = {
   idea: ProjectIdea;
   description?: string;
   bundle?: ProjectBundle;
+  /** The full build-out: problem/solution, diagrams, images, phased plan, components, research, differentiators. */
+  breakdown?: ProjectBreakdownContent;
 };
 
 /** Persist the FINALIZED idea as a PROJECT document (candidates before this are throwaway). */
@@ -39,6 +56,27 @@ export async function finalizeProject(
   return { docId: doc.id };
 }
 
+/**
+ * Ideas suggested for the Projects landing page WITHOUT the student asking first — generated
+ * from their onboarding profile (department + career goal) and cached on the User row so a
+ * repeat visit doesn't re-call the model. Generates lazily on first read; `force` re-generates.
+ */
+export async function getOrGeneratePregeneratedIdeas(user: User, force = false): Promise<ProjectIdea[]> {
+  if (!force && user.pregeneratedIdeas) {
+    const parsed = ProjectIdeaSchema.array().safeParse(user.pregeneratedIdeas);
+    if (parsed.success && parsed.data.length > 0) return parsed.data;
+  }
+  const { content } = await generateProjectIdeas({
+    department: user.department ?? "Engineering",
+    interests: user.careerGoal ?? undefined,
+  });
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { pregeneratedIdeas: content.ideas as unknown as object, pregeneratedIdeasAt: new Date() },
+  });
+  return content.ideas;
+}
+
 export async function getProject(userId: string, docId: string): Promise<{ title: string; content: ProjectContent } | null> {
   const doc = await prisma.document.findFirst({
     where: { id: docId, ownerId: userId, type: "PROJECT" },
@@ -46,6 +84,58 @@ export async function getProject(userId: string, docId: string): Promise<{ title
   });
   if (!doc?.content) return null;
   return { title: doc.title, content: doc.content.data as unknown as ProjectContent };
+}
+
+/**
+ * Generate the full build plan (diagrams, phased plan, components, research, differentiators)
+ * for a finalized project and persist it onto the project's content. On-demand, not automatic —
+ * a student triggers this once they've committed to an idea.
+ */
+export async function generateProjectPlan(userId: string, docId: string): Promise<ProjectBreakdownContent> {
+  const [project, user] = await Promise.all([
+    getProject(userId, docId),
+    prisma.user.findUnique({ where: { id: userId }, select: { department: true } }),
+  ]);
+  if (!project) throw new Error("Project not found.");
+  const guidelines = projectGuidelines(project.content);
+  const { content: breakdown } = await generateProjectBreakdown({
+    idea: project.content.idea,
+    department: user?.department ?? "Engineering",
+    guidelines,
+  });
+
+  // Normal (non-diagram) illustrative images — best-effort, same as PPT slide art: on stub or any
+  // failure we just skip that image rather than fail the whole build plan.
+  const images = (
+    await Promise.all(
+      breakdown.imageBriefs.map(async (brief, idx): Promise<ProjectImage | null> => {
+        const img = await generateSlideImage(brief.prompt, "1024x1024");
+        if (!img) return null;
+        const m = /^data:(image\/[a-z0-9.+-]+);base64,(.*)$/i.exec(img.dataUrl);
+        if (!m) return null;
+        const key = keys.projectImage(docId, idx);
+        await putObject(key, Buffer.from(m[2]!, "base64"), m[1]!);
+        return { label: brief.label, key };
+      }),
+    )
+  ).filter((x): x is ProjectImage => !!x);
+
+  const breakdownContent: ProjectBreakdownContent = {
+    problemStatement: breakdown.problemStatement,
+    solution: breakdown.solution,
+    diagrams: breakdown.diagrams,
+    phases: breakdown.phases,
+    components: breakdown.components,
+    research: breakdown.research,
+    differentiators: breakdown.differentiators,
+    images,
+  };
+  const newContent: ProjectContent = { ...project.content, breakdown: breakdownContent };
+  await prisma.documentContent.update({
+    where: { documentId: docId },
+    data: { data: newContent as unknown as object },
+  });
+  return breakdownContent;
 }
 
 /** Rich context handed to each generator so they don't pause for input (NEEDS_INPUT defense). */

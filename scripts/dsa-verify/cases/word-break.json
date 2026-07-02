@@ -1,0 +1,9 @@
+{
+  "tests": [
+    { "args": ["leetcode", ["leet", "code"]], "sample": true },
+    { "args": ["applepenapple", ["apple", "pen"]], "sample": true },
+    { "args": ["catsandog", ["cats", "dog", "sand", "and", "cat"]] },
+    { "args": ["", ["a"]] },
+    { "args": ["a", ["b"]] }
+  ]
+}

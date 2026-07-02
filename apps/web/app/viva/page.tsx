@@ -4,6 +4,7 @@ import { AppShell } from "@/components/app-shell";
 import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
 import { generateVivaAction } from "@/lib/actions/viva";
 import { SlidesIcon, PencilIcon } from "@/components/icons";
+import { SubmitButton } from "@/components/ui/button";
 
 const TYPE_LABEL: Record<string, string> = { REPORT: "Report", PPT: "PPT", ASSIGNMENT: "Assignment" };
 
@@ -62,12 +63,12 @@ export default async function VivaPage() {
                   ) : (
                     <form action={generateVivaAction}>
                       <input type="hidden" name="sourceId" value={d.id} />
-                      <button
-                        type="submit"
-                        className="shrink-0 rounded-lg bg-accent-gradient px-3.5 py-1.5 text-[12.5px] font-semibold text-on-accent transition-transform hover:-translate-y-0.5"
+                      <SubmitButton
+                        loadingText="Generating…"
+                        className="shrink-0 rounded-lg bg-accent-gradient px-3.5 py-1.5 text-[12.5px] font-semibold text-on-accent transition-transform hover:-translate-y-0.5 disabled:opacity-60"
                       >
                         Generate viva
-                      </button>
+                      </SubmitButton>
                     </form>
                   )}
                 </div>

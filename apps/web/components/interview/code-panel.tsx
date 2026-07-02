@@ -9,6 +9,7 @@ import { cpp } from "@codemirror/lang-cpp";
 import { oneDark } from "@codemirror/theme-one-dark";
 import type { Extension } from "@codemirror/state";
 import { submitAnswerAction } from "@/lib/actions/interview";
+import { SubmitButton } from "@/components/ui/button";
 
 // CodeMirror touches the DOM — load it client-only to avoid an SSR crash.
 const CodeMirror = dynamic(() => import("@uiw/react-codemirror"), { ssr: false });
@@ -193,12 +194,12 @@ export function InterviewCodePanel({ docId, question, runnable, isLast }: { docI
           placeholder="Walk through your reasoning, edge cases, and time/space complexity…"
           className="w-full resize-none rounded-xl border border-line-strong bg-surface px-3.5 py-2.5 text-[13px] text-ink outline-none transition-colors focus:border-cyan/50 placeholder:text-faint"
         />
-        <button
-          type="submit"
-          className="mt-3 w-full rounded-xl bg-accent-gradient py-2.5 text-[13.5px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(79,70,229,0.3)] transition-transform hover:-translate-y-0.5"
+        <SubmitButton
+          loadingText="Submitting…"
+          className="mt-3 w-full rounded-xl bg-accent-gradient py-2.5 text-[13.5px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(79,70,229,0.3)] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
         >
           {isLast ? "Submit & finish →" : "Submit answer →"}
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );

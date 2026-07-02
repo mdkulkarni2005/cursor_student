@@ -11,6 +11,7 @@ import { ResumeEditor } from "@/components/resume/resume-editor";
 import { ResumeOptimizer } from "@/components/resume/resume-optimizer";
 import { GeneratingPoller } from "@/components/reports/generating-poller";
 import { DeleteDocButton } from "@/components/delete-doc-button";
+import { SubmitButton } from "@/components/ui/button";
 import { stageOf } from "@/lib/jobs";
 
 function ContactLine({ c }: { c: Resume["contact"] }) {
@@ -120,9 +121,9 @@ export default async function ResumeDetailPage({ params }: { params: Promise<{ i
                 <form action={toggleResumeDensityAction}>
                   <input type="hidden" name="docId" value={doc.id} />
                   <input type="hidden" name="density" value={density === "tight" ? "normal" : "tight"} />
-                  <button type="submit" className="rounded-xl border border-line bg-card px-3.5 py-2.5 text-[13px] font-semibold text-soft transition-colors hover:border-cyan/40 hover:text-cyan">
+                  <SubmitButton className="rounded-xl border border-line bg-card px-3.5 py-2.5 text-[13px] font-semibold text-soft transition-colors hover:border-cyan/40 hover:text-cyan disabled:opacity-60">
                     {density === "tight" ? "Standard spacing" : "Fit to one page"}
-                  </button>
+                  </SubmitButton>
                 </form>
                 <a href={`/resume/${doc.id}/download/pdf`} className="flex items-center gap-1.5 rounded-xl bg-cyan px-4 py-2.5 text-[13.5px] font-semibold text-on-accent transition-transform hover:-translate-y-0.5">
                   ⬇ Download PDF

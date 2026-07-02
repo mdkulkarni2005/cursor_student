@@ -107,4 +107,6 @@ export const keys = {
   exportFile: (documentId: string, format: string) => `exports/${documentId}.${format.toLowerCase()}`,
   /** A generated slide image (per deck, per slide index). PNG bytes live in storage, not the DB. */
   slideImage: (documentId: string, slideIndex: number) => `slides/${documentId}/${slideIndex}.png`,
+  /** A generated illustrative image for a project's build plan (per project, per image index). */
+  projectImage: (documentId: string, idx: number) => `projects/${documentId}/${idx}.png`,
 };

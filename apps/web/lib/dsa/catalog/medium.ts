@@ -1,0 +1,71 @@
+import type { DsaProblem } from "./types";
+
+export const CATALOG_MEDIUM: DsaProblem[] = [
+  {
+    slug: "max-subarray",
+    title: "Maximum Subarray",
+    difficulty: "medium",
+    tags: ["Array", "Dynamic Programming"],
+    prompt: "Given an integer array `nums`, find the contiguous subarray with the largest sum and return that sum (Kadane's algorithm).",
+    examples: [{ input: "nums = [-2,1,-3,4,-1,2,1,-5,4]", output: "6", explanation: "[4,-1,2,1] has sum 6" }],
+  },
+  {
+    slug: "merge-intervals",
+    title: "Merge Intervals",
+    difficulty: "medium",
+    tags: ["Array", "Sorting"],
+    prompt: "Given an array of intervals `[start, end]`, merge all overlapping intervals and return the non-overlapping result.",
+    examples: [{ input: "[[1,3],[2,6],[8,10],[15,18]]", output: "[[1,6],[8,10],[15,18]]" }],
+  },
+  {
+    slug: "group-anagrams",
+    title: "Group Anagrams",
+    difficulty: "medium",
+    tags: ["Hash Map", "String", "Sorting"],
+    prompt: "Given an array of strings, group the anagrams together. Return the groups in any order.",
+    examples: [{ input: '["eat","tea","tan","ate","nat","bat"]', output: '[["bat"],["nat","tan"],["ate","eat","tea"]]' }],
+  },
+  {
+    slug: "lru-cache",
+    title: "LRU Cache",
+    difficulty: "medium",
+    tags: ["Hash Map", "Linked List", "Design"],
+    prompt: "Design a data structure for a Least Recently Used (LRU) cache with O(1) `get(key)` and `put(key, value)`. Evict the least recently used key when capacity is exceeded.",
+    examples: [{ input: "capacity = 2; put(1,1); put(2,2); get(1); put(3,3); get(2)", output: "get(1)=1, get(2)=-1 (evicted)" }],
+  },
+  {
+    slug: "number-of-islands",
+    title: "Number of Islands",
+    difficulty: "medium",
+    tags: ["Graph", "BFS", "DFS"],
+    prompt: "Given a 2D grid of '1' (land) and '0' (water), count the number of islands. An island is land connected 4-directionally.",
+    examples: [{ input: '[["1","1","0"],["1","0","0"],["0","0","1"]]', output: "2" }],
+  },
+  {
+    slug: "course-schedule",
+    title: "Course Schedule",
+    difficulty: "medium",
+    tags: ["Graph", "Topological Sort"],
+    prompt: "Given `numCourses` and prerequisite pairs `[a, b]` (take b before a), return true if you can finish all courses (i.e. the graph has no cycle).",
+    examples: [{ input: "numCourses = 2, prerequisites = [[1,0]]", output: "true" }],
+  },
+  {
+    slug: "longest-unique-substring",
+    title: "Longest Substring Without Repeating Characters",
+    difficulty: "medium",
+    tags: ["String", "Sliding Window", "Hash Map"],
+    prompt: "Given a string `s`, find the length of the longest substring without repeating characters.",
+    examples: [
+      { input: 's = "abcabcbb"', output: "3", explanation: '"abc" is the longest' },
+      { input: 's = "bbbbb"', output: "1" },
+    ],
+  },
+  {
+    slug: "product-except-self",
+    title: "Product of Array Except Self",
+    difficulty: "medium",
+    tags: ["Array"],
+    prompt: "Given an integer array `nums`, return an array `answer` where `answer[i]` is the product of all elements of `nums` except `nums[i]`. Do not use division; aim for O(n).",
+    examples: [{ input: "nums = [1,2,3,4]", output: "[24,12,8,6]" }],
+  },
+];

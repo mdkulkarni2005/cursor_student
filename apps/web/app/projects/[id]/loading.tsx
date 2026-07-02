@@ -1,0 +1,18 @@
+import { ShellSkeleton } from "@/components/ui/shell-skeleton";
+import { Skeleton, SkeletonCard } from "@/components/ui/skeleton";
+
+export default function Loading() {
+  return (
+    <ShellSkeleton>
+      <div className="mx-auto max-w-[1080px]">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="mb-6 mt-2 h-8 w-96 max-w-full" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_360px]">
+          <SkeletonCard lines={4} />
+          <SkeletonCard lines={3} />
+        </div>
+        <SkeletonCard className="mt-6" lines={6} />
+      </div>
+    </ShellSkeleton>
+  );
+}

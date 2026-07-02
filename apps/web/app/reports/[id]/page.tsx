@@ -12,6 +12,7 @@ import { FigureEditor, type ApprovedFigure } from "@/components/reports/figure-e
 import { GeneratingPoller } from "@/components/reports/generating-poller";
 import { FinishReportButton } from "@/components/reports/finish-report-button";
 import { DeleteDocButton } from "@/components/delete-doc-button";
+import { SubmitButton } from "@/components/ui/button";
 import { REPORT_STAGES } from "@/lib/reports/generate";
 import type { QualityMetrics } from "@/lib/quality";
 import type { ClarifyQuestion } from "@studentos/ai";
@@ -149,9 +150,9 @@ export default async function ReportDetailPage({
                     ) : (
                       <form action={humanizeReportAction}>
                         <input type="hidden" name="docId" value={doc.id} />
-                        <button type="submit" className="w-full rounded-xl border border-cyan/30 bg-cyan/5 px-3.5 py-2 text-[12.5px] font-semibold text-cyan transition-colors hover:bg-cyan/10">
+                        <SubmitButton loadingText="Humanizing…" className="w-full rounded-xl border border-cyan/30 bg-cyan/5 px-3.5 py-2 text-[12.5px] font-semibold text-cyan transition-colors hover:bg-cyan/10 disabled:opacity-60">
                           Humanize text ↓
-                        </button>
+                        </SubmitButton>
                       </form>
                     )}
                   </div>

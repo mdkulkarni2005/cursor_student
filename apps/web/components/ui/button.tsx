@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useLinkStatus } from "next/link";
+import { useFormStatus } from "react-dom";
 import type { ComponentProps, ReactNode } from "react";
 
 /** Inline spinner that inherits the current text color and font size (1em). */
@@ -52,6 +53,28 @@ export function Button({
     >
       {loading ? <Spinner /> : null}
       {loading && loadingText ? loadingText : children}
+    </button>
+  );
+}
+
+/**
+ * A drop-in <button type="submit"> that shows its OWN loading state — no prop threading, no
+ * useActionState needed. Reads the pending state of the nearest ancestor <form> via React's
+ * useFormStatus. Use this instead of a raw `<button type="submit">` inside any `<form action={...}>`
+ * (server action or client action) so every submit gets a spinner + disabled state for free.
+ */
+export function SubmitButton({ loadingText, disabled, children, className = "", ...rest }: ButtonProps) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      {...rest}
+      disabled={disabled || pending}
+      aria-busy={pending || undefined}
+      className={`${FLEX} ${className}`}
+    >
+      {pending ? <Spinner /> : null}
+      {pending && loadingText ? loadingText : children}
     </button>
   );
 }

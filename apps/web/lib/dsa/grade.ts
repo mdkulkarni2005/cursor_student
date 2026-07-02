@@ -6,7 +6,7 @@
  * gradeable yet) — and "unverified" NEVER counts as solved (fail-closed).
  */
 import { runFunction, supportsRun, type Language } from "@studentos/execution";
-import { JUDGING, type CompareMode } from "./judging";
+import { JUDGING, sampleTests, type CompareMode } from "./judging";
 
 /** UI labels → engine language ids. */
 const LANG_ID: Record<string, Language> = {
@@ -57,28 +57,34 @@ export async function gradeSubmission(opts: {
   slug: string;
   language: Language;
   code: string;
+  /** "sample" runs only the visible/sample tests (used by Run); default "all" is the real grade (Submit). */
+  only?: "sample" | "all";
 }): Promise<GradeResult> {
   const j = JUDGING[opts.slug];
   if (!j) {
     return { verdict: "unverified", passed: 0, total: 0, outcomes: [], message: "This problem isn't auto-graded yet — your attempt was saved for review." };
   }
+  const tests = opts.only === "sample" ? sampleTests(opts.slug) : j.tests;
+  if (tests.length === 0) {
+    return { verdict: "unverified", passed: 0, total: 0, outcomes: [], message: "No sample tests available for this problem yet." };
+  }
   if (!supportsRun(opts.language)) {
-    return { verdict: "unverified", passed: 0, total: j.tests.length, outcomes: [], message: "Auto-grading for this language is coming soon — your attempt was saved." };
+    return { verdict: "unverified", passed: 0, total: tests.length, outcomes: [], message: "Auto-grading for this language is coming soon — your attempt was saved." };
   }
 
   const outcomes: TestOutcome[] = [];
   let passed = 0;
 
-  for (const t of j.tests) {
+  for (const t of tests) {
     const run = await runFunction({ language: opts.language, userSource: opts.code, args: t.args });
 
     // Engine unreachable → stop and report unverified (never a fake pass).
     if (run.result.unverified) {
-      return { verdict: "unverified", passed, total: j.tests.length, outcomes, message: "We couldn't run your code right now — saved as an attempt. Try again in a moment." };
+      return { verdict: "unverified", passed, total: tests.length, outcomes, message: "We couldn't run your code right now — saved as an attempt. Try again in a moment." };
     }
     // Compile error repeats for every test — report once and stop.
     if (run.result.status === "compile_error") {
-      return { verdict: "failed", passed, total: j.tests.length, outcomes: [{ passed: false, expected: t.expected, error: run.result.stderr.slice(0, 300) || "Compile error" }] };
+      return { verdict: "failed", passed, total: tests.length, outcomes: [{ passed: false, expected: t.expected, error: run.result.stderr.slice(0, 300) || "Compile error" }] };
     }
     if (run.result.status !== "ok") {
       outcomes.push({ passed: false, expected: t.expected, error: run.result.stderr.slice(0, 200) || run.result.status });
@@ -89,5 +95,5 @@ export async function gradeSubmission(opts: {
     outcomes.push({ passed: good, expected: t.expected, got: run.output });
   }
 
-  return { verdict: passed === j.tests.length ? "passed" : "failed", passed, total: j.tests.length, outcomes };
+  return { verdict: passed === tests.length ? "passed" : "failed", passed, total: tests.length, outcomes };
 }

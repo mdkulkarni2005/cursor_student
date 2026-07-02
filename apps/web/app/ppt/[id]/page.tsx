@@ -13,6 +13,7 @@ import { DeckViewer, type Deck } from "@/components/ppt/deck-viewer";
 import { TemplateDeck } from "@/components/ppt/template-deck";
 import { richToPlain } from "@studentos/documents";
 import { GeneratingOverlay } from "@/components/generating-overlay";
+import { SubmitButton } from "@/components/ui/button";
 import type { ClarifyQuestion } from "@studentos/ai";
 import type { PptTheme, PptSlide } from "@studentos/documents";
 
@@ -72,12 +73,12 @@ export default async function PptDetailPage({ params }: { params: Promise<{ id: 
               <>
                 <form action={convertPptToReportAction}>
                   <input type="hidden" name="docId" value={doc.id} />
-                  <button
-                    type="submit"
-                    className="rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[13.5px] font-semibold text-soft transition-colors hover:border-cyan/40 hover:text-cyan"
+                  <SubmitButton
+                    loadingText="Converting…"
+                    className="rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[13.5px] font-semibold text-soft transition-colors hover:border-cyan/40 hover:text-cyan disabled:opacity-60"
                   >
                     Convert to Report
-                  </button>
+                  </SubmitButton>
                   <GeneratingOverlay label="Converting to a report…" sub="We're expanding your slides into a full report. This takes a minute — keep this tab open." />
                 </form>
                 <a
@@ -106,12 +107,12 @@ export default async function PptDetailPage({ params }: { params: Promise<{ id: 
               We drafted what we could from your topic — answer these and we&apos;ll complete it.
             </p>
             <ClarifyQuestions questions={pendingQuestions} />
-            <button
-              type="submit"
-              className="w-full rounded-xl bg-accent-gradient py-3 text-[14px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(79,70,229,0.3)] transition-transform hover:-translate-y-0.5"
+            <SubmitButton
+              loadingText="Finishing…"
+              className="w-full rounded-xl bg-accent-gradient py-3 text-[14px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(79,70,229,0.3)] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
             >
               Finish my deck →
-            </button>
+            </SubmitButton>
           </form>
         ) : null}
 

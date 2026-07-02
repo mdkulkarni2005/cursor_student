@@ -5,6 +5,7 @@ import {
   assessContext,
   answersToContext,
   generateProjectIdeas,
+  reviewProjectCode,
   withAiRetry,
   ProjectIdeaSchema,
   PROJECT_DIFFICULTIES,
@@ -13,7 +14,8 @@ import {
   type ProjectDifficulty,
 } from "@studentos/ai";
 import { getOrCreateUser } from "@/lib/user";
-import { finalizeProject, generateProjectBundle } from "@/lib/projects/generate";
+import { finalizeProject, generateProjectBundle, generateProjectPlan, getProject, getOrGeneratePregeneratedIdeas } from "@/lib/projects/generate";
+import { codingEnabledFor } from "@/lib/capabilities";
 import { rateLimit, friendlyError } from "@/lib/reliability";
 
 export type IdeasFormState = {
@@ -106,4 +108,75 @@ export async function generateBundleAction(formData: FormData): Promise<void> {
   if (!user || !docId) return;
   await generateProjectBundle(user.id, docId);
   redirect(`/projects/${docId}`);
+}
+
+/** Force-regenerate the profile-based pregenerated ideas shown on the Projects landing page. */
+export async function refreshPregeneratedIdeasAction(): Promise<void> {
+  const user = await getOrCreateUser();
+  if (!user) return;
+  try {
+    rateLimit(user.id, "project-pregenerated-refresh", 5);
+  } catch {
+    redirect("/projects");
+  }
+  await getOrGeneratePregeneratedIdeas(user, true);
+  redirect("/projects");
+}
+
+/** Generate the full build plan (diagrams, phases, components, research, differentiators). */
+export async function generatePlanAction(formData: FormData): Promise<void> {
+  const user = await getOrCreateUser();
+  const docId = String(formData.get("docId") ?? "");
+  if (!user || !docId) return;
+  try {
+    rateLimit(user.id, "project-plan");
+  } catch {
+    return;
+  }
+  await generateProjectPlan(user.id, docId);
+  redirect(`/projects/${docId}`);
+}
+
+export type CodeReviewState = { error?: string; reply?: string };
+
+/** AI code help scoped to a project's code, gated to coding-enabled students. */
+export async function reviewProjectCodeAction(
+  _prev: CodeReviewState,
+  formData: FormData,
+): Promise<CodeReviewState> {
+  const user = await getOrCreateUser();
+  if (!user) return { error: "You must be signed in." };
+  if (!codingEnabledFor(user)) return { error: "Code help isn't available for your track." };
+
+  const docId = String(formData.get("docId") ?? "");
+  const language = String(formData.get("language") ?? "").trim() || "Python";
+  const code = String(formData.get("code") ?? "").trim();
+  const question = String(formData.get("question") ?? "").trim() || undefined;
+  if (!docId || !code) return { error: "Paste some code first." };
+
+  try {
+    rateLimit(user.id, "project-code-review");
+  } catch (e) {
+    return { error: friendlyError(e) };
+  }
+
+  const project = await getProject(user.id, docId);
+  if (!project) return { error: "Project not found." };
+
+  try {
+    const { reply } = await withAiRetry(
+      () =>
+        reviewProjectCode({
+          title: project.content.idea.title,
+          summary: project.content.idea.summary,
+          language,
+          code,
+          question,
+        }),
+      { label: "project.codeReview" },
+    );
+    return { reply };
+  } catch (err) {
+    return { error: friendlyError(err) };
+  }
 }

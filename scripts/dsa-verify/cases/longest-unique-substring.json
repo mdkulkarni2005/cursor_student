@@ -1,0 +1,9 @@
+{
+  "tests": [
+    { "args": ["abcabcbb"], "sample": true },
+    { "args": ["bbbbb"], "sample": true },
+    { "args": ["pwwkew"] },
+    { "args": [""] },
+    { "args": ["au"] }
+  ]
+}

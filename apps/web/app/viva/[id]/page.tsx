@@ -4,6 +4,7 @@ import { prisma } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
 import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
 import { generateVivaAction } from "@/lib/actions/viva";
+import { SubmitButton } from "@/components/ui/button";
 
 type VivaQ = { question: string; answer: string; difficulty: "easy" | "medium" | "hard" };
 
@@ -42,7 +43,7 @@ export default async function VivaDetailPage({ params }: { params: Promise<{ id:
           <div className="flex gap-2">
             <form action={generateVivaAction}>
               <input type="hidden" name="sourceId" value={doc.id} />
-              <button type="submit" className="rounded-xl border border-line bg-card px-4 py-2.5 text-[13px] font-semibold text-soft transition-colors hover:border-cyan/40 hover:text-cyan">Regenerate</button>
+              <SubmitButton loadingText="Regenerating…" className="rounded-xl border border-line bg-card px-4 py-2.5 text-[13px] font-semibold text-soft transition-colors hover:border-cyan/40 hover:text-cyan disabled:opacity-60">Regenerate</SubmitButton>
             </form>
             <Link href="/interview" className="rounded-xl bg-cyan px-4 py-2.5 text-[13.5px] font-semibold text-on-accent transition-transform hover:-translate-y-0.5">▶ Start Mock Session</Link>
           </div>
@@ -53,7 +54,7 @@ export default async function VivaDetailPage({ params }: { params: Promise<{ id:
             <p className="text-[14px] text-muted">No viva generated yet for this document.</p>
             <form action={generateVivaAction} className="mt-3">
               <input type="hidden" name="sourceId" value={doc.id} />
-              <button type="submit" className="rounded-xl bg-cyan px-4 py-2.5 text-[13.5px] font-semibold text-on-accent transition-transform hover:-translate-y-0.5">Generate viva</button>
+              <SubmitButton loadingText="Generating…" className="rounded-xl bg-cyan px-4 py-2.5 text-[13.5px] font-semibold text-on-accent transition-transform hover:-translate-y-0.5 disabled:opacity-60">Generate viva</SubmitButton>
             </form>
           </div>
         ) : (

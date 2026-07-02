@@ -1,29 +1,17 @@
 import Link from "next/link";
 import { AppShell } from "@/components/app-shell";
 import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
-import { DSA_PROBLEMS, type DsaDifficulty } from "@/lib/dsa/catalog";
+import { DSA_PROBLEMS } from "@/lib/dsa/catalog";
 import { getDsaProgress } from "@/lib/dsa/practice";
 import { getLeaderboard } from "@/lib/dsa/leaderboard";
+import { ProblemBrowser } from "@/components/dsa/problem-browser";
 
-const DIFF_STYLE: Record<DsaDifficulty, string> = {
-  easy: "text-success bg-success/12",
-  medium: "text-warning bg-warning/12",
-  hard: "text-danger bg-danger/12",
-};
-const DIFF_DOT: Record<DsaDifficulty, string> = { easy: "bg-success", medium: "bg-warning", hard: "bg-danger" };
-const FILTERS = ["all", "easy", "medium", "hard"] as const;
 const DAY_LETTERS = ["M", "T", "W", "T", "F", "S", "S"];
 
-export default async function DsaPage({ searchParams }: { searchParams: Promise<{ diff?: string }> }) {
+export default async function DsaPage() {
   const user = await requireOnboardedUser();
-  const { diff } = await searchParams;
-  const active = (FILTERS as readonly string[]).includes(diff ?? "") ? (diff as (typeof FILTERS)[number]) : "all";
 
   const [progress, board] = await Promise.all([getDsaProgress(user.id), getLeaderboard(user.id)]);
-  const solved = new Set(progress.solvedSlugs);
-  const attempted = new Set(progress.attemptedSlugs);
-
-  const list = DSA_PROBLEMS.filter((p) => active === "all" || p.difficulty === active);
   const accuracy = progress.attemptedSlugs.length > 0
     ? Math.round((progress.solvedCount / progress.attemptedSlugs.length) * 100)
     : 0;
@@ -61,39 +49,7 @@ export default async function DsaPage({ searchParams }: { searchParams: Promise<
 
         {/* Problem catalog */}
         <div className="mb-6">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h2 className="font-display text-[20px] font-semibold text-ink">Problem Catalog</h2>
-            <div className="flex gap-1.5 rounded-xl border border-line bg-card p-1">
-              {FILTERS.map((f) => (
-                <Link
-                  key={f}
-                  href={f === "all" ? "/dsa" : `/dsa?diff=${f}`}
-                  className={`rounded-lg px-3.5 py-1.5 text-[12.5px] font-semibold capitalize transition-colors ${active === f ? "bg-cyan text-on-accent" : "text-muted hover:text-cyan"}`}
-                >
-                  {f}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2.5">
-            {list.map((pr) => {
-              const status = solved.has(pr.slug) ? "solved" : attempted.has(pr.slug) ? "attempted" : "new";
-              return (
-                <Link key={pr.slug} href={`/dsa/${pr.slug}`} className="group flex items-center gap-3.5 rounded-2xl border border-line bg-card p-4 transition-all hover:-translate-y-0.5 hover:border-cyan/40 hover:shadow-[0_10px_24px_rgba(15,23,42,0.06)]">
-                  <span className={`flex size-9 shrink-0 items-center justify-center rounded-lg text-[15px] ${status === "solved" ? "bg-success/12 text-success" : "bg-surface text-faint"}`}>
-                    {status === "solved" ? "✓" : <span className={`size-2.5 rounded-full ${DIFF_DOT[pr.difficulty]}`} />}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14.5px] font-semibold text-ink group-hover:text-cyan">{pr.title}</p>
-                    <p className="truncate text-[12px] text-muted">{pr.tags.join(" · ")}</p>
-                  </div>
-                  {status === "attempted" ? <span className="text-[11px] font-semibold text-warning">attempted</span> : null}
-                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold capitalize ${DIFF_STYLE[pr.difficulty]}`}>{pr.difficulty}</span>
-                </Link>
-              );
-            })}
-          </div>
+          <ProblemBrowser problems={DSA_PROBLEMS} solvedSlugs={progress.solvedSlugs} attemptedSlugs={progress.attemptedSlugs} />
         </div>
 
         {/* Stat cards */}

@@ -109,6 +109,12 @@ model User {
   lastSeenAt      DateTime?
   appOpens        Int       @default(0)
 
+  // Auto-generated project ideas cached for the Projects landing page (department/career-goal
+  // aware), so a student sees suggestions immediately instead of asking first. Generated lazily
+  // on first visit; refreshed on demand, not automatically re-run on every profile edit.
+  pregeneratedIdeas   Json?
+  pregeneratedIdeasAt DateTime?
+
   institutionId String?
   institution   Institution? @relation(fields: [institutionId], references: [id])
 

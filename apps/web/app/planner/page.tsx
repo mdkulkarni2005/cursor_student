@@ -3,6 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
 import { generateStudyPlan, type RoadmapDay } from "@/lib/actions/planner";
 import { Sparkle, BellIcon } from "@/components/icons";
+import { SubmitButton } from "@/components/ui/button";
 
 export const metadata = { title: "Exam Planner — Vidyas OS" };
 
@@ -74,9 +75,9 @@ export default async function PlannerPage() {
                   type="date"
                   className="w-full rounded-xl border border-line bg-surface px-4 py-2.5 text-[14px] text-ink outline-none focus:border-cyan/50"
                 />
-                <button type="submit" className="w-full rounded-xl bg-cyan py-3 text-[14px] font-semibold text-on-accent">
+                <SubmitButton loadingText="Generating…" className="w-full rounded-xl bg-cyan py-3 text-[14px] font-semibold text-on-accent disabled:opacity-60">
                   Generate plan
-                </button>
+                </SubmitButton>
               </form>
             </div>
           </div>
@@ -136,7 +137,7 @@ export default async function PlannerPage() {
                   <form action={generateStudyPlan} className="space-y-2">
                     <input name="targetExam" defaultValue={plan.targetExam} className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] text-ink outline-none focus:border-cyan/50" />
                     <input name="examDate" type="date" className="w-full rounded-lg border border-line bg-surface px-3 py-2 text-[13px] text-ink outline-none focus:border-cyan/50" />
-                    <button type="submit" className="w-full rounded-lg bg-cyan py-2 text-[13px] font-semibold text-on-accent">Regenerate</button>
+                    <SubmitButton loadingText="Regenerating…" className="w-full rounded-lg bg-cyan py-2 text-[13px] font-semibold text-on-accent disabled:opacity-60">Regenerate</SubmitButton>
                   </form>
                 </div>
               </div>

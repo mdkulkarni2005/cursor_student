@@ -6,6 +6,7 @@ import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
 import { askAssignmentAction } from "@/lib/actions/assignments";
 import { GeneratingPoller } from "@/components/reports/generating-poller";
 import { DeleteDocButton } from "@/components/delete-doc-button";
+import { SubmitButton } from "@/components/ui/button";
 import { ASSIGNMENT_STAGES } from "@/lib/assignments/generate";
 import { stageOf } from "@/lib/jobs";
 
@@ -136,7 +137,7 @@ export default async function AssignmentDetailPage({
                   <input type="hidden" name="docId" value={doc.id} />
                   <textarea name="message" required rows={3} placeholder="Ask a follow-up… e.g. Redo step 3, I think it's wrong."
                     className="w-full resize-none rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[13px] text-ink outline-none transition-colors focus:border-cyan/50 placeholder:text-faint" />
-                  <button type="submit" className="w-full rounded-xl bg-cyan py-2.5 text-[13px] font-semibold text-on-accent transition-transform hover:-translate-y-0.5">Send</button>
+                  <SubmitButton loadingText="Sending…" className="w-full rounded-xl bg-cyan py-2.5 text-[13px] font-semibold text-on-accent transition-transform hover:-translate-y-0.5 disabled:opacity-60">Send</SubmitButton>
                 </form>
               </aside>
             ) : null}

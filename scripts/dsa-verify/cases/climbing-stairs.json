@@ -1,0 +1,9 @@
+{
+  "tests": [
+    { "args": [2], "sample": true },
+    { "args": [3], "sample": true },
+    { "args": [1] },
+    { "args": [5] },
+    { "args": [10] }
+  ]
+}

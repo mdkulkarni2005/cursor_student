@@ -3,16 +3,22 @@ import { prisma } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
 import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
 import { ProjectIdeasForm } from "@/components/projects/project-ideas-form";
-import { NavSpinner } from "@/components/ui/button";
+import { IdeaCard } from "@/components/projects/idea-card";
+import { getOrGeneratePregeneratedIdeas } from "@/lib/projects/generate";
+import { refreshPregeneratedIdeasAction } from "@/lib/actions/projects";
+import { NavSpinner, SubmitButton } from "@/components/ui/button";
 import { DeleteDocButton } from "@/components/delete-doc-button";
 
 export default async function ProjectsPage() {
   const user = await requireOnboardedUser();
-  const projects = await prisma.document.findMany({
-    where: { ownerId: user.id, type: "PROJECT" },
-    orderBy: { createdAt: "desc" },
-    take: 20,
-  });
+  const [projects, pregeneratedIdeas] = await Promise.all([
+    prisma.document.findMany({
+      where: { ownerId: user.id, type: "PROJECT" },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
+    getOrGeneratePregeneratedIdeas(user),
+  ]);
 
   return (
     <AppShell user={shellUserFrom(user)}>
@@ -21,6 +27,30 @@ export default async function ProjectsPage() {
           <h1 className="font-display text-[30px] font-semibold tracking-tight text-ink">Project Idea Catalyst</h1>
           <p className="mt-1 text-[14px] text-muted">Generate, curate, and finalize high-impact engineering projects with integrated planning.</p>
         </div>
+
+        {/* Suggested for you — pregenerated from department + career goal, no asking required */}
+        {pregeneratedIdeas.length > 0 ? (
+          <div className="mb-8">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 className="font-display text-[18px] font-semibold text-ink">Suggested for you</h2>
+                <p className="mt-0.5 text-[12.5px] text-muted">
+                  Based on your profile{user.department ? ` (${user.department}${user.careerGoal ? ` · ${user.careerGoal}` : ""})` : ""}.
+                </p>
+              </div>
+              <form action={refreshPregeneratedIdeasAction}>
+                <SubmitButton loadingText="Refreshing…" className="rounded-lg border border-line-strong bg-surface px-3 py-1.5 text-[12px] font-semibold text-muted transition-colors hover:border-cyan/40 hover:text-cyan disabled:opacity-60">
+                  ↻ Refresh suggestions
+                </SubmitButton>
+              </form>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {pregeneratedIdeas.map((idea, i) => (
+                <IdeaCard key={i} idea={idea} />
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {/* Idea Generator */}
         <div className="mb-8 rounded-2xl border border-line bg-card p-6">

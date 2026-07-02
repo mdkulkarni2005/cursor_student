@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ChatIcon } from "@/components/icons";
+import { MessageMarkdown } from "@/components/assistant/message-markdown";
 
 type Msg = { role: "user" | "assistant"; content: string; image?: string };
 
@@ -193,14 +194,14 @@ export function AssistantPanel({ name }: { name?: string }) {
                   className={
                     m.role === "user"
                       ? "max-w-[85%] rounded-2xl rounded-br-sm bg-accent-gradient px-3.5 py-2.5 text-[13px] text-on-accent"
-                      : "max-w-[85%] whitespace-pre-line rounded-2xl rounded-bl-sm border border-line bg-surface px-3.5 py-2.5 text-[13px] text-soft"
+                      : "max-w-[85%] rounded-2xl rounded-bl-sm border border-line bg-surface px-3.5 py-2.5 text-soft"
                   }
                 >
                   {m.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={m.image} alt="attached" className="mb-1.5 max-h-40 rounded-lg" />
                   ) : null}
-                  {m.content}
+                  {m.role === "assistant" ? <MessageMarkdown content={m.content} /> : m.content}
                 </div>
               </div>
             ))}
