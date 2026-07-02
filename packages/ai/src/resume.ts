@@ -119,3 +119,90 @@ export async function generateResume(req: GenerateResumeRequest): Promise<Genera
     `Resume generation failed on both models: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
   );
 }
+
+/**
+ * "Optimize resume" candidate edits — targeted rewrites for specific failing ATS checks.
+ * The model only proposes WHERE and WHAT to change; the caller (apps/web) reads the
+ * current "before" value itself from the resume (never trusts the model's memory of it),
+ * re-scores each candidate with the real ATS heuristic, and drops anything that doesn't
+ * genuinely raise the score. Never invent employers, numbers, or skills — use the
+ * {{METRIC}} placeholder when a bullet needs a number that isn't in the source text.
+ */
+const ResumeOptimizeCandidateSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("summary"), checkLabel: z.string(), after: z.string() }),
+  z.object({
+    kind: z.literal("bullet"),
+    checkLabel: z.string(),
+    section: z.enum(["experience", "projects"]),
+    entryIndex: z.number().int().min(0),
+    bulletIndex: z.number().int().min(0),
+    after: z.string(),
+  }),
+  z.object({ kind: z.literal("skills"), checkLabel: z.string(), after: z.array(ResumeSkillGroupSchema) }),
+]);
+const ResumeOptimizeCandidatesSchema = z.object({ suggestions: z.array(ResumeOptimizeCandidateSchema).max(10) });
+
+export type ResumeOptimizeCandidate = z.infer<typeof ResumeOptimizeCandidateSchema>;
+
+export type ResumeOptimizeRequest = {
+  resume: Resume;
+  /** Labels of `AtsCheck`s currently failing, e.g. "Bullets start with action verbs". */
+  failingChecks: string[];
+  /** Missing target-role/JD keywords that already appear as substrings somewhere in the resume text — safe to surface, never fabricate the rest. */
+  surfaceableKeywords: string[];
+};
+
+function stubOptimizeCandidates(req: ResumeOptimizeRequest): z.infer<typeof ResumeOptimizeCandidatesSchema> {
+  const suggestions: ResumeOptimizeCandidate[] = [];
+  if (!req.resume.summary?.trim() && req.failingChecks.includes("Professional summary present")) {
+    suggestions.push({ kind: "summary", checkLabel: "Professional summary present", after: "Motivated engineering student who builds and ships real projects end-to-end." });
+  }
+  const firstBulletIdx = req.resume.experience.length
+    ? { section: "experience" as const, entryIndex: 0 }
+    : req.resume.projects.length
+      ? { section: "projects" as const, entryIndex: 0 }
+      : null;
+  if (firstBulletIdx && req.failingChecks.includes("Bullets quantify impact (numbers/metrics)")) {
+    suggestions.push({ kind: "bullet", checkLabel: "Bullets quantify impact (numbers/metrics)", ...firstBulletIdx, bulletIndex: 0, after: "Built and shipped the core feature, cutting manual effort by {{METRIC}}." });
+  }
+  return ResumeOptimizeCandidatesSchema.parse({ suggestions });
+}
+
+export async function suggestResumeOptimizations(req: ResumeOptimizeRequest): Promise<ResumeOptimizeCandidate[]> {
+  if (process.env.AI_DRIVER === "stub") {
+    return stubOptimizeCandidates(req).suggestions;
+  }
+  if (req.failingChecks.length === 0 && req.surfaceableKeywords.length === 0) return [];
+
+  const system = [
+    "You are an expert ATS resume editor. You propose small, targeted rewrites for a resume that already exists — you do not write a new resume.",
+    "You can ONLY produce three kinds of edits: 'summary' (rewrite the summary paragraph), 'bullet' (rewrite one experience/project bullet), 'skills' (regroup/relabel the skills list). There is no way to edit contact info (name/email/phone/location/links) — if the only failing check is about contact completeness, do not propose anything for it, and NEVER write contact details (an email address, phone number, or profile URL) into the summary, a bullet, or skills as a workaround.",
+    "Rules:",
+    "- NEVER invent employers, dates, numbers, contact details, or skills the student didn't provide.",
+    "- If a bullet needs a metric (%, count, time saved) that isn't already in its text, write the bullet with the literal placeholder token {{METRIC}} where the number goes — do not guess a number.",
+    "- Bullets should start with a strong past-tense action verb.",
+    "- Only propose 'skills' edits that regroup/relabel skills the student already listed, or add a skill keyword that is already evidenced elsewhere in the resume text (e.g. mentioned in a bullet) — never add a skill with no evidence in the resume.",
+    "- Propose at most one edit per failing check, only where you can do it truthfully, and skip checks you have no valid edit kind for (e.g. contact completeness, keyword coverage with no evidence).",
+    "- entryIndex/bulletIndex must be valid 0-based indices into the resume you were given.",
+  ].join("\n");
+
+  const prompt = [
+    `Resume (JSON): ${JSON.stringify({ summary: req.resume.summary, skills: req.resume.skills, experience: req.resume.experience, projects: req.resume.projects })}`,
+    `Failing ATS checks to address: ${req.failingChecks.join("; ") || "none"}.`,
+    `Keywords worth surfacing more prominently (already evidenced in the resume text): ${req.surfaceableKeywords.join(", ") || "none"}.`,
+    "Propose targeted edits.",
+  ].join("\n");
+
+  let lastError: unknown;
+  for (const model of [PRIMARY_MODEL, FALLBACK_MODEL]) {
+    try {
+      const { object } = await generateObject({ model, schema: ResumeOptimizeCandidatesSchema, system, prompt });
+      return object.suggestions;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  throw new Error(
+    `Resume optimize suggestions failed on both models: ${lastError instanceof Error ? lastError.message : String(lastError)}`,
+  );
+}

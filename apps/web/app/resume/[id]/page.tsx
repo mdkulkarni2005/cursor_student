@@ -4,10 +4,11 @@ import { prisma } from "@studentos/db";
 import type { Resume } from "@studentos/documents";
 import { AppShell } from "@/components/app-shell";
 import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
-import { toggleResumeDensityAction, rescoreResumeAction } from "@/lib/actions/resume";
+import { toggleResumeDensityAction } from "@/lib/actions/resume";
 import type { ResumeMeta } from "@/lib/resume/generate";
 import { RESUME_STAGES } from "@/lib/resume/generate";
 import { ResumeEditor } from "@/components/resume/resume-editor";
+import { ResumeOptimizer } from "@/components/resume/resume-optimizer";
 import { GeneratingPoller } from "@/components/reports/generating-poller";
 import { DeleteDocButton } from "@/components/delete-doc-button";
 import { stageOf } from "@/lib/jobs";
@@ -103,9 +104,6 @@ export default async function ResumeDetailPage({ params }: { params: Promise<{ i
 
   const score = ats?.score ?? (r ? completenessScore(r) : 0);
   const scoreTone = score >= 75 ? "text-success" : score >= 50 ? "text-warning" : "text-danger";
-  const recommendation =
-    ats?.suggestions?.[0] ??
-    "Add measurable impact (numbers, %, scale) to your top bullets — it's the single biggest ATS lift.";
 
   return (
     <AppShell user={shellUserFrom(user)}>
@@ -176,22 +174,8 @@ export default async function ResumeDetailPage({ params }: { params: Promise<{ i
                 ) : null}
               </div>
 
-              {/* AI recommendation */}
-              <div className="rounded-2xl border border-teal/25 bg-teal/[0.06] p-5">
-                <p className="mb-1 text-[11px] font-bold uppercase tracking-wide text-teal">AI Recommendation</p>
-                <p className="text-[13px] leading-relaxed text-soft">{recommendation}</p>
-                {ats ? (
-                  <details className="mt-3 text-[12.5px] text-teal">
-                    <summary className="cursor-pointer font-semibold">Target a specific role / job ↓</summary>
-                    <form action={rescoreResumeAction} className="mt-3 space-y-2">
-                      <input type="hidden" name="docId" value={doc.id} />
-                      <input name="targetRole" defaultValue={meta.targetRole} placeholder="Target role (e.g. Backend Engineer)" className="w-full rounded-lg border border-line bg-card px-3 py-2 text-[13px] text-ink outline-none focus:border-teal/50" />
-                      <textarea name="jobDescription" rows={3} defaultValue={meta.jobDescription} placeholder="Or paste the job description…" className="w-full resize-none rounded-lg border border-line bg-card px-3 py-2 text-[13px] text-ink outline-none focus:border-teal/50" />
-                      <button type="submit" className="rounded-lg bg-teal px-3.5 py-2 text-[12.5px] font-semibold text-white">Re-score →</button>
-                    </form>
-                  </details>
-                ) : null}
-              </div>
+              {/* Optimize */}
+              <ResumeOptimizer docId={doc.id} targetRole={meta.targetRole} jobDescription={meta.jobDescription} />
 
               {/* Editor form */}
               <div className="rounded-2xl border border-line bg-card p-5">

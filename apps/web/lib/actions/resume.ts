@@ -1,11 +1,13 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { assessContext, answersToContext, withAiRetry, type ClarifyQuestion } from "@studentos/ai";
 import { ResumeSchema, parseResumeDocx, parseResumeText, type Resume } from "@studentos/documents";
 import { getOrCreateUser } from "@/lib/user";
 import { createResumeDoc, runResumeGeneration, setResumeDensity, rescoreResume, updateResume, importResume } from "@/lib/resume/generate";
+import { getResumeOptimizations, applyResumeOptimization, claimKeywords, type ResumeEditPayload, type ResumeOptimizationsResult } from "@/lib/resume/optimize";
 import { rateLimit, friendlyError } from "@/lib/reliability";
 
 export type ResumeFormState = {
@@ -181,4 +183,39 @@ export async function rescoreResumeAction(formData: FormData): Promise<void> {
     jobDescription: String(formData.get("jobDescription") ?? "").trim() || undefined,
   });
   redirect(`/resume/${docId}`);
+}
+
+/** Propose optimizations (text only — no persistence). Every suggestion is pre-verified to raise the real ATS score. */
+export async function suggestResumeOptimizationsAction(
+  docId: string,
+): Promise<ResumeOptimizationsResult & { error?: string }> {
+  const user = await getOrCreateUser();
+  const empty: ResumeOptimizationsResult = { suggestions: [], currentScore: 0, potentialScore: 0, unclaimedKeywords: [], contactGap: null };
+  if (!user) return { ...empty, error: "You must be signed in." };
+  try {
+    return await getResumeOptimizations(user.id, docId);
+  } catch {
+    return { ...empty, error: "Couldn't find improvements right now." };
+  }
+}
+
+/** Self-attested: the student ticked "I have this skill" — add it for real, re-render + re-score. */
+export async function claimKeywordsAction(docId: string, keywords: string[]): Promise<{ ok: boolean; score?: number; error?: string }> {
+  const user = await getOrCreateUser();
+  if (!user) return { ok: false, error: "You must be signed in." };
+  const res = await claimKeywords(user.id, docId, keywords);
+  if (res.ok) revalidatePath(`/resume/${docId}`);
+  return res;
+}
+
+/** Approve one suggestion (one or more edits, applied atomically) → merge into the resume, re-render + re-score for real. */
+export async function applyResumeOptimizationAction(
+  docId: string,
+  edits: ResumeEditPayload[],
+): Promise<{ ok: boolean; score?: number; error?: string }> {
+  const user = await getOrCreateUser();
+  if (!user) return { ok: false, error: "You must be signed in." };
+  const res = await applyResumeOptimization(user.id, docId, edits);
+  if (res.ok) revalidatePath(`/resume/${docId}`);
+  return res;
 }

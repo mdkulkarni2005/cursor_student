@@ -67,7 +67,7 @@ export function ResumeEditor({ docId, resume }: { docId: string; resume: Resume 
           {(["name", "email", "phone", "location", "linkedin", "github"] as const).map((k) => (
             <div key={k}>
               <label className={label}>{CONTACT_LABELS[k]}</label>
-              <input className={box} value={r.contact[k] ?? ""} onChange={(e) => setContact(k, e.target.value)} />
+              <input id={`resume-contact-${k}`} className={box} value={r.contact[k] ?? ""} onChange={(e) => setContact(k, e.target.value)} />
             </div>
           ))}
         </div>
