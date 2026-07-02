@@ -99,6 +99,8 @@ export const PptSlideSchema = z.object({
   notes: z.string().optional(),
   /** R2 object key for this slide's image (NOT base64). Resolved to bytes at render time. */
   image: z.string().optional(),
+  /** User-set size multiplier for the slide's image (default 1 = the layout's normal side-panel size). */
+  imageScale: z.number().min(0.5).max(1.5).optional(),
 });
 
 /**
@@ -176,15 +178,15 @@ function bulletsText(slide: Slide, bullets: RichText[], t: Resolved, x: number, 
   slide.addText(runs, { x, y, w, h, fontSize: 18, color: BODY, fontFace: t.bodyFont, valign: "top", lineSpacingMultiple: 1.3, paraSpaceAfter: 8 });
 }
 
-function renderDiagram(slide: Slide, kind: string, nodes: string[], t: Resolved) {
+function renderDiagram(slide: Slide, kind: string, nodes: string[], t: Resolved, totalW = 12.1) {
   const y = kind === "hierarchy" ? 2.9 : 3.0;
   if (kind === "hierarchy") {
     // Root on top, children in a row below, connected by lines.
     const [root, ...kids] = nodes;
-    const rootW = 3.4, rootX = (13.33 - rootW) / 2;
+    const rootW = Math.min(3.4, totalW * 0.55), rootX = 0.6 + (totalW - rootW) / 2;
     slide.addShape("roundRect", { x: rootX, y: 1.7, w: rootW, h: 1.0, fill: { color: t.accent }, line: { color: t.accent } });
     slide.addText(root ?? "", { x: rootX, y: 1.7, w: rootW, h: 1.0, align: "center", valign: "middle", color: "FFFFFF", bold: true, fontSize: 15, fontFace: t.bodyFont });
-    const n = Math.max(kids.length, 1), gap = 0.4, totalW = 12.1, boxW = (totalW - gap * (n - 1)) / n;
+    const n = Math.max(kids.length, 1), gap = 0.4, boxW = (totalW - gap * (n - 1)) / n;
     kids.forEach((node, i) => {
       const x = 0.6 + i * (boxW + gap);
       slide.addShape("line", { x: rootX + rootW / 2, y: 2.7, w: x + boxW / 2 - (rootX + rootW / 2), h: 1.1, line: { color: MUTED, width: 1 } });
@@ -194,7 +196,7 @@ function renderDiagram(slide: Slide, kind: string, nodes: string[], t: Resolved)
     return;
   }
   // process / cycle → boxes left→right with arrows between.
-  const n = nodes.length, arrow = 0.5, gap = 0.15, totalW = 12.1;
+  const n = nodes.length, arrow = 0.5, gap = 0.15;
   const boxW = (totalW - (arrow + gap * 2) * (n - 1)) / n, h = 1.5;
   nodes.forEach((node, i) => {
     const x = 0.6 + i * (boxW + arrow + gap * 2);
@@ -205,8 +207,48 @@ function renderDiagram(slide: Slide, kind: string, nodes: string[], t: Resolved)
     }
   });
   if (kind === "cycle") {
-    slide.addText("↻ repeats", { x: 0.6, y: y + h + 0.3, w: 12.1, h: 0.4, align: "center", color: MUTED, italic: true, fontSize: 13, fontFace: t.bodyFont });
+    slide.addText("↻ repeats", { x: 0.6, y: y + h + 0.3, w: totalW, h: 0.4, align: "center", color: MUTED, italic: true, fontSize: 13, fontFace: t.bodyFont });
   }
+}
+
+// Consistent side-panel image slot reused by every content layout — shrink the layout's own
+// content width to SIDE_CONTENT_W when an image is present and draw the picture in this slot.
+const SIDE_IMG = { x: 8.3, y: 1.7, w: 4.0, h: 4.0 } as const;
+const SIDE_CONTENT_W = 7.0;
+function addSideImage(slide: Slide, image?: string | null, scale = 1) {
+  if (!image) return;
+  const k = Math.min(1.3, Math.max(0.5, scale));
+  const cx = SIDE_IMG.x + SIDE_IMG.w / 2, cy = SIDE_IMG.y + SIDE_IMG.h / 2;
+  const w = SIDE_IMG.w * k, h = SIDE_IMG.h * k;
+  slide.addImage({ data: image, x: cx - w / 2, y: cy - h / 2, w, h, sizing: { type: "contain", w, h } });
+}
+
+// Vertical space actually available for a table's body (from just under the heading to the footer rule).
+const TABLE_AREA_H = 5.2;
+const TABLE_FONT_SIZES = [14, 13, 12, 11, 10, 9];
+
+/** Rough estimate of wrapped line count for `text` in a column `colW` inches wide at `fontSize` pt. */
+function estimateLines(text: string, colW: number, fontSize: number): number {
+  const avgCharW = (fontSize * 0.52) / 72; // inches
+  const usableW = Math.max(0.3, colW - 0.2); // minus cell padding
+  const charsPerLine = Math.max(1, Math.floor(usableW / avgCharW));
+  return Math.max(1, Math.ceil(text.length / charsPerLine));
+}
+
+/** Pick the largest font size (from TABLE_FONT_SIZES) whose estimated total row height fits
+ *  within TABLE_AREA_H, so dense tables shrink their text instead of silently overflowing the slide. */
+function fitTableFontSize(table: PptTable, colWidths: number[]): number {
+  const rows: string[][] = [table.headers, ...table.rows];
+  for (const fontSize of TABLE_FONT_SIZES) {
+    const lineH = (fontSize * 1.25) / 72;
+    let total = 0;
+    for (const row of rows) {
+      const lines = Math.max(...row.map((cell, i) => estimateLines(cell, colWidths[i] ?? colWidths[0]!, fontSize)));
+      total += Math.max(0.4, lines * lineH + 0.14);
+    }
+    if (total <= TABLE_AREA_H || fontSize === TABLE_FONT_SIZES[TABLE_FONT_SIZES.length - 1]) return fontSize;
+  }
+  return TABLE_FONT_SIZES[TABLE_FONT_SIZES.length - 1]!;
 }
 
 /** Branded chrome on every content slide: a thin top accent band + a footer rule with the deck
@@ -222,12 +264,18 @@ function renderSlide(pptx: Pptx, s: PptSlide, t: Resolved, opts: { image?: strin
   const { image, footer, num } = opts;
   const slide = pptx.addSlide();
 
-  // Section divider — full-bleed colored slide, no heading rule.
+  // Section divider — full-bleed colored slide, no heading rule. A generated image sits as a
+  // framed panel in the free lower-right area (heading/subheading occupy the vertical center band).
   if (s.layout === "section") {
     slide.background = { color: t.dark };
     slide.addShape("rect", { x: 0, y: 3.46, w: 13.33, h: 0.05, fill: { color: t.accent }, line: { type: "none" } });
     slide.addText(richToRuns(s.heading), { x: 0.8, y: 2.5, w: 11.7, h: 1.0, align: "center", bold: true, color: t.light, fontSize: 34, fontFace: t.headFont });
     if (s.bullets[0]) slide.addText(richToRuns(s.bullets[0]), { x: 0.8, y: 3.65, w: 11.7, h: 0.7, align: "center", color: t.accent, fontSize: 18, fontFace: t.headFont });
+    if (image) {
+      const k = Math.min(1.3, Math.max(0.5, s.imageScale ?? 1));
+      const bw = 3.2 * k, bh = 2.1 * k, cx = 9.4 + 3.2 / 2, cy = 4.5 + 2.1 / 2;
+      slide.addImage({ data: image, x: cx - bw / 2, y: cy - bh / 2, w: bw, h: bh, sizing: { type: "contain", w: bw, h: bh }, rounding: true });
+    }
     if (s.notes) slide.addNotes(s.notes);
     return;
   }
@@ -237,9 +285,11 @@ function renderSlide(pptx: Pptx, s: PptSlide, t: Resolved, opts: { image?: strin
 
   if (s.layout === "quote") {
     const text = richToPlain(s.quote?.text) || richToPlain(s.heading);
+    const w = image ? SIDE_IMG.x - 1.4 - 0.3 : 10.7;
     slide.addShape("rect", { x: 1.0, y: 2.1, w: 0.12, h: 2.6, fill: { color: t.accent }, line: { type: "none" } });
-    slide.addText(`“${text}”`, { x: 1.4, y: 2.2, w: 10.7, h: 2.4, align: "left", italic: true, color: t.headColor, fontSize: 30, fontFace: t.headFont, valign: "middle", lineSpacingMultiple: 1.2 });
-    if (s.quote?.attribution) slide.addText(`— ${s.quote.attribution}`, { x: 1.4, y: 4.8, w: 10.7, h: 0.6, align: "left", color: t.accent, fontSize: 18, fontFace: t.bodyFont });
+    slide.addText(`“${text}”`, { x: 1.4, y: 2.2, w, h: 2.4, align: "left", italic: true, color: t.headColor, fontSize: 30, fontFace: t.headFont, valign: "middle", lineSpacingMultiple: 1.2 });
+    if (s.quote?.attribution) slide.addText(`— ${s.quote.attribution}`, { x: 1.4, y: 4.8, w, h: 0.6, align: "left", color: t.accent, fontSize: 18, fontFace: t.bodyFont });
+    addSideImage(slide, image, s.imageScale);
     if (s.notes) slide.addNotes(s.notes);
     return;
   }
@@ -249,49 +299,62 @@ function renderSlide(pptx: Pptx, s: PptSlide, t: Resolved, opts: { image?: strin
   switch (s.layout) {
     case "table": {
       if (s.table) {
+        const tableW = image ? SIDE_CONTENT_W : 12.1;
+        const ncols = Math.max(s.table.headers.length, 1);
+        const colWidths = s.table.headers.map(() => tableW / ncols);
+        const fontSize = fitTableFontSize(s.table, colWidths);
         const head = s.table.headers.map((c) => ({ text: c, options: { bold: true, color: "FFFFFF", fill: { color: t.accent }, fontFace: t.bodyFont } }));
         const body = s.table.rows.map((r, ri) => r.map((c) => ({ text: c, options: { color: BODY, fontFace: t.bodyFont, fill: { color: ri % 2 ? "F1F5F9" : "FFFFFF" } } })));
-        slide.addTable([head, ...body], { x: 0.6, y: 1.7, w: 12.1, border: { type: "solid", color: "E2E8F0", pt: 1 }, fontSize: 14, valign: "middle", rowH: 0.45, align: "left", autoPage: false });
-      } else bulletsText(slide, s.bullets, t, 0.8, 11.7);
+        slide.addTable([head, ...body], { x: 0.6, y: 1.7, w: tableW, border: { type: "solid", color: "E2E8F0", pt: 1 }, fontSize, valign: "middle", rowH: 0.35, align: "left", autoPage: false });
+      } else bulletsText(slide, s.bullets, t, 0.8, image ? SIDE_CONTENT_W : 11.7);
+      addSideImage(slide, image, s.imageScale);
       break;
     }
     case "diagram": {
-      if (s.diagram) renderDiagram(slide, s.diagram.kind, s.diagram.nodes, t);
-      else bulletsText(slide, s.bullets, t, 0.8, 11.7);
+      if (s.diagram) renderDiagram(slide, s.diagram.kind, s.diagram.nodes, t, image ? SIDE_CONTENT_W : 12.1);
+      else bulletsText(slide, s.bullets, t, 0.8, image ? SIDE_CONTENT_W : 11.7);
+      addSideImage(slide, image, s.imageScale);
       break;
     }
     case "stat": {
       const stats = s.stats ?? [];
       if (stats.length) {
-        const n = stats.length, gap = 0.5, totalW = 12.1, boxW = (totalW - gap * (n - 1)) / n;
+        const totalW = image ? SIDE_CONTENT_W : 12.1;
+        const n = stats.length, gap = 0.5, boxW = (totalW - gap * (n - 1)) / n;
+        // Shrink the big value's font so it always fits on ONE line within its box — a fixed 54pt
+        // wraps to 2-3 lines for longer values (e.g. "120ms") in a narrow box, overlapping the label.
+        const valueFontSizes = [54, 46, 38, 32, 26, 22];
         stats.forEach((st, i) => {
           const x = 0.6 + i * (boxW + gap);
-          slide.addText(st.value, { x, y: 2.4, w: boxW, h: 1.4, align: "center", bold: true, color: t.accent, fontSize: 54, fontFace: t.headFont });
+          // Bold display-weight digits run wider per character than the body-text estimate
+          // `estimateLines` is tuned for, so bias its box-width input down before checking single-line fit.
+          const fontSize = valueFontSizes.find((fs) => estimateLines(st.value, boxW * 0.7, fs) === 1) ?? valueFontSizes[valueFontSizes.length - 1]!;
+          slide.addText(st.value, { x, y: 2.4, w: boxW, h: 1.4, align: "center", valign: "bottom", bold: true, color: t.accent, fontSize, fontFace: t.headFont });
           slide.addText(st.label, { x, y: 3.9, w: boxW, h: 1.0, align: "center", color: BODY, fontSize: 16, fontFace: t.bodyFont });
         });
-      } else bulletsText(slide, s.bullets, t, 0.8, 11.7);
+      } else bulletsText(slide, s.bullets, t, 0.8, image ? SIDE_CONTENT_W : 11.7);
+      addSideImage(slide, image, s.imageScale);
       break;
     }
     case "two-column": {
       const c = s.columns;
       if (c) {
-        if (c.leftTitle) slide.addText(c.leftTitle, { x: 0.7, y: 1.6, w: 5.7, h: 0.5, bold: true, color: t.accent, fontSize: 16, fontFace: t.headFont });
-        if (c.rightTitle) slide.addText(c.rightTitle, { x: 6.9, y: 1.6, w: 5.7, h: 0.5, bold: true, color: t.accent, fontSize: 16, fontFace: t.headFont });
+        const colW = image ? (SIDE_CONTENT_W - 0.5) / 2 : 5.7;
+        const rightX = 0.7 + colW + 0.5;
+        if (c.leftTitle) slide.addText(c.leftTitle, { x: 0.7, y: 1.6, w: colW, h: 0.5, bold: true, color: t.accent, fontSize: 16, fontFace: t.headFont });
+        if (c.rightTitle) slide.addText(c.rightTitle, { x: rightX, y: 1.6, w: colW, h: 0.5, bold: true, color: t.accent, fontSize: 16, fontFace: t.headFont });
         const top = c.leftTitle || c.rightTitle ? 2.15 : 1.6;
-        bulletsText(slide, c.left, t, 0.7, 5.7, top, 4.6);
-        bulletsText(slide, c.right, t, 6.9, 5.7, top, 4.6);
-      } else bulletsText(slide, s.bullets, t, 0.8, 11.7);
+        bulletsText(slide, c.left, t, 0.7, colW, top, 4.6);
+        bulletsText(slide, c.right, t, rightX, colW, top, 4.6);
+      } else bulletsText(slide, s.bullets, t, 0.8, image ? SIDE_CONTENT_W : 11.7);
+      addSideImage(slide, image, s.imageScale);
       break;
     }
-    case "image": {
-      bulletsText(slide, s.bullets, t, 0.8, image ? 6.9 : 11.7);
-      if (image) slide.addImage({ data: image, x: 8.1, y: 1.7, w: 4.6, h: 4.6, sizing: { type: "contain", w: 4.6, h: 4.6 } });
-      break;
-    }
+    case "image":
     default: {
-      // bullets — also place an image to the side if one was generated.
-      bulletsText(slide, s.bullets, t, 0.8, image ? 6.9 : 11.7);
-      if (image) slide.addImage({ data: image, x: 8.1, y: 1.7, w: 4.6, h: 4.6, sizing: { type: "contain", w: 4.6, h: 4.6 } });
+      // bullets (and the dedicated "image" layout) — place a generated image to the side.
+      bulletsText(slide, s.bullets, t, 0.8, image ? SIDE_CONTENT_W : 11.7);
+      addSideImage(slide, image, s.imageScale);
     }
   }
   if (s.notes) slide.addNotes(s.notes);

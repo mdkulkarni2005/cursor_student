@@ -296,6 +296,66 @@ export async function regenerateSlideImageAction(
   return { ok: true };
 }
 
+/** Resize a slide's image (0.5–1.5×) and re-render the export. */
+export async function resizeSlideImageAction(
+  docId: string,
+  slideIndex: number,
+  scale: number,
+  rawContent: unknown,
+): Promise<SaveDeckState> {
+  const user = await getOrCreateUser();
+  if (!user) return { error: "You must be signed in." };
+
+  const doc = await prisma.document.findFirst({ where: { id: docId, ownerId: user.id, type: "PPT" } });
+  if (!doc) return { error: "Presentation not found." };
+
+  const parsed = PptContentSchema.safeParse(rawContent);
+  if (!parsed.success) return { error: "Please save your edits before resizing the image." };
+  const slide = parsed.data.slides[slideIndex];
+  if (!slide?.image) return { error: "This slide has no image to resize." };
+
+  slide.imageScale = Math.min(1.5, Math.max(0.5, scale));
+  try {
+    await rerenderPptExport(docId, parsed.data);
+  } catch (e) {
+    return { error: friendlyError(e) };
+  }
+  revalidatePath(`/ppt/${docId}`);
+  return { ok: true };
+}
+
+/** Overwrite a slide's image with a client-cropped PNG (data URL) and re-render the export. */
+export async function cropSlideImageAction(
+  docId: string,
+  slideIndex: number,
+  pngDataUrl: string,
+  rawContent: unknown,
+): Promise<SaveDeckState> {
+  const user = await getOrCreateUser();
+  if (!user) return { error: "You must be signed in." };
+  try { rateLimit(user.id, "ppt"); } catch (e) { return { error: friendlyError(e) }; }
+
+  const doc = await prisma.document.findFirst({ where: { id: docId, ownerId: user.id, type: "PPT" } });
+  if (!doc) return { error: "Presentation not found." };
+
+  const parsed = PptContentSchema.safeParse(rawContent);
+  if (!parsed.success) return { error: "Please save your edits before cropping the image." };
+  const slide = parsed.data.slides[slideIndex];
+  if (!slide?.image) return { error: "This slide has no image to crop." };
+
+  const m = /^data:(image\/[a-z0-9.+-]+);base64,(.*)$/i.exec(pngDataUrl);
+  if (!m) return { error: "Invalid image data." };
+  await putObject(slide.image, Buffer.from(m[2]!, "base64"), m[1]!);
+
+  try {
+    await rerenderPptExport(docId, parsed.data);
+  } catch (e) {
+    return { error: friendlyError(e) };
+  }
+  revalidatePath(`/ppt/${docId}`);
+  return { ok: true };
+}
+
 /** Resume a deck paused at NEEDS_INPUT, with the user's answers to the mid-generation questions. */
 export async function resumePptAction(formData: FormData): Promise<void> {
   const docId = String(formData.get("docId") ?? "");

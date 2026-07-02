@@ -62,8 +62,9 @@ export async function renderReportDocxProgrammatic(rawContent: unknown, images: 
     children.push(sectionHeading(sec.heading), ...paras(sec.content));
     const buf = images.get(i);
     if (buf) {
+      const scale = (sec.imageWidthPct ?? 100) / 100;
       children.push(
-        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 120, after: 40 }, children: [new ImageRun({ data: buf, transformation: { width: FIGURE_W, height: FIGURE_H }, type: "png" })] }),
+        new Paragraph({ alignment: AlignmentType.CENTER, spacing: { before: 120, after: 40 }, children: [new ImageRun({ data: buf, transformation: { width: FIGURE_W * scale, height: FIGURE_H * scale }, type: "png" })] }),
         new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [new TextRun({ text: sec.caption ?? `Figure ${[...images.keys()].filter((k) => k <= i).length}`, italics: true, size: 18, color: "6B7280" })] }),
       );
     }

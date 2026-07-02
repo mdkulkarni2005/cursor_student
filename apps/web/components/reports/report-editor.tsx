@@ -200,8 +200,10 @@ export function ReportEditor({ docId, initial, editable = true, hasExport = fals
   const editorRef = useRef<HTMLDivElement>(null);
   const hiddenRef = useRef<HTMLInputElement>(null);
   const savedRange = useRef<Range | null>(null);
-  // Default to the clean "academic submission" document view; the Word-accurate preview is secondary.
-  const [mode, setMode] = useState<"preview" | "edit">("edit");
+  // Default to the exact Word-accurate preview — the "Document" tab is a plain-text editor that
+  // doesn't render the report's markdown (bold/headings/tables), so it looks broken even though the
+  // actual exported .docx is correctly formatted. Only fall back to it when there's nothing to preview yet.
+  const [mode, setMode] = useState<"preview" | "edit">(hasExport ? "preview" : "edit");
   const [previewKey, setPreviewKey] = useState(0);
 
   useEffect(() => {

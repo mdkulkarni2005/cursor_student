@@ -44,8 +44,6 @@ type Produced = {
   content: PptContent;
   model: string;
   theme?: PptxTheme;
-  /** Per-slide images (data URLs), aligned to content.slides. Empty/undefined = text-only. */
-  images?: (string | null)[];
   /** The user's template bytes — present only when a template was uploaded (enables layout cloning). */
   templateBuffer?: Buffer;
   /** Present for a STRUCTURED template (fill-in-place path): its detected slide roles. */
@@ -175,19 +173,10 @@ async function produceContent(
     guidelines: input.guidelines,
   }), { label: "ppt.generate" });
 
-  // Generated visuals are only for the from-scratch deck. With a template we clone the user's
-  // exact layout (their design is the point) and skip generated images.
-  // Generate images ONLY for slides the model marked `layout: "image"` (a from-scratch deck only;
-  // templates keep their own design). Best-effort: a null just renders the slide text-only.
-  const images = templateBuffer
-    ? undefined
-    : await Promise.all(
-        content.slides.map((s) =>
-          s.layout === "image" ? generateSlideImage(slideImagePrompt(richToPlain(s.heading) || input.title, input.title)) : Promise.resolve(null),
-        ),
-      ).then((imgs) => imgs.map((im) => im?.dataUrl ?? null));
-
-  return { content, model, theme, images, templateBuffer };
+  // Images are generated in finalize() (once content is truly final — see comment there), not
+  // here: this function can run again on resume after a NEEDS_INPUT pause, and generating here
+  // would waste an image-model call on a draft that gets thrown away.
+  return { content, model, theme, templateBuffer };
 }
 
 /** Persist the resolved render theme alongside the content so the in-app canvas renders
@@ -243,6 +232,27 @@ export async function rerenderPptExport(docId: string, content: PptContent): Pro
 
 /** Render + persist a finished deck (READY). Used by first-pass and resume. */
 async function finalize(docId: string, userId: string, produced: Produced): Promise<void> {
+  // Generate images ONLY for slides the model marked `layout: "image"`, and ONLY here — content is
+  // truly final at this point (produceContent can re-run on a NEEDS_INPUT resume with different
+  // slides, so generating there would waste an image-model call on a draft that gets discarded).
+  // Templates keep their own design and skip generated images.
+  const images: (string | null)[] = produced.content.slides.map(() => null);
+  if (!produced.templateBuffer) {
+    await Promise.all(
+      produced.content.slides.map(async (s, i) => {
+        if (s.layout !== "image") return;
+        const img = await generateSlideImage(slideImagePrompt(richToPlain(s.heading) || produced.content.title, produced.content.title));
+        if (!img) return;
+        const m = /^data:(image\/[a-z0-9.+-]+);base64,(.*)$/i.exec(img.dataUrl);
+        if (!m) return;
+        const key = keys.slideImage(docId, i);
+        await putObject(key, Buffer.from(m[2]!, "base64"), m[1]!);
+        s.image = key;
+        images[i] = img.dataUrl;
+      }),
+    );
+  }
+
   // With a template: try EXACT layout cloning; use it only if the integrity guard passes,
   // else fall back to the known-good theme renderer (still their brand colors/fonts).
   let buffer: Buffer;
@@ -267,22 +277,7 @@ async function finalize(docId: string, userId: string, produced: Produced): Prom
     const clone = fillPptxTemplate(produced.templateBuffer, cloneContent);
     buffer = clone.ok && clone.buffer ? clone.buffer : (await renderPptx(produced.content, produced.theme)).buffer;
   } else {
-    buffer = (await renderPptx(produced.content, produced.theme, produced.images)).buffer;
-  }
-
-  // Persist generated images to R2 and record their keys on the slides, so the in-app viewer can
-  // load them via /ppt/[id]/image/[idx]. (Only the from-scratch path has images.)
-  if (produced.images) {
-    await Promise.all(
-      produced.images.map(async (dataUrl, i) => {
-        const m = dataUrl && /^data:(image\/[a-z0-9.+-]+);base64,(.*)$/i.exec(dataUrl);
-        if (!m) return;
-        const key = keys.slideImage(docId, i);
-        await putObject(key, Buffer.from(m[2]!, "base64"), m[1]!);
-        const slide = produced.content.slides[i];
-        if (slide) slide.image = key;
-      }),
-    );
+    buffer = (await renderPptx(produced.content, produced.theme, images)).buffer;
   }
 
   const content = contentWithTheme(produced);

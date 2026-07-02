@@ -66,6 +66,18 @@ function profileFields(user: User & { institution?: { name: string } | null }): 
   };
 }
 
+/** Profile-derived cover-page student fields for the default (programmatic) report format. */
+function defaultStudentFields(user: User & { institution?: { name: string } | null }): ReportContent["student"] {
+  return {
+    name: user.name ?? "Student",
+    roll: "—",
+    department: user.department ?? "—",
+    semester: user.semester ?? "—",
+    college: user.institution?.name ?? "—",
+    guide: "—",
+  };
+}
+
 /** Pick the placeholder-relevant entries out of the clarify answer map (ids == field keys). */
 function fieldsFromAnswers(answers: Record<string, string>): PlaceholderFields {
   const out: PlaceholderFields = {};
@@ -123,14 +135,7 @@ async function produceContent(user: User & { institution: { name: string } | nul
 
   const template = await prisma.template.findFirst({ where: { type: "REPORT", isDefault: true } });
   if (!template) throw new Error("No default report template configured — run the template seed.");
-  const student = {
-    name: user.name ?? "Student",
-    roll: "—",
-    department: user.department ?? "—",
-    semester: user.semester ?? "—",
-    college: user.institution?.name ?? "—",
-    guide: "—",
-  };
+  const student = defaultStudentFields(user);
   const gen = await generateReportContent({
     title: input.title,
     reportType: input.reportType,
@@ -258,6 +263,14 @@ export async function runReportGeneration(docId: string, input: GenerateReportIn
       await prisma.document.update({ where: { id: docId }, data: { templateId: produced.templateIdToSet } });
     }
     await setReportStage(docId, "format");
+    // Persist the uploaded template key + fields to `inputRefs` (NOT `pending` — finalize() below
+    // clears `pending`) so later in-app edits can still re-fill and re-render the original .docx.
+    if (input.templateKey) {
+      await prisma.generationJob.update({
+        where: { documentId: docId },
+        data: { inputRefs: { templateKey: input.templateKey, fields: input.fields ?? null } as unknown as object },
+      });
+    }
     await finalize(docId, user.id, produced);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
@@ -333,14 +346,7 @@ export async function runConvertedReport(reportDocId: string, userId: string, pp
 
     const template = await prisma.template.findFirst({ where: { type: "REPORT", isDefault: true } });
     if (!template) throw new Error("No default report template configured — run the template seed.");
-    const student = {
-      name: user.name ?? "Student",
-      roll: "—",
-      department: user.department ?? "—",
-      semester: user.semester ?? "—",
-      college: user.institution?.name ?? "—",
-      guide: "—",
-    };
+    const student = defaultStudentFields(user);
     const gen = await withAiRetry(() => expandPptToReport({ title: ppt.title, reportType: "project", student, slides }), { label: "ppt-to-report" });
     await prisma.document.update({ where: { id: reportDocId }, data: { templateId: template.id } });
     await finalize(reportDocId, userId, {
@@ -412,6 +418,13 @@ export async function resumeReportGeneration(
       await prisma.document.update({ where: { id: docId }, data: { templateId: produced.templateIdToSet } });
     }
     await setReportStage(docId, "format");
+    // Same durability requirement as runReportGeneration — see comment there.
+    if (pending.templateKey) {
+      await prisma.generationJob.update({
+        where: { documentId: docId },
+        data: { inputRefs: { templateKey: pending.templateKey, fields } as unknown as object },
+      });
+    }
     await finalize(docId, userId, produced);
     return docId;
   } catch (err) {
@@ -433,15 +446,22 @@ export async function resumeReportGeneration(
 export async function updateReportContent(userId: string, docId: string, data: ReportLike): Promise<{ reRendered: boolean }> {
   const doc = await prisma.document.findFirst({
     where: { id: docId, ownerId: userId, type: "REPORT" },
-    include: { template: true, job: true, content: true, exports: { where: { format: "DOCX" }, take: 1 } },
+    include: { template: true, job: true, content: true, exports: { where: { format: "DOCX" }, take: 1 }, owner: { include: { institution: true } } },
   });
   if (!doc) throw new Error("Report not found.");
 
-  // The editor sends only {heading, content}; carry over each section's existing figure
-  // (image/caption/imagePrompt) from the stored content so an edit never wipes an approved figure.
-  const stored = (doc.content?.data ?? null) as ReportContent | null;
-  const merged: ReportLike = {
-    ...data,
+  // The editor's data model only round-trips {abstract, sections, references} — it has no
+  // title/student fields at all — so those MUST be carried over from the stored content on every
+  // save, or a default-format report loses them permanently and later crashes on figure approval
+  // (ReportContentSchema requires title/student/abstract). Backfill from the profile if an earlier
+  // save already dropped them. Merge field-by-field (not a spread) so `abstract: undefined` sent by
+  // the editor doesn't clobber a previously-stored value.
+  const stored = (doc.content?.data ?? null) as Partial<ReportContent> | null;
+  const merged: ReportLike & Partial<ReportContent> = {
+    title: stored?.title ?? doc.title,
+    student: stored?.student ?? defaultStudentFields(doc.owner),
+    abstract: data.abstract?.trim() || stored?.abstract?.trim() || "Abstract not yet provided.",
+    references: data.references ?? stored?.references ?? [],
     sections: (data.sections ?? []).map((s) => {
       const prev = stored?.sections?.find((p) => p.heading === s.heading) ?? null;
       return prev?.image ? { ...s, image: prev.image, caption: prev.caption, imagePrompt: prev.imagePrompt } : s;
@@ -476,12 +496,13 @@ export async function updateReportContent(userId: string, docId: string, data: R
   }
 
   // User-uploaded-template report: re-fill the original .docx from the edited sections,
-  // preserving the college format. The template key + collected fields are carried on the job.
-  const pending = (doc.job?.pending ?? {}) as { templateKey?: string; fields?: PlaceholderFields };
-  if (pending.templateKey && data.sections && data.sections.length > 0) {
+  // preserving the college format. The template key + collected fields live in `inputRefs`
+  // (unlike `pending`, that field survives finalize() — see runReportGeneration/resumeReportGeneration).
+  const inputRefs = (doc.job?.inputRefs ?? {}) as { templateKey?: string; fields?: PlaceholderFields };
+  if (inputRefs.templateKey && data.sections && data.sections.length > 0) {
     const contentByHeading: Record<string, string> = {};
     for (const s of data.sections) contentByHeading[s.heading] = s.content;
-    const { buffer } = fillTemplate(await getObjectBuffer(pending.templateKey), contentByHeading, pending.fields ?? {});
+    const { buffer } = fillTemplate(await getObjectBuffer(inputRefs.templateKey), contentByHeading, inputRefs.fields ?? {});
     await saveExport(buffer);
     return { reRendered: true };
   }
@@ -517,11 +538,24 @@ export async function getReportFigureSuggestions(userId: string, docId: string):
   return figures.filter((f) => f.sectionIndex < content.sections.length && !content.sections[f.sectionIndex]?.image);
 }
 
+/** Fill in title/student/abstract/references if an earlier save dropped them (see updateReportContent),
+ *  so approving/removing a figure on an already-corrupted doc heals it instead of crashing on render. */
+function backfillReportContent(raw: unknown, docTitle: string, owner: User & { institution?: { name: string } | null }): ReportContent {
+  const data = raw as Partial<ReportContent>;
+  return {
+    title: data.title ?? docTitle,
+    student: data.student ?? defaultStudentFields(owner),
+    abstract: data.abstract?.trim() || "Abstract not yet provided.",
+    sections: data.sections ?? [],
+    references: data.references ?? [],
+  };
+}
+
 /** Generate + embed an approved figure (the only step that spends image credits). */
 export async function approveReportFigure(userId: string, docId: string, sectionIndex: number, imagePrompt: string, caption: string): Promise<{ ok: boolean; error?: string }> {
-  const doc = await prisma.document.findFirst({ where: { id: docId, ownerId: userId, type: "REPORT" }, include: { content: true, template: true, exports: { where: { format: "DOCX" }, take: 1 } } });
+  const doc = await prisma.document.findFirst({ where: { id: docId, ownerId: userId, type: "REPORT" }, include: { content: true, template: true, exports: { where: { format: "DOCX" }, take: 1 }, owner: { include: { institution: true } } } });
   if (!doc?.content) return { ok: false, error: "Report not found." };
-  const content = doc.content.data as unknown as ReportContent;
+  const content = backfillReportContent(doc.content.data, doc.title, doc.owner);
   if (sectionIndex < 0 || sectionIndex >= content.sections.length) return { ok: false, error: "Invalid section." };
 
   const img = await generateSlideImage(imagePrompt, "1536x1024");
@@ -538,13 +572,43 @@ export async function approveReportFigure(userId: string, docId: string, section
 
 /** Remove an embedded figure and re-render. */
 export async function removeReportFigure(userId: string, docId: string, sectionIndex: number): Promise<{ ok: boolean }> {
-  const doc = await prisma.document.findFirst({ where: { id: docId, ownerId: userId, type: "REPORT" }, include: { content: true, exports: { where: { format: "DOCX" }, take: 1 } } });
+  const doc = await prisma.document.findFirst({ where: { id: docId, ownerId: userId, type: "REPORT" }, include: { content: true, exports: { where: { format: "DOCX" }, take: 1 }, owner: { include: { institution: true } } } });
   if (!doc?.content) return { ok: false };
-  const content = doc.content.data as unknown as ReportContent;
+  const content = backfillReportContent(doc.content.data, doc.title, doc.owner);
   if (content.sections[sectionIndex]) {
-    const { image: _i, caption: _c, imagePrompt: _p, ...rest } = content.sections[sectionIndex];
+    const { image: _i, caption: _c, imagePrompt: _p, imageWidthPct: _w, ...rest } = content.sections[sectionIndex];
     content.sections[sectionIndex] = rest;
   }
+  await prisma.documentContent.update({ where: { documentId: docId }, data: { data: content as unknown as object } });
+  await reRenderDefaultReportExport(docId, content, doc.exports[0]);
+  return { ok: true };
+}
+
+/** Overwrite an approved figure's pixels in place (crop/pan/zoom done client-side) and re-render. */
+export async function cropReportFigure(userId: string, docId: string, sectionIndex: number, pngDataUrl: string): Promise<{ ok: boolean; error?: string }> {
+  const doc = await prisma.document.findFirst({ where: { id: docId, ownerId: userId, type: "REPORT" }, include: { content: true, exports: { where: { format: "DOCX" }, take: 1 }, owner: { include: { institution: true } } } });
+  if (!doc?.content) return { ok: false, error: "Report not found." };
+  const content = backfillReportContent(doc.content.data, doc.title, doc.owner);
+  const section = content.sections[sectionIndex];
+  if (!section?.image) return { ok: false, error: "No figure to crop." };
+
+  const base64 = pngDataUrl.split(",")[1];
+  if (!base64) return { ok: false, error: "Invalid image data." };
+  await putObject(section.image, Buffer.from(base64, "base64"), PNG_MIME);
+  await reRenderDefaultReportExport(docId, content, doc.exports[0]);
+  return { ok: true };
+}
+
+/** Resize an approved figure (% of page width) and re-render. */
+export async function resizeReportFigure(userId: string, docId: string, sectionIndex: number, widthPct: number): Promise<{ ok: boolean; error?: string }> {
+  const doc = await prisma.document.findFirst({ where: { id: docId, ownerId: userId, type: "REPORT" }, include: { content: true, exports: { where: { format: "DOCX" }, take: 1 }, owner: { include: { institution: true } } } });
+  if (!doc?.content) return { ok: false, error: "Report not found." };
+  const content = backfillReportContent(doc.content.data, doc.title, doc.owner);
+  const section = content.sections[sectionIndex];
+  if (!section?.image) return { ok: false, error: "No figure to resize." };
+
+  const pct = Math.min(100, Math.max(20, Math.round(widthPct)));
+  content.sections[sectionIndex] = { ...section, imageWidthPct: pct };
   await prisma.documentContent.update({ where: { documentId: docId }, data: { data: content as unknown as object } });
   await reRenderDefaultReportExport(docId, content, doc.exports[0]);
   return { ok: true };

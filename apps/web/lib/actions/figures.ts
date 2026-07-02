@@ -6,6 +6,8 @@ import {
   getReportFigureSuggestions,
   approveReportFigure,
   removeReportFigure,
+  cropReportFigure,
+  resizeReportFigure,
 } from "@/lib/reports/generate";
 import type { FigureSuggestion } from "@studentos/ai";
 
@@ -31,6 +33,22 @@ export async function approveFigureAction(docId: string, sectionIndex: number, i
 export async function removeFigureAction(docId: string, sectionIndex: number): Promise<{ ok: boolean }> {
   const user = await requireOnboardedUser();
   const res = await removeReportFigure(user.id, docId, sectionIndex);
+  if (res.ok) revalidatePath(`/reports/${docId}`);
+  return res;
+}
+
+/** Overwrite an approved figure's pixels with a client-cropped PNG (data URL) and re-render. */
+export async function cropFigureAction(docId: string, sectionIndex: number, pngDataUrl: string): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireOnboardedUser();
+  const res = await cropReportFigure(user.id, docId, sectionIndex, pngDataUrl);
+  if (res.ok) revalidatePath(`/reports/${docId}`);
+  return res;
+}
+
+/** Resize an approved figure (% of page width) and re-render. */
+export async function resizeFigureAction(docId: string, sectionIndex: number, widthPct: number): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireOnboardedUser();
+  const res = await resizeReportFigure(user.id, docId, sectionIndex, widthPct);
   if (res.ok) revalidatePath(`/reports/${docId}`);
   return res;
 }

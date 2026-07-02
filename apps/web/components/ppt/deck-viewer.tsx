@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import type { PptTheme, PptSlide, PptLayout, PptRun, RichText } from "@studentos/documents";
 import { SlideCanvas, type CanvasSlide } from "./slide-canvas";
+import { SlideImageEditor } from "./slide-image-editor";
 import { savePptDeckAction, regenerateSlideImageAction } from "@/lib/actions/ppt";
 
 export type DeckSlide = PptSlide;
@@ -256,6 +257,11 @@ export function DeckViewer({ docId, deck, editable = false }: { docId: string; d
               onGenImage={() => genImage(contentIdx)}
               onFocusSave={saveSel}
               busy={saving}
+              imageUrl={activeSlide?.image ? `/ppt/${docId}/image/${contentIdx}?v=${imgVer}` : null}
+              docId={docId}
+              slideIndex={contentIdx}
+              getContent={() => liveDeck}
+              onImageMutated={() => { setImgVer((v) => v + 1); setDirty(false); }}
             />
           ) : (
             <>
@@ -344,11 +350,13 @@ const hx = (c?: string) => (c ? (c.startsWith("#") ? c : `#${c}`) : undefined);
 const onSlide = "outline-none focus:bg-cyan/[0.06] rounded-[0.6cqw] -mx-[0.6cqw] px-[0.6cqw]";
 
 function SlideEditSurface({
-  isTitle, title, subtitle, slide, theme, onTitle, onSubtitle, onPatch, onGenImage, onFocusSave, busy,
+  isTitle, title, subtitle, slide, theme, onTitle, onSubtitle, onPatch, onGenImage, onFocusSave, busy, imageUrl,
+  docId, slideIndex, getContent, onImageMutated,
 }: {
   isTitle: boolean; title: string; subtitle: string; slide?: DeckSlide; theme?: PptTheme;
   onTitle: (v: string) => void; onSubtitle: (v: string) => void; onPatch: (p: Partial<DeckSlide>) => void;
-  onGenImage: () => void; onFocusSave: () => void; busy: boolean;
+  onGenImage: () => void; onFocusSave: () => void; busy: boolean; imageUrl?: string | null;
+  docId: string; slideIndex: number; getContent: () => Deck; onImageMutated: () => void;
 }) {
   const t = { ...DEFAULT_T, ...(theme ?? {}) };
 
@@ -384,14 +392,26 @@ function SlideEditSurface({
       {layout !== "section" ? <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "1.2cqw", background: hx(t.accent) }} /> : null}
 
       {layout === "section" ? (
-        <div className="flex h-full w-full flex-col items-center justify-center px-[8cqw] text-center">
+        <div className="relative flex h-full w-full flex-col items-center justify-center px-[8cqw] text-center">
           <RichLine value={slide.heading} onChange={(r) => onPatch({ heading: r })} onFocusSave={onFocusSave} className={`${onSlide} text-center`} style={{ color: hx(t.light), fontFamily: t.headFont, fontSize: "4.6cqw", fontWeight: 700 }} />
           <RichLine value={slide.bullets[0]} onChange={(r) => onPatch({ bullets: [r] })} onFocusSave={onFocusSave} className={`${onSlide} mt-[2cqw] text-center`} style={{ color: hx(t.accent), fontFamily: t.headFont, fontSize: "2.4cqw" }} />
+          {imageUrl ? (
+            <div className="absolute bottom-[6cqw] right-[6cqw] w-[24cqw]">
+              <SlideImageEditor docId={docId} slideIndex={slideIndex} imageUrl={imageUrl} scale={slide.imageScale} aspect={3.2 / 2.1} getContent={getContent} onMutated={onImageMutated} className="w-full" />
+            </div>
+          ) : null}
         </div>
       ) : layout === "quote" ? (
-        <div className="flex h-full w-full flex-col items-center justify-center px-[9cqw] text-center">
-          <RichLine value={slide.quote?.text} onChange={(text) => onPatch({ quote: { ...(slide.quote ?? { attribution: "" }), text } })} onFocusSave={onFocusSave} className={onSlide} style={{ color: hx(t.headColor), fontFamily: t.headFont, fontStyle: "italic", fontSize: "3.6cqw", lineHeight: 1.25 }} />
-          <RichLine plain value={slide.quote?.attribution} onChange={(r) => onPatch({ quote: { text: slide.quote?.text ?? "", attribution: r as string } })} onFocusSave={onFocusSave} className={`${onSlide} mt-[2.5cqw] text-center`} style={{ color: hx(t.accent), fontFamily: t.bodyFont, fontSize: "2.2cqw" }} />
+        <div className="flex h-full w-full items-center justify-center gap-[3cqw] px-[9cqw] text-center">
+          <div className={imageUrl ? "flex-1" : ""}>
+            <RichLine value={slide.quote?.text} onChange={(text) => onPatch({ quote: { ...(slide.quote ?? { attribution: "" }), text } })} onFocusSave={onFocusSave} className={onSlide} style={{ color: hx(t.headColor), fontFamily: t.headFont, fontStyle: "italic", fontSize: "3.6cqw", lineHeight: 1.25 }} />
+            <RichLine plain value={slide.quote?.attribution} onChange={(r) => onPatch({ quote: { text: slide.quote?.text ?? "", attribution: r as string } })} onFocusSave={onFocusSave} className={`${onSlide} mt-[2.5cqw] text-center`} style={{ color: hx(t.accent), fontFamily: t.bodyFont, fontSize: "2.2cqw" }} />
+          </div>
+          {imageUrl ? (
+            <div className="flex w-[32%] items-center justify-center">
+              <SlideImageEditor docId={docId} slideIndex={slideIndex} imageUrl={imageUrl} scale={slide.imageScale} getContent={getContent} onMutated={onImageMutated} />
+            </div>
+          ) : null}
         </div>
       ) : (
         <div className="flex h-full w-full flex-col px-[4.5cqw] pb-[4.5cqw] pt-[4.5cqw]">
@@ -405,12 +425,21 @@ function SlideEditSurface({
                   <RichList value={slide.columns![side]} onChange={(v) => onPatch({ columns: { ...slide.columns!, [side]: v } })} onFocusSave={onFocusSave} className={`${onSlide} list-disc pl-[4cqw] [&_li]:mb-[1cqw]`} />
                 </div>
               ))}
+              {imageUrl ? (
+                <div className="flex w-[30%] shrink-0 items-center justify-center">
+                  <SlideImageEditor docId={docId} slideIndex={slideIndex} imageUrl={imageUrl} scale={slide.imageScale} getContent={getContent} onMutated={onImageMutated} />
+                </div>
+              ) : null}
             </div>
           ) : (
             <div className="flex flex-1 gap-[3cqw]" style={{ color: "#333333", fontFamily: t.bodyFont, fontSize: "2.7cqw", lineHeight: 1.3 }}>
               <div className="flex-1"><RichList value={slide.bullets} onChange={(b) => onPatch({ bullets: b })} onFocusSave={onFocusSave} className={`${onSlide} list-disc pl-[4cqw] [&_li]:mb-[1.2cqw]`} /></div>
-              {layout === "image" ? (
-                <div className="flex w-[38%] items-center justify-center rounded-[1cqw] border border-dashed border-line text-center text-[1.6cqw] text-faint">{slide.image ? "image set" : "image →"}</div>
+              {imageUrl ? (
+                <div className="flex w-[38%] items-center justify-center">
+                  <SlideImageEditor docId={docId} slideIndex={slideIndex} imageUrl={imageUrl} scale={slide.imageScale} getContent={getContent} onMutated={onImageMutated} />
+                </div>
+              ) : layout === "image" ? (
+                <div className="flex w-[38%] items-center justify-center rounded-[1cqw] border border-dashed border-line text-center text-[1.6cqw] text-faint">image →</div>
               ) : null}
             </div>
           )}
@@ -425,18 +454,20 @@ function SlideEditSurface({
       <div className="flex flex-wrap items-center gap-2 text-[12.5px]">
         <span className="text-faint">Layout</span>
         <select className="rounded-lg border border-line-strong bg-surface px-2 py-1.5 text-soft outline-none focus:border-cyan/50" value={layout} onChange={(e) => switchLayout(e.target.value as PptLayout)}>{LAYOUTS.map((l) => <option key={l.value} value={l.value}>{l.label}</option>)}</select>
-        {layout === "image" ? (
-          <>
-            <button onClick={onGenImage} disabled={busy} className="rounded-lg border border-line-strong bg-surface px-3 py-1.5 font-semibold text-soft hover:text-cyan disabled:opacity-40">{busy ? "Working…" : slide.image ? "↻ Regenerate image" : "✦ Generate image"}</button>
-            {slide.image ? <button onClick={() => onPatch({ image: undefined })} className="text-faint hover:text-danger">remove image</button> : null}
-          </>
-        ) : null}
+        <button onClick={onGenImage} disabled={busy} className="rounded-lg border border-line-strong bg-surface px-3 py-1.5 font-semibold text-soft hover:text-cyan disabled:opacity-40">{busy ? "Working…" : slide.image ? "↻ Regenerate image" : "✦ Generate image"}</button>
+        {slide.image ? <button onClick={() => onPatch({ image: undefined })} className="text-faint hover:text-danger">remove image</button> : null}
         {isTextLayout ? <span className="text-faint">· select text, then use the toolbar above</span> : null}
       </div>
 
       {/* The slide: editable for text layouts, live preview for structured ones */}
       {isTextLayout ? editableSlide : (
-        <div className="overflow-hidden rounded-xl border border-line"><SlideCanvas slide={{ kind: "content", slide }} theme={theme} /></div>
+        <div className="overflow-hidden rounded-xl border border-line">
+          <SlideCanvas
+            slide={{ kind: "content", slide, imageUrl }}
+            theme={theme}
+            renderImage={imageUrl ? (url) => <SlideImageEditor docId={docId} slideIndex={slideIndex} imageUrl={url} scale={slide.imageScale} getContent={getContent} onMutated={onImageMutated} className="h-full" /> : undefined}
+          />
+        </div>
       )}
 
       {/* Structured-block editors live below the slide (with the heading) */}

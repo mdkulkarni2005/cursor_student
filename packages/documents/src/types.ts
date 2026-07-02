@@ -16,6 +16,7 @@ export const ReportSectionSchema = z.object({
   image: z.string().optional(), // R2 object key; resolved to bytes at render time
   caption: z.string().optional(), // figure caption shown under the image
   imagePrompt: z.string().optional(), // the prompt used (kept for regenerate)
+  imageWidthPct: z.number().min(20).max(100).optional(), // figure size as % of page width (default 100)
 });
 
 export const ReportContentSchema = z.object({

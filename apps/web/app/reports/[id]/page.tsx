@@ -8,6 +8,7 @@ import { resumeReportAction } from "@/lib/actions/reports";
 import { ClarifyQuestions } from "@/components/clarify-questions";
 import { ReportEditor } from "@/components/reports/report-editor";
 import { FigureSuggestions } from "@/components/reports/figure-suggestions";
+import { FigureEditor, type ApprovedFigure } from "@/components/reports/figure-editor";
 import { GeneratingPoller } from "@/components/reports/generating-poller";
 import { FinishReportButton } from "@/components/reports/finish-report-button";
 import { DeleteDocButton } from "@/components/delete-doc-button";
@@ -17,7 +18,7 @@ import type { ClarifyQuestion } from "@studentos/ai";
 
 type ReportData = {
   abstract?: string;
-  sections?: { heading: string; content: string }[];
+  sections?: { heading: string; content: string; image?: string; caption?: string; imageWidthPct?: number }[];
   references?: string[];
 };
 
@@ -70,6 +71,10 @@ export default async function ReportDetailPage({
     .join(" ")
     .split(/\s+/)
     .filter(Boolean).length;
+
+  const approvedFigures: ApprovedFigure[] = (data.sections ?? [])
+    .map((s, sectionIndex) => ({ sectionIndex, heading: s.heading, caption: s.caption, imageWidthPct: s.imageWidthPct, image: s.image }))
+    .filter((s) => !!s.image);
 
   return (
     <AppShell user={shellUserFrom(user)}>
@@ -161,6 +166,9 @@ export default async function ReportDetailPage({
                   </p>
                 </div>
               </div>
+
+              {/* Already-approved figures — preview, crop, resize, delete */}
+              {doc.status === "READY" ? <FigureEditor docId={doc.id} figures={approvedFigures} /> : null}
 
               {/* AI figure approval flow — generates images only on approval (default report format) */}
               {doc.status === "READY" ? <FigureSuggestions docId={doc.id} /> : null}
