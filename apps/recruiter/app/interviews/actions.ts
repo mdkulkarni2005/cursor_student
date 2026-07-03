@@ -3,8 +3,31 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@studentos/db";
 import { requireRecruiter } from "@/lib/recruiter";
+import { sendEmail, interviewRequestEmail } from "@studentos/email";
 
 export type ScheduleState = { error?: string; scheduled?: boolean };
+
+/**
+ * Fire-and-forget — sendEmail never throws, but double-guard here: an email failure must never
+ * surface to the recruiter or block the propose action itself.
+ */
+async function sendInterviewRequestEmail(opts: {
+  studentName: string;
+  studentEmail: string;
+  recruiterCompany?: string | null;
+  proposedAt: Date;
+  note?: string | null;
+}): Promise<void> {
+  const messagesLink = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/messages`;
+  const { subject, html, text } = interviewRequestEmail({
+    studentName: opts.studentName,
+    recruiterCompany: opts.recruiterCompany,
+    proposedAt: opts.proposedAt,
+    note: opts.note,
+    messagesLink,
+  });
+  await sendEmail({ to: opts.studentEmail, subject, html, text });
+}
 
 /** Recruiter proposes a real-interview slot for a student they can currently see. */
 export async function scheduleInterview(studentId: string, _prev: ScheduleState, formData: FormData): Promise<ScheduleState> {
@@ -21,7 +44,10 @@ export async function scheduleInterview(studentId: string, _prev: ScheduleState,
   if (proposedAt.getTime() < Date.now()) return { error: "Pick a time in the future." };
   if (meetingLink && !/^https?:\/\//i.test(meetingLink)) return { error: "Meeting link must be a full URL (https://…)." };
 
-  const student = await prisma.user.findUnique({ where: { id: studentId }, select: { visibleToRecruiters: true } });
+  const student = await prisma.user.findUnique({
+    where: { id: studentId },
+    select: { visibleToRecruiters: true, name: true, email: true },
+  });
   if (!student?.visibleToRecruiters) return { error: "This student is no longer visible to recruiters." };
 
   await prisma.interviewSchedule.create({
@@ -36,6 +62,15 @@ export async function scheduleInterview(studentId: string, _prev: ScheduleState,
 
   revalidatePath(`/students/${studentId}`);
   revalidatePath("/interviews");
+
+  void sendInterviewRequestEmail({
+    studentName: student.name ?? "there",
+    studentEmail: student.email,
+    recruiterCompany: guard.recruiter.companyName,
+    proposedAt,
+    note: note || null,
+  }).catch(() => {});
+
   return { scheduled: true };
 }
 

@@ -96,6 +96,9 @@ importers:
       '@studentos/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@studentos/email':
+        specifier: workspace:*
+        version: link:../../packages/email
       '@studentos/live-interview':
         specifier: workspace:*
         version: link:../../packages/live-interview

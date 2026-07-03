@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
+import { InstallPrompt } from "@/components/install-prompt";
 
 export function RecruiterShell({ children }: { children: React.ReactNode }) {
   return (
@@ -30,6 +31,7 @@ export function RecruiterShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <div className="mx-auto max-w-[1200px] px-5 py-8">{children}</div>
+      <InstallPrompt />
     </div>
   );
 }

@@ -28,6 +28,13 @@ async function safetyChecks() {
   ok("LIVEKIT_DRIVER=off → mintToken unavailable", offToken.unavailable === true);
 
   // Real mode, but no keys configured → unavailable, never throws.
+  // Stash any real creds so realLiveKitCheck() can still run afterward.
+  const saved = {
+    driver: process.env.LIVEKIT_DRIVER,
+    url: process.env.LIVEKIT_URL,
+    apiKey: process.env.LIVEKIT_API_KEY,
+    apiSecret: process.env.LIVEKIT_API_SECRET,
+  };
   delete process.env.LIVEKIT_DRIVER;
   delete process.env.LIVEKIT_URL;
   delete process.env.LIVEKIT_API_KEY;
@@ -36,6 +43,11 @@ async function safetyChecks() {
   ok("missing keys → ensureRoom unavailable (fail-closed)", unconfigured.unavailable === true);
   const unconfiguredToken = await mintToken({ roomName: "x", identity: "u1", role: "recruiter" });
   ok("missing keys → mintToken unavailable (fail-closed)", unconfiguredToken.unavailable === true);
+
+  if (saved.url) process.env.LIVEKIT_URL = saved.url;
+  if (saved.apiKey) process.env.LIVEKIT_API_KEY = saved.apiKey;
+  if (saved.apiSecret) process.env.LIVEKIT_API_SECRET = saved.apiSecret;
+  if (saved.driver) process.env.LIVEKIT_DRIVER = saved.driver;
 }
 
 async function stubChecks() {
