@@ -30,7 +30,7 @@ export default async function WorkspacePage() {
   }
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[820px]">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>

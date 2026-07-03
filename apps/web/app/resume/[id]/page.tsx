@@ -91,7 +91,7 @@ export default async function ResumeDetailPage({ params }: { params: Promise<{ i
   // While generating in the background, show live progress instead of an empty resume.
   if (doc.status === "GENERATING") {
     return (
-      <AppShell user={shellUserFrom(user)}>
+      <AppShell user={await shellUserFrom(user)}>
         <div className="mx-auto max-w-[860px]">
           <Link href="/resume" className="text-[13px] text-muted transition-colors hover:text-soft">
             ← All resumes
@@ -107,7 +107,7 @@ export default async function ResumeDetailPage({ params }: { params: Promise<{ i
   const scoreTone = score >= 75 ? "text-success" : score >= 50 ? "text-warning" : "text-danger";
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[1180px]">
         {/* Top bar */}
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">

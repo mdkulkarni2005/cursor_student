@@ -18,7 +18,7 @@ export default async function ResumePage() {
   const resumes = await prisma.document.findMany({ where: { ownerId: user.id, type: "RESUME" }, orderBy: { updatedAt: "desc" }, take: 30 });
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[1100px]">
         <div className="mb-6">
           <h1 className="font-display text-[30px] font-semibold tracking-tight text-ink">Resume Builder</h1>

@@ -8,6 +8,7 @@ export * from "./assistant";
 export * from "./resume";
 export * from "./project";
 export * from "./interview";
+export * from "./real-interview-judgment";
 export * from "./dsa";
 export * from "./image";
 export * from "./cache";

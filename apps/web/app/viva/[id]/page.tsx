@@ -30,7 +30,7 @@ export default async function VivaDetailPage({ params }: { params: Promise<{ id:
   };
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[1080px]">
         {/* Header */}
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">

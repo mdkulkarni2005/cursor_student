@@ -21,7 +21,7 @@ export default async function DsaPage() {
   const litFrom = Math.max(0, todayIdx - progress.streak.current + 1);
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[1100px]">
         {/* Streak banner */}
         <div className="mb-6 flex flex-col gap-5 overflow-hidden rounded-3xl bg-gradient-to-br from-cyan to-indigo p-6 text-on-accent sm:flex-row sm:items-center sm:justify-between">

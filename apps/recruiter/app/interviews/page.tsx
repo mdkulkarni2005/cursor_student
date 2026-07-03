@@ -59,6 +59,9 @@ export default async function InterviewsPage() {
                   <td className="px-3 py-2.5 text-soft">{s.note ?? "—"}</td>
                   <td className="px-3 py-2.5">
                     <ScheduleRow id={s.id} status={s.status} proposedAt={s.proposedAt.getTime()} />
+                    <Link href={`/interviews/${s.id}`} className="mt-1 block text-[11px] text-cyan hover:underline">
+                      View flags
+                    </Link>
                   </td>
                 </tr>
               ))}

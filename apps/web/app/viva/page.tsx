@@ -22,7 +22,7 @@ export default async function VivaPage() {
   });
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[760px]">
         <h1 className="font-display text-[22px] font-bold text-ink">Viva Preparation</h1>
         <p className="mb-6 mt-1.5 text-[14px] text-muted">

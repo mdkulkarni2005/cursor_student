@@ -37,7 +37,7 @@ export default async function MessagesPage() {
   ]);
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[760px]">
         <header className="mb-6">
           <h1 className="font-display text-[26px] font-bold text-ink">Messages</h1>

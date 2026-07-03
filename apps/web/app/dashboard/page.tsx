@@ -63,7 +63,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[1480px]">
         {/* Welcome + Daily Grind streak */}
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">

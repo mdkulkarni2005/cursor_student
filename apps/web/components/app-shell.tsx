@@ -6,6 +6,7 @@ import { UserButton } from "@clerk/nextjs";
 import { WORKSPACE_NAV, YOU_NAV, ALL_NAV, type NavItem } from "@/lib/nav";
 import { SearchIcon, PlusIcon } from "@/components/icons";
 import { AssistantPanel } from "@/components/assistant/assistant-panel";
+import { InstallPrompt } from "@/components/install-prompt";
 
 export type ShellUser = {
   name: string;
@@ -14,6 +15,8 @@ export type ShellUser = {
   plan: string;
   /** Coding track (DSA + coding interview). When false, DSA is hidden from default nav. */
   codingEnabled: boolean;
+  /** Recruiter-led real interview — hidden unless there's an ACCEPTED schedule in the join window. */
+  hasJoinableRealInterview: boolean;
 };
 
 function NavRow({ item, active }: { item: NavItem; active: boolean }) {
@@ -59,7 +62,11 @@ function Sidebar({ pathname, user }: { pathname: string; user: ShellUser }) {
       </Link>
 
       <nav className="flex-1">
-        {WORKSPACE_NAV.filter((item) => user.codingEnabled || item.href !== "/dsa").map((item) => (
+        {WORKSPACE_NAV.filter(
+          (item) =>
+            (user.codingEnabled || item.href !== "/dsa") &&
+            (user.hasJoinableRealInterview || item.href !== "/real-interview"),
+        ).map((item) => (
           <NavRow key={item.href} item={item} active={pathname === item.href} />
         ))}
       </nav>
@@ -141,6 +148,7 @@ export function AppShell({ children, user }: { children: React.ReactNode; user: 
       </div>
       <AssistantPanel name={user.name} />
       <MobileNav pathname={pathname} />
+      <InstallPrompt />
     </div>
   );
 }

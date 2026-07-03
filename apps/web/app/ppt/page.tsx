@@ -53,7 +53,7 @@ export default async function PptPage() {
   // No decks yet → the form takes the whole screen.
   if (isEmpty) {
     return (
-      <AppShell user={shellUserFrom(user)}>
+      <AppShell user={await shellUserFrom(user)}>
         <div className="mx-auto max-w-[560px]">
           {intro}
           <GeneratePptForm />
@@ -64,7 +64,7 @@ export default async function PptPage() {
   }
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto flex max-w-[1080px] flex-col gap-6 lg:flex-row">
         <div className="w-full lg:max-w-[420px] lg:sticky lg:top-0 lg:self-start">
           {intro}

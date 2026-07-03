@@ -21,7 +21,7 @@ export default async function ProjectsPage() {
   ]);
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[1100px]">
         <div className="mb-6">
           <h1 className="font-display text-[30px] font-semibold tracking-tight text-ink">Project Idea Catalyst</h1>

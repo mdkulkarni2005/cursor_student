@@ -51,7 +51,7 @@ export default async function PlansPage() {
   const current = user.plan;
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[1080px]">
         <header className="mb-10 text-center">
           <h1 className="font-display text-[32px] font-bold tracking-tight text-ink">Elevate Your Academic Intelligence</h1>

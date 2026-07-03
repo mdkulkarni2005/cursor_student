@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma, type User } from "@studentos/db";
 import type { ShellUser } from "@/components/app-shell";
+import { hasJoinableRealInterview } from "@/lib/real-interview";
 
 const PLAN_LABEL: Record<string, string> = {  FREE: "Free", PRO: "Pro", PREMIUM: "Premium" };
 const ACTIVITY_STALE_MS = 30 * 60 * 1000; // bump "last seen" / opens at most twice an hour per user
@@ -86,12 +87,13 @@ export async function requireOnboardedUser(): Promise<User> {
 }
 
 /** Maps the DB user to the shape the app shell needs. */
-export function shellUserFrom(user: User): ShellUser {
+export async function shellUserFrom(user: User): Promise<ShellUser> {
   return {
     name: user.name ?? "Student",
     department: user.department,
     semester: user.semester,
     plan: PLAN_LABEL[user.plan] ?? "Free",
     codingEnabled: user.codingEnabled !== false,
+    hasJoinableRealInterview: await hasJoinableRealInterview(user.id),
   };
 }

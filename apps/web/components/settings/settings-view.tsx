@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useClerk } from "@clerk/nextjs";
 import { StarIcon, GearIcon } from "@/components/icons";
+import { useInstallPrompt } from "@/components/install-prompt";
 
 type Tab = "profile" | "billing" | "account";
 
@@ -42,6 +43,7 @@ function Field({ label, value }: { label: string; value: string }) {
 export function SettingsView({ data }: { data: SettingsData }) {
   const [tab, setTab] = useState<Tab>("profile");
   const { openUserProfile } = useClerk();
+  const { available: installAvailable, promptInstall } = useInstallPrompt();
   const initials = data.name
     .split(" ")
     .map((p) => p[0])
@@ -174,6 +176,19 @@ export function SettingsView({ data }: { data: SettingsData }) {
               </span>
               <span className="text-[13.5px] font-semibold text-cyan">Open →</span>
             </button>
+            {installAvailable && (
+              <button
+                type="button"
+                onClick={() => void promptInstall()}
+                className="flex w-full items-center justify-between rounded-xl border border-line bg-surface p-5 text-left transition-colors hover:border-cyan/40"
+              >
+                <span className="flex items-center gap-3">
+                  <StarIcon size={18} className="text-muted" />
+                  <span className="text-[14px] font-medium text-ink">Install app</span>
+                </span>
+                <span className="text-[13.5px] font-semibold text-cyan">Install →</span>
+              </button>
+            )}
           </div>
         )}
       </section>

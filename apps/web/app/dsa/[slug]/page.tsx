@@ -31,7 +31,7 @@ export default async function DsaProblemPage({ params }: { params: Promise<{ slu
   const samples = sampleTests(slug);
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[1180px]">
         <div className="mb-4 flex flex-wrap items-center gap-3">
           <Link href="/dsa" className="text-[12.5px] text-muted transition-colors hover:text-cyan">← Problems</Link>

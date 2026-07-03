@@ -23,7 +23,7 @@ export default async function SettingsPage() {
   const totalLimit = unlimited ? null : limits.reduce<number>((a, b) => a + (b ?? 0), 0);
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[1180px]">
         <header className="mb-10">
           <h1 className="font-display text-[30px] font-semibold tracking-tight text-ink">Settings</h1>

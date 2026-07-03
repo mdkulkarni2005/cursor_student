@@ -25,7 +25,7 @@ export default async function InterviewSessionPage({ params }: { params: Promise
   const ev = state.evaluation;
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className={`mx-auto ${state.phase === "complete" && ev ? "max-w-[1000px]" : "max-w-[780px]"}`}>
         <Link href="/interview" className="text-[13px] text-muted transition-colors hover:text-cyan">← All interviews</Link>
 

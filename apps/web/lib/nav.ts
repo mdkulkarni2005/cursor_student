@@ -12,6 +12,7 @@ import {
   ArchiveIcon,
   HelpIcon,
   ChatIcon,
+  VideoIcon,
 } from "@/components/icons";
 
 export type NavItem = {
@@ -32,6 +33,9 @@ export const WORKSPACE_NAV: NavItem[] = [
   { label: "Interview Prep", href: "/interview", icon: MicIcon },
   { label: "DSA Practice", href: "/dsa", icon: CodeIcon },
   { label: "Project Ideas", href: "/projects", icon: StarIcon },
+  // Hidden unless the student has an ACCEPTED InterviewSchedule inside the join window — see
+  // hasJoinableRealInterview() and its filter in app-shell.tsx. Not visible by default.
+  { label: "Real Interview", href: "/real-interview", icon: VideoIcon },
 ];
 
 export const YOU_NAV: NavItem[] = [

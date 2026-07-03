@@ -78,7 +78,7 @@ export default async function ReportDetailPage({
     .filter((s) => !!s.image);
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="w-full">
         {/* Top bar */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

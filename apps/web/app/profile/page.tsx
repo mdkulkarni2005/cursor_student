@@ -34,7 +34,7 @@ export default async function ProfilePage() {
   ];
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[1080px]">
         {/* Header card */}
         <div className="rounded-2xl border border-line bg-card p-6 sm:p-8">

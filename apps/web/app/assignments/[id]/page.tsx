@@ -39,7 +39,7 @@ export default async function AssignmentDetailPage({
   const stage = stageOf(doc.job?.pending);
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[1100px]">
         {/* Header */}
         <div className="mb-5 flex flex-wrap items-start justify-between gap-3">

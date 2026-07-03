@@ -54,7 +54,7 @@ export default async function PptDetailPage({ params }: { params: Promise<{ id: 
   };
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto w-full max-w-[1400px]">
         <Link href="/ppt" className="text-[13px] text-muted transition-colors hover:text-soft">
           ← All presentations

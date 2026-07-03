@@ -44,7 +44,7 @@ export default async function CheckoutPage({
   const amountLabel = `₹${total.toLocaleString("en-IN")}`;
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[1080px]">
         {/* Header */}
         <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

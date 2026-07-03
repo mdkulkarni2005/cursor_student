@@ -162,13 +162,13 @@ model User {
   visibleToRecruiters   Boolean   @default(false)
   visibleToRecruitersAt DateTime?
 
-  workspaces        Workspace[]
-  documents         Document[]
-  uploads           Upload[]
-  subscription      Subscription?
-  usageEvents       UsageEvent[]
-  dsaAttempts       DsaAttempt[]
-  assistantThread   AssistantThread?
+  workspaces         Workspace[]
+  documents          Document[]
+  uploads            Upload[]
+  subscription       Subscription?
+  usageEvents        UsageEvent[]
+  dsaAttempts        DsaAttempt[]
+  assistantThread    AssistantThread?
   deadlines          Deadline[]
   studyPlans         StudyPlan[]
   recruiterMessages  RecruiterMessage[]
@@ -478,8 +478,8 @@ model Recruiter {
 
   messages  RecruiterMessage[]
   schedules InterviewSchedule[]
-  createdAt DateTime           @default(now())
-  updatedAt DateTime           @updatedAt
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
 
   @@index([status])
   @@index([industry])
@@ -525,4 +525,75 @@ model InterviewSchedule {
 
   @@index([studentId, proposedAt])
   @@index([recruiterId, proposedAt])
+}
+
+enum InterviewRoomStatus {
+  PENDING
+  ACTIVE
+  ENDED
+  UNAVAILABLE
+}
+
+// LiveKit room/token state for ONE InterviewSchedule (the recruiter-led real interview build,
+// docs/BUILD_ORDER.md Phase E). Deliberately NOT a Prisma relation to InterviewSchedule — a
+// relation would force a back-relation field onto that model. Joined manually by scheduleId,
+// same pattern as ownedSchedule() in apps/web/lib/actions/interview-schedule.ts. Kept isolated so
+// this table (and the feature it belongs to) can be dropped cleanly without touching the model
+// above.
+model InterviewRoom {
+  id          String              @id @default(cuid())
+  scheduleId  String              @unique
+  livekitRoom String
+  status      InterviewRoomStatus @default(PENDING)
+  createdAt   DateTime            @default(now())
+  endedAt     DateTime?
+
+  @@index([scheduleId])
+}
+
+enum InterviewFlagKind {
+  FULLSCREEN_EXIT
+  TAB_HIDDEN
+  CAMERA_OFF
+  MULTI_MONITOR
+}
+
+// Proctoring signal log for ONE InterviewSchedule (Phase E3). Same isolation pattern as
+// InterviewRoom above — no relation, joined manually by scheduleId. MULTI_MONITOR is written at
+// most once per session by client-side throttling (see use-proctoring-signals.ts) — nothing here
+// enforces that; it's a client-side guarantee only.
+model InterviewFlag {
+  id         String            @id @default(cuid())
+  scheduleId String
+  kind       InterviewFlagKind
+  detail     String?
+  occurredAt DateTime          @default(now())
+
+  @@index([scheduleId, occurredAt])
+}
+
+// Text-only transcript line (Phase E4) — captured client-side via the Web Speech API on each
+// participant's OWN mic, never audio/video. Same isolation pattern — no relation, manual join.
+model InterviewTranscriptLine {
+  id         String   @id @default(cuid())
+  scheduleId String
+  speaker    String // "candidate" | "recruiter"
+  text       String
+  occurredAt DateTime @default(now())
+
+  @@index([scheduleId, occurredAt])
+}
+
+// AI-assisted, recruiter-facing judgment generated once the call ends (Phase E5) — NOT the
+// decision-maker, the recruiter is. Same isolation pattern — no relation, manual join by scheduleId.
+model InterviewJudgment {
+  id             String   @id @default(cuid())
+  scheduleId     String   @unique
+  fitVerdict     String
+  summary        String
+  strengths      Json
+  concerns       Json
+  recommendation String
+  model          String
+  createdAt      DateTime @default(now())
 }

@@ -32,7 +32,7 @@ export default async function PlannerPage() {
     : null;
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[1180px] space-y-8">
         {/* Header */}
         <section className="flex flex-col justify-between gap-5 md:flex-row md:items-end">

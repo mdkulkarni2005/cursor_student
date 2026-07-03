@@ -1,0 +1,90 @@
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import { requireRecruiter } from "@/lib/recruiter";
+import { NotAuthorized } from "@/components/not-authorized";
+import { RecruiterShell } from "@/components/shell";
+import { listFlagsForSchedule } from "@/lib/interview-flags";
+import { prisma } from "@studentos/db";
+import { FlagList } from "./flag-list";
+import { JoinPanel } from "./join-panel";
+
+export const metadata = { title: "Interview — Recruiter" };
+
+export default async function InterviewDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const guard = await requireRecruiter();
+  if (!guard.ok) return <NotAuthorized reason={guard.reason} />;
+
+  const { id } = await params;
+  const schedule = await prisma.interviewSchedule.findUnique({
+    where: { id },
+    include: { student: { select: { id: true, name: true } } },
+  });
+  if (!schedule || schedule.recruiterId !== guard.recruiter.id) notFound();
+
+  const flags = await listFlagsForSchedule(id, guard.recruiter.id);
+  // schedule.recruiterId already checked above (notFound() otherwise), so this query is safe.
+  const judgment = await prisma.interviewJudgment.findUnique({ where: { scheduleId: id } });
+
+  const VERDICT_LABEL: Record<string, string> = {
+    strong_fit: "Strong fit",
+    fit: "Fit",
+    weak_fit: "Weak fit",
+    not_fit: "Not a fit",
+  };
+
+  return (
+    <RecruiterShell>
+      <div className="mb-5">
+        <Link href="/interviews" className="text-[12.5px] text-muted hover:text-cyan">
+          ← All interviews
+        </Link>
+        <h1 className="mt-2 font-display text-[24px] font-bold text-ink">
+          Interview with {schedule.student.name ?? "Student"}
+        </h1>
+        <p className="mt-1 text-[13px] text-muted">
+          {new Date(schedule.proposedAt).toLocaleString("en-IN", { dateStyle: "full", timeStyle: "short", timeZone: "Asia/Kolkata" })}
+          {" · "}
+          Status: {schedule.status}
+        </p>
+      </div>
+
+      <JoinPanel scheduleId={id} />
+
+      {judgment && (
+        <div className="mb-6 rounded-2xl border border-line bg-card p-5">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="font-display text-[16px] font-semibold text-ink">AI-assisted summary</h2>
+            <span className="rounded-full bg-cyan/10 px-2.5 py-0.5 text-[11.5px] font-semibold text-cyan">
+              {VERDICT_LABEL[judgment.fitVerdict] ?? judgment.fitVerdict}
+            </span>
+          </div>
+          <p className="mb-3 text-[11px] text-faint">AI-assisted, not the decision — you make the final call.</p>
+          <p className="mb-3 text-[13.5px] text-soft">{judgment.summary}</p>
+          {Array.isArray(judgment.strengths) && judgment.strengths.length > 0 && (
+            <div className="mb-2">
+              <p className="text-[11.5px] font-semibold uppercase tracking-wide text-faint">Strengths</p>
+              <ul className="mt-1 list-disc pl-4 text-[13px] text-soft">
+                {(judgment.strengths as string[]).map((s, i) => (
+                  <li key={i}>{s}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {Array.isArray(judgment.concerns) && judgment.concerns.length > 0 && (
+            <div className="mb-2">
+              <p className="text-[11.5px] font-semibold uppercase tracking-wide text-faint">Concerns</p>
+              <ul className="mt-1 list-disc pl-4 text-[13px] text-soft">
+                {(judgment.concerns as string[]).map((c, i) => (
+                  <li key={i}>{c}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+          <p className="mt-3 text-[12.5px] text-muted">{judgment.recommendation}</p>
+        </div>
+      )}
+
+      <FlagList scheduleId={id} initialFlags={flags ?? []} />
+    </RecruiterShell>
+  );
+}

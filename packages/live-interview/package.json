@@ -1,0 +1,24 @@
+{
+  "name": "@studentos/live-interview",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Recruiter-led real interview room/token layer (LiveKit), provider-abstracted. Fails CLOSED: an unreachable/unconfigured LiveKit is reported 'unavailable', never a fake room.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "verify": "tsx scripts/verify.ts"
+  },
+  "dependencies": {
+    "livekit-server-sdk": "^2.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "tsx": "^4.19.2",
+    "typescript": "^5.9.3"
+  }
+}

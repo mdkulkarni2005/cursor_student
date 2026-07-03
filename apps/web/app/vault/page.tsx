@@ -75,7 +75,7 @@ export default async function VaultPage({ searchParams }: { searchParams: Promis
   ];
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[1100px]">
         {/* Header */}
         <div className="mb-6 flex flex-wrap items-end justify-between gap-3">

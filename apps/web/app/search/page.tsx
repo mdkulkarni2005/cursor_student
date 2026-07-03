@@ -25,7 +25,7 @@ export default async function SearchPage({
     : [];
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[1180px]">
         {/* Search field (GET form — works without JS) */}
         <form action="/search" method="get" className="mb-8">

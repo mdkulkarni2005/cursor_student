@@ -44,7 +44,7 @@ export default async function DsaLeaderboardPage() {
   const meInTop = board.me && board.top.some((r) => r.userId === board.me!.userId);
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[1080px]">
         {/* Header */}
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">

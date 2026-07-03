@@ -64,7 +64,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     : null;
 
   return (
-    <AppShell user={shellUserFrom(user)}>
+    <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[1080px]">
         <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">

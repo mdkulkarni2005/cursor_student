@@ -56,6 +56,13 @@ export const CodeIcon = (p: IconProps) => (
   </Base>
 );
 
+export const VideoIcon = (p: IconProps) => (
+  <Base {...p}>
+    <rect x="2" y="6" width="14" height="12" rx="2" />
+    <path d="M16 10.5l6-3.5v10l-6-3.5" />
+  </Base>
+);
+
 export const GearIcon = (p: IconProps) => (
   <Base {...p}>
     <path d="M9.6 3.5a2 2 0 014.8 0l.3 1.3 1.3.5 1.2-.7a2 2 0 012.4 2.4l-.7 1.2.5 1.3 1.3.3a2 2 0 010 4.8l-1.3.3-.5 1.3.7 1.2a2 2 0 01-2.4 2.4l-1.2-.7-1.3.5-.3 1.3a2 2 0 01-4.8 0l-.3-1.3-1.3-.5-1.2.7a2 2 0 01-2.4-2.4l.7-1.2-.5-1.3-1.3-.3a2 2 0 010-4.8l1.3-.3.5-1.3-.7-1.2a2 2 0 012.4-2.4l1.2.7 1.3-.5z" />
