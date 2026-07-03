@@ -103,6 +103,27 @@ Today's state (shipped): the coding round shows a monospace box and the AI revie
 
 ---
 
+## Recruiter real interviews (2026-07-03)
+
+**Shipped (MVP):** `InterviewSchedule` model — recruiter proposes a date/time + optional meeting link
++ note from a student's profile (`apps/recruiter/app/students/[id]/schedule/`); student accepts/declines/
+suggests another time from `apps/web/app/messages/page.tsx`; recruiter tracks all their scheduled
+interviews + logs an outcome (Selected/Rejected/On hold) from `apps/recruiter/app/interviews/`. Video
+transport in v1 is **whatever link the recruiter pastes** (Zoom/Meet/Teams) — no integration.
+
+**Deferred — pick ONE when ready, needs user's call:**
+- **Google Meet via Calendar API** — auto-create the calendar event + Meet link on accept, email both
+  sides. Needs a Google Cloud project + per-recruiter OAuth consent (event must live on their calendar).
+- **In-house video** — embedded WebRTC/Daily.co-style call inside the app, matching the mock-interview
+  "everything in one product" feel. Most work, but the only option that lets us capture transcript/
+  recording for real interviews (mirroring `packages/ai/src/interview.ts`'s pipeline).
+
+**Also deferred:** email/SMS notification when a recruiter proposes a slot (blocked on the same cron/
+notification infra already deferred for #2 reminders + DSA streak push — v1 is in-app only, surfaced
+next time the student opens `/messages`).
+
+---
+
 ## Finalize / launch (PLAN.md §9)
 
 ### 9.1 — PWA manifest (installable on phone) — NOT BUILT

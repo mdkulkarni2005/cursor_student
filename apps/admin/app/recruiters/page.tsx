@@ -1,8 +1,28 @@
+import { clerkClient } from "@clerk/nextjs/server";
 import { prisma } from "@studentos/db";
 import { requireAdmin } from "@/lib/admin";
 import { NotAuthorized } from "@/components/not-authorized";
 import { AdminShell } from "@/components/shell";
 import { RecruiterRow } from "./recruiter-row";
+
+/** Clerk holds the real email-verification state (not mirrored into our DB) — fetch it per
+ * recruiter so admin can see "is that mail ID genuine" before approving. Best-effort: a lookup
+ * failure (e.g. deleted Clerk user) shows as unverified rather than blowing up the whole page. */
+async function emailVerifiedMap(clerkIds: string[]): Promise<Map<string, boolean>> {
+  const client = await clerkClient();
+  const entries = await Promise.all(
+    clerkIds.map(async (id) => {
+      try {
+        const user = await client.users.getUser(id);
+        const verified = user.emailAddresses.some((e) => e.verification?.status === "verified");
+        return [id, verified] as const;
+      } catch {
+        return [id, false] as const;
+      }
+    }),
+  );
+  return new Map(entries);
+}
 
 export const metadata = { title: "Recruiters — Admin" };
 
@@ -27,6 +47,7 @@ export default async function RecruitersPage() {
   });
 
   const pendingCount = recruiters.filter((r) => r.status === "PENDING").length;
+  const verifiedByClerkId = await emailVerifiedMap(recruiters.map((r) => r.clerkId));
 
   return (
     <AdminShell>
@@ -55,7 +76,14 @@ export default async function RecruitersPage() {
                 <td className="px-3 py-2.5 font-medium text-ink">{r.name ?? "—"}</td>
                 <td className="px-3 py-2.5 text-soft">{r.companyName ?? "—"}</td>
                 <td className="px-3 py-2.5 text-soft">
-                  <p>{r.email}</p>
+                  <p>
+                    {r.email}{" "}
+                    {verifiedByClerkId.get(r.clerkId) ? (
+                      <span className="text-[10px] font-semibold text-success">✓ verified</span>
+                    ) : (
+                      <span className="text-[10px] font-semibold text-danger">unverified</span>
+                    )}
+                  </p>
                   {r.companyEmail && <p className="text-[11px] text-faint">{r.companyEmail}</p>}
                   <p className="text-[11px] text-faint">{r.phone ?? "—"}</p>
                 </td>

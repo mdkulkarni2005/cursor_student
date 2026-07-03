@@ -15,6 +15,9 @@ export function RecruiterShell({ children }: { children: React.ReactNode }) {
               <Link href="/students" className="hover:text-ink">
                 Students
               </Link>
+              <Link href="/interviews" className="hover:text-ink">
+                Interviews
+              </Link>
               <Link href="/messages" className="hover:text-ink">
                 Messages
               </Link>

@@ -91,6 +91,25 @@ enum RecruiterStatus {
   REJECTED
 }
 
+// Lifecycle of a recruiter-proposed REAL interview slot (distinct from the student's self-serve
+// mock interview / Document(type=INTERVIEW)). PROPOSED = awaiting student response; RESCHEDULE_
+// REQUESTED = student countered with a different time (recruiter decides next); COMPLETED = the
+// time has passed and the recruiter logged an outcome.
+enum InterviewScheduleStatus {
+  PROPOSED
+  ACCEPTED
+  DECLINED
+  RESCHEDULE_REQUESTED
+  CANCELED
+  COMPLETED
+}
+
+enum InterviewOutcome {
+  SELECTED
+  REJECTED
+  ON_HOLD
+}
+
 // ----------------------------- Core ---------------------------------------
 
 model User {
@@ -150,9 +169,10 @@ model User {
   usageEvents       UsageEvent[]
   dsaAttempts       DsaAttempt[]
   assistantThread   AssistantThread?
-  deadlines         Deadline[]
-  studyPlans        StudyPlan[]
-  recruiterMessages RecruiterMessage[]
+  deadlines          Deadline[]
+  studyPlans         StudyPlan[]
+  recruiterMessages  RecruiterMessage[]
+  interviewSchedules InterviewSchedule[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -457,6 +477,7 @@ model Recruiter {
   approvedAt      DateTime?
 
   messages  RecruiterMessage[]
+  schedules InterviewSchedule[]
   createdAt DateTime           @default(now())
   updatedAt DateTime           @updatedAt
 
@@ -479,4 +500,29 @@ model RecruiterMessage {
 
   @@index([studentId, createdAt])
   @@index([recruiterId, createdAt])
+}
+
+// A recruiter-proposed REAL interview slot with a student — separate from the student's own
+// self-serve mock interview (Document(type=INTERVIEW)). v1 is deliberately flat: one recruiter
+// proposes one time to one student (no multi-slot/multi-round abstraction yet). Video transport
+// is external in v1 — `meetingLink` is whatever Zoom/Meet/Teams link the recruiter already uses;
+// see docs/DEFERRED.md "Recruiter real interviews" for the Meet-API / in-house-video upgrade path.
+model InterviewSchedule {
+  id          String                  @id @default(cuid())
+  recruiterId String
+  recruiter   Recruiter               @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  studentId   String
+  student     User                    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  status      InterviewScheduleStatus @default(PROPOSED)
+  proposedAt  DateTime
+  meetingLink String?
+  note        String?
+  studentNote String?
+  outcome     InterviewOutcome?
+  outcomeNote String?
+  createdAt   DateTime                @default(now())
+  updatedAt   DateTime                @updatedAt
+
+  @@index([studentId, proposedAt])
+  @@index([recruiterId, proposedAt])
 }

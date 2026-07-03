@@ -3,7 +3,9 @@ import { requireRecruiter } from "@/lib/recruiter";
 import { NotAuthorized } from "@/components/not-authorized";
 import { RecruiterShell } from "@/components/shell";
 import { getStudentDetail } from "@/lib/student-profile";
+import { listSchedulesForStudent } from "@/lib/interview-schedule";
 import { MessageForm } from "./message/message-form";
+import { ScheduleForm } from "./schedule/schedule-form";
 
 export default async function StudentDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const guard = await requireRecruiter();
@@ -12,6 +14,7 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const student = await getStudentDetail(id);
   if (!student) notFound();
+  const schedules = await listSchedulesForStudent(guard.recruiter.id, id);
 
   const initials = student.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 
@@ -75,14 +78,45 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
             ) : null}
           </div>
 
-          <div>
-            <h2 className="mb-3 font-display text-[16px] font-semibold text-ink">Message</h2>
-            <MessageForm studentId={student.id} />
+          <div className="flex flex-col gap-6">
+            <div>
+              <h2 className="mb-3 font-display text-[16px] font-semibold text-ink">Message</h2>
+              <MessageForm studentId={student.id} />
+            </div>
+
+            <div>
+              <h2 className="mb-3 font-display text-[16px] font-semibold text-ink">Schedule real interview</h2>
+              <ScheduleForm studentId={student.id} />
+              {schedules.length > 0 ? (
+                <div className="mt-4 flex flex-col gap-2">
+                  {schedules.map((s) => (
+                    <div key={s.id} className="rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[12.5px]">
+                      <p className="font-semibold text-ink">{fmtDateTime(s.proposedAt)} — {STATUS_LABEL[s.status] ?? s.status}</p>
+                      {s.studentNote ? <p className="mt-0.5 text-faint">Student note: {s.studentNote}</p> : null}
+                      {s.outcome ? <p className="mt-0.5 text-faint">Outcome: {s.outcome}</p> : null}
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </div>
     </RecruiterShell>
   );
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  PROPOSED: "Awaiting response",
+  ACCEPTED: "Accepted",
+  DECLINED: "Declined",
+  RESCHEDULE_REQUESTED: "Reschedule requested",
+  CANCELED: "Canceled",
+  COMPLETED: "Completed",
+};
+
+function fmtDateTime(d: Date): string {
+  return new Date(d).toLocaleString("en-IN", { day: "2-digit", month: "short", year: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
 function Stat({ label, value, tint }: { label: string; value: string; tint: string }) {
