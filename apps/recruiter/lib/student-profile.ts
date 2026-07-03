@@ -1,4 +1,4 @@
-import { prisma, studentMatchesIndustryWhere, type Prisma } from "@studentos/db";
+import { prisma, type Prisma } from "@studentos/db";
 
 export type StudentListItem = {
   id: string;
@@ -11,14 +11,14 @@ export type StudentListItem = {
 };
 
 /**
- * Students visible to this recruiter: opted in (`visibleToRecruiters`) AND matched to the
- * recruiter's industry (packages/db/src/recruiter-matching.ts — no industry set on either side
- * means "show everyone"). Never includes a student who hasn't explicitly opted in, full stop.
+ * Every student visible to recruiters (`visibleToRecruiters`), optionally narrowed by the
+ * recruiter's own branch/department filter (chosen in the UI, not tied to their onboarding
+ * industry). No department filter = show every visible student.
  */
-export async function listVisibleStudents(params: { industry: string | null; query?: string }): Promise<StudentListItem[]> {
+export async function listVisibleStudents(params: { department?: string | null; query?: string }): Promise<StudentListItem[]> {
   const where: Prisma.UserWhereInput = {
     visibleToRecruiters: true,
-    ...studentMatchesIndustryWhere(params.industry),
+    ...(params.department ? { department: params.department } : {}),
     ...(params.query ? { name: { contains: params.query, mode: "insensitive" } } : {}),
   };
 
@@ -48,6 +48,16 @@ export async function listVisibleStudents(params: { industry: string | null; que
     institution: u.institution?.name ?? null,
     dsaSolved: solvedByUser.get(u.id) ?? 0,
   }));
+}
+
+/** Distinct department/branch values among visible students, for the recruiter's filter dropdown. */
+export async function listVisibleDepartments(): Promise<string[]> {
+  const rows = await prisma.user.findMany({
+    where: { visibleToRecruiters: true, department: { not: null } },
+    select: { department: true },
+    distinct: ["department"],
+  });
+  return rows.map((r) => r.department!).sort((a, b) => a.localeCompare(b));
 }
 
 export type StudentDetail = StudentListItem & {

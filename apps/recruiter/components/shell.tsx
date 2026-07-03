@@ -21,6 +21,9 @@ export function RecruiterShell({ children }: { children: React.ReactNode }) {
               <Link href="/messages" className="hover:text-ink">
                 Messages
               </Link>
+              <Link href="/settings" className="hover:text-ink">
+                Settings
+              </Link>
             </nav>
           </div>
           <UserButton appearance={{ elements: { avatarBox: "width:32px;height:32px" } }} />

@@ -156,10 +156,10 @@ model User {
   // Not used for SMS/notifications yet, only identity de-duplication at onboarding.
   phone String? @unique
 
-  // Recruiter-side discovery — off by default (student must explicitly opt in, mirroring the
-  // publicHandle "Share Profile" flow). Gates visibility in apps/recruiter's student search only;
-  // does not affect the existing /u/[handle] public profile.
-  visibleToRecruiters   Boolean   @default(false)
+  // Recruiter-side discovery — on by default; a student can explicitly opt out from their
+  // profile. Gates visibility in apps/recruiter's student search only; does not affect the
+  // existing /u/[handle] public profile.
+  visibleToRecruiters   Boolean   @default(true)
   visibleToRecruitersAt DateTime?
 
   workspaces         Workspace[]

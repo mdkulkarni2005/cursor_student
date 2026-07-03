@@ -4,8 +4,8 @@ import { useState, useTransition } from "react";
 import { setRecruiterVisibility } from "@/lib/actions/recruiter-visibility";
 
 /**
- * Explicit opt-in for recruiter discovery. Off by default — flipping it on is the ONLY way a
- * student's profile becomes visible in apps/recruiter's student search.
+ * Explicit opt-out for recruiter discovery. On by default — flipping it off hides the student's
+ * profile from apps/recruiter's student search.
  */
 export function RecruiterVisibilityToggle({ initialVisible }: { initialVisible: boolean }) {
   const [visible, setVisible] = useState(initialVisible);
@@ -29,7 +29,7 @@ export function RecruiterVisibilityToggle({ initialVisible }: { initialVisible: 
       <span className="text-[12.5px] text-soft">
         Visible to recruiters
         <span className="block text-[11px] text-faint">
-          {visible ? "Recruiters matched to your career goal can see your profile." : "Off — no recruiter can see your profile."}
+          {visible ? "Recruiters can find and view your profile." : "Off — no recruiter can see your profile."}
         </span>
       </span>
     </label>

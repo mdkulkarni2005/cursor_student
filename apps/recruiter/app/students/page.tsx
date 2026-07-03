@@ -2,35 +2,56 @@ import Link from "next/link";
 import { requireRecruiter } from "@/lib/recruiter";
 import { NotAuthorized } from "@/components/not-authorized";
 import { RecruiterShell } from "@/components/shell";
-import { listVisibleStudents } from "@/lib/student-profile";
+import { listVisibleStudents, listVisibleDepartments } from "@/lib/student-profile";
 
 export const metadata = { title: "Students — Recruiter" };
 
-export default async function StudentsPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
+export default async function StudentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; department?: string }>;
+}) {
   const guard = await requireRecruiter();
   if (!guard.ok) return <NotAuthorized reason={guard.reason} />;
 
-  const { q } = await searchParams;
-  const students = await listVisibleStudents({ industry: guard.recruiter.industry, query: q });
+  const { q, department } = await searchParams;
+  const [students, departments] = await Promise.all([
+    listVisibleStudents({ department, query: q }),
+    listVisibleDepartments(),
+  ]);
 
   return (
     <RecruiterShell>
       <div className="mb-5">
         <h1 className="font-display text-[24px] font-bold text-ink">Students</h1>
         <p className="mt-1 text-[13px] text-muted">
-          {students.length} student{students.length === 1 ? "" : "s"} visible to you
-          {guard.recruiter.industry ? ` — matched to "${guard.recruiter.industry}"` : ""}. Only students who&apos;ve
-          opted in to recruiter visibility appear here.
+          {students.length} student{students.length === 1 ? "" : "s"}
+          {department ? ` in "${department}"` : ""}. Use the filters below to narrow by branch or name.
         </p>
       </div>
 
-      <form className="mb-5">
+      <form className="mb-5 flex flex-wrap items-center gap-3">
         <input
           name="q"
           defaultValue={q ?? ""}
           placeholder="Search by name…"
           className="w-full max-w-[320px] rounded-xl border border-line-strong bg-input px-3.5 py-2.5 text-[13.5px] text-ink placeholder:text-faint"
         />
+        <select
+          name="department"
+          defaultValue={department ?? ""}
+          className="rounded-xl border border-line-strong bg-input px-3.5 py-2.5 text-[13.5px] text-ink"
+        >
+          <option value="">All branches</option>
+          {departments.map((d) => (
+            <option key={d} value={d}>
+              {d}
+            </option>
+          ))}
+        </select>
+        <button type="submit" className="rounded-xl bg-cyan px-4 py-2.5 text-[13px] font-semibold text-on-accent">
+          Apply
+        </button>
       </form>
 
       {students.length === 0 ? (

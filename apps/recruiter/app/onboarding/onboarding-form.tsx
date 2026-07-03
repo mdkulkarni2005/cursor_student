@@ -2,16 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { saveApplication, type OnboardingState } from "./actions";
-
-const INDUSTRIES = [
-  "Software / IT Services",
-  "Product / SaaS",
-  "Data / AI / ML",
-  "Core Engineering (Mech/Civil/Elec)",
-  "Finance / Fintech",
-  "Consulting",
-  "Other",
-] as const;
+import { INDUSTRIES } from "@/lib/industries";
 
 type Initial = {
   name: string;
