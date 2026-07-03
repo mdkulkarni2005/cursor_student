@@ -109,6 +109,11 @@ model User {
   lastSeenAt      DateTime?
   appOpens        Int       @default(0)
 
+  // Admin-controlled account hold. Enforced in apps/web's requireOnboardedUser — a suspended
+  // user is bounced to /suspended instead of the app. Set/cleared only from apps/admin.
+  suspended   Boolean   @default(false)
+  suspendedAt DateTime?
+
   // Auto-generated project ideas cached for the Projects landing page (department/career-goal
   // aware), so a student sees suggestions immediately instead of asking first. Generated lazily
   // on first visit; refreshed on demand, not automatically re-run on every profile edit.
@@ -380,4 +385,25 @@ model StudyPlan {
   updatedAt  DateTime  @updatedAt
 
   @@index([userId, createdAt])
+}
+
+// ----------------------------- Admin ---------------------------------------
+
+// Append-only record of every mutating action taken from apps/admin. Never updated or deleted —
+// this is the accountability trail for plan overrides, suspensions, deletes, and template edits.
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  // The admin's Clerk email (not a User relation — admins may not have a student User row).
+  actorEmail String
+  // e.g. "user.plan.set", "user.suspend", "user.reactivate", "user.data.delete", "job.retry"
+  action     String
+  targetType String
+  targetId   String
+  // Free-form before/after snapshot for diffing what changed.
+  before     Json?
+  after      Json?
+  createdAt  DateTime @default(now())
+
+  @@index([targetType, targetId])
+  @@index([createdAt])
 }

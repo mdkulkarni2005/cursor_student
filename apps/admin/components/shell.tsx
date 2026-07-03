@@ -11,12 +11,27 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <span className="font-display text-[16px] font-bold text-cyan">Vidyas OS</span>
               <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-faint">Admin</span>
             </Link>
-            <nav className="flex items-center gap-4 text-[13px] font-medium text-muted">
+            <nav className="flex flex-wrap items-center gap-4 text-[13px] font-medium text-muted">
               <Link href="/" className="hover:text-ink">
                 Overview
               </Link>
               <Link href="/users" className="hover:text-ink">
                 Users
+              </Link>
+              <Link href="/jobs" className="hover:text-ink">
+                Jobs
+              </Link>
+              <Link href="/institutions" className="hover:text-ink">
+                Institutions
+              </Link>
+              <Link href="/templates" className="hover:text-ink">
+                Templates
+              </Link>
+              <Link href="/dsa-problems" className="hover:text-ink">
+                DSA
+              </Link>
+              <Link href="/audit" className="hover:text-ink">
+                Audit
               </Link>
             </nav>
           </div>

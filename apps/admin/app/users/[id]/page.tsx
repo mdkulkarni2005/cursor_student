@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/admin";
 import { NotAuthorized } from "@/components/not-authorized";
 import { AdminShell } from "@/components/shell";
 import { PlanSelector } from "./plan-selector";
+import { AccountOps } from "./account-ops";
 
 export const metadata = { title: "User — Admin" };
 
@@ -58,10 +59,26 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
 
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-display text-[24px] font-bold text-ink">{user.name ?? "Unnamed"}</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="font-display text-[24px] font-bold text-ink">{user.name ?? "Unnamed"}</h1>
+            {user.suspended && (
+              <span className="rounded-full bg-danger/12 px-2 py-0.5 text-[11px] font-semibold text-danger">
+                suspended
+              </span>
+            )}
+          </div>
           <p className="mt-1 text-[13px] text-muted">{user.email}</p>
         </div>
         <PlanSelector userId={user.id} plan={user.plan} />
+      </div>
+
+      <div className="mb-6">
+        <AccountOps
+          userId={user.id}
+          suspended={user.suspended}
+          codingEnabled={user.codingEnabled}
+          email={user.email}
+        />
       </div>
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -104,6 +121,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
             <div className="flex justify-between"><dt className="text-muted">Last seen</dt><dd className="text-ink">{fmtDateTime(user.lastSeenAt)}</dd></div>
             <div className="flex justify-between"><dt className="text-muted">Joined</dt><dd className="text-ink">{fmtDateTime(user.createdAt)}</dd></div>
             <div className="flex justify-between"><dt className="text-muted">Legal accepted</dt><dd className="text-ink">{fmtDateTime(user.acceptedLegalAt)}</dd></div>
+            <div className="flex justify-between"><dt className="text-muted">Suspended</dt><dd className="text-ink">{user.suspended ? `Yes (${fmtDateTime(user.suspendedAt)})` : "No"}</dd></div>
           </dl>
         </div>
       </div>

@@ -20,6 +20,12 @@ async function bumpActivity(user: User): Promise<void> {
  * on first sight (lazy upsert). This keeps Clerk as the source of truth for auth
  * while our Neon `User` table owns academic context (department, semester, plan).
  *
+ * A suspended user (admin-set hold, see apps/admin) is treated as if signed out — every API
+ * route already does `if (!user) return 401`, so this is the single point that makes a
+ * suspension actually block credit-consuming requests, not just page navigation. Pages that want
+ * the friendlier "/suspended" message (instead of bouncing to sign-in) check separately in
+ * requireOnboardedUser below.
+ *
  * Later hardening: also sync via a Clerk `user.created` webhook so the row exists
  * even before the user's first authenticated page load.
  */
@@ -30,6 +36,7 @@ export async function getOrCreateUser(): Promise<User | null> {
   // Fast path: user already exists with this clerkId.
   const existing = await prisma.user.findUnique({ where: { clerkId: userId } });
   if (existing) {
+    if (existing.suspended) return null;
     await bumpActivity(existing);
     return existing;
   }
@@ -65,6 +72,13 @@ export async function getOrCreateUser(): Promise<User | null> {
 
 /** For protected pages: returns the onboarded user, or redirects to sign-in / onboarding. */
 export async function requireOnboardedUser(): Promise<User> {
+  // getOrCreateUser() returns null for a suspended user (see its docstring) — check suspension
+  // directly first so we can send them to the friendlier "/suspended" page instead of "/sign-in".
+  const { userId } = await auth();
+  if (!userId) redirect("/sign-in");
+  const raw = await prisma.user.findUnique({ where: { clerkId: userId } });
+  if (raw?.suspended) redirect("/suspended");
+
   const user = await getOrCreateUser();
   if (!user) redirect("/sign-in");
   if (!user.onboardedAt) redirect("/onboarding");
