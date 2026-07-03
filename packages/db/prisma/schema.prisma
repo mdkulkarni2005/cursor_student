@@ -547,6 +547,9 @@ model InterviewRoom {
   status      InterviewRoomStatus @default(PENDING)
   createdAt   DateTime            @default(now())
   endedAt     DateTime?
+  // Last snapshot of the shared code editor at end-of-call, fed into InterviewJudgment alongside
+  // the transcript. Not live-synced here — written once, when the interview is finalized.
+  finalCode   String?
 
   @@index([scheduleId])
 }

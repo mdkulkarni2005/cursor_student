@@ -48,7 +48,17 @@ export default async function InterviewDetailPage({ params }: { params: Promise<
         </p>
       </div>
 
-      <JoinPanel scheduleId={id} />
+      {schedule.status === "ACCEPTED" ? (
+        <JoinPanel scheduleId={id} />
+      ) : (
+        <div className="mb-6 rounded-2xl border border-dashed border-line bg-card p-5 text-[13px] text-muted">
+          {schedule.status === "PROPOSED" && "Waiting for the student to accept this proposal before you can join."}
+          {schedule.status === "RESCHEDULE_REQUESTED" && "The student asked for a different time — accept a new slot before joining."}
+          {schedule.status === "DECLINED" && "The student declined this interview."}
+          {schedule.status === "CANCELED" && "This interview was canceled."}
+          {schedule.status === "COMPLETED" && "This interview has already been completed."}
+        </div>
+      )}
 
       {judgment && (
         <div className="mb-6 rounded-2xl border border-line bg-card p-5">

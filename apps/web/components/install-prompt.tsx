@@ -20,6 +20,13 @@ if (typeof window !== "undefined") {
     capturedEvent = e as BeforeInstallPromptEvent;
     listeners.forEach((cb) => cb(capturedEvent));
   });
+
+  // Chrome/Android only fire beforeinstallprompt once a service worker is actually registered —
+  // a manifest + icons alone are not enough. This registration was previously missing entirely,
+  // which is why the install prompt never appeared.
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  }
 }
 
 export function useInstallPrompt() {

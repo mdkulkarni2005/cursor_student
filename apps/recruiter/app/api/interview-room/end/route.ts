@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireRecruiter } from "@/lib/recruiter";
-import { joinRoomAsRecruiter } from "@/lib/live-interview";
+import { endInterviewAsRecruiter } from "@/lib/live-interview";
 
 export async function POST(req: Request) {
   const guard = await requireRecruiter();
   if (!guard.ok) return NextResponse.json({ error: "Sign in as an approved recruiter." }, { status: 401 });
 
-  let body: { scheduleId?: string };
+  let body: { scheduleId?: string; finalCode?: string };
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -16,9 +16,10 @@ export async function POST(req: Request) {
   const scheduleId = String(body.scheduleId ?? "");
   if (!scheduleId) return NextResponse.json({ error: "Missing scheduleId." }, { status: 400 });
 
-  const result = await joinRoomAsRecruiter(scheduleId, guard.recruiter.id);
-  if ("notFound" in result) return NextResponse.json({ error: "Interview not found." }, { status: 404 });
-  if ("ended" in result) return NextResponse.json({ ended: true });
-  if ("waiting" in result) return NextResponse.json({ waiting: true });
-  return NextResponse.json({ token: result.token, wsUrl: result.wsUrl });
+  try {
+    await endInterviewAsRecruiter(scheduleId, guard.recruiter.id, body.finalCode);
+    return NextResponse.json({ ended: true });
+  } catch {
+    return NextResponse.json({ error: "Interview not found." }, { status: 404 });
+  }
 }

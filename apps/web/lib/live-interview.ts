@@ -1,6 +1,5 @@
 import { prisma, type InterviewFlagKind } from "@studentos/db";
-import { ensureRoom, mintToken, endRoom, type ParticipantRole } from "@studentos/live-interview";
-import { judgeRealInterview } from "@studentos/ai";
+import { ensureRoom, mintToken, finalizeInterview, type ParticipantRole } from "@studentos/live-interview";
 import { hasJoinableRealInterview } from "@/lib/real-interview";
 
 /** Same shape as ownedSchedule() in lib/actions/interview-schedule.ts — manual join, no Prisma relation. */
@@ -34,6 +33,9 @@ export async function createOrGetRoom(scheduleId: string) {
 export async function joinRoom(scheduleId: string, identity: string, role: ParticipantRole) {
   const room = await prisma.interviewRoom.findUnique({ where: { scheduleId } });
   if (!room || room.status === "UNAVAILABLE") return { unavailable: true as const };
+  // Once either side has explicitly ended the interview, the room is gone for good — never
+  // re-mint a token or flip status back to ACTIVE. Rejoin is only for accidental disconnects.
+  if (room.status === "ENDED") return { ended: true as const };
   const tok = await mintToken({ roomName: room.livekitRoom, identity, role });
   if (tok.unavailable) return { unavailable: true as const };
   if (room.status === "PENDING") {
@@ -48,53 +50,8 @@ export async function recordFlag(scheduleId: string, kind: InterviewFlagKind, de
   return prisma.interviewFlag.create({ data: { scheduleId, kind, detail } });
 }
 
-export async function endInterviewRoom(scheduleId: string) {
-  const room = await prisma.interviewRoom.findUnique({ where: { scheduleId } });
-  if (!room) return;
-  await endRoom(room.livekitRoom);
-  await prisma.interviewRoom.update({ where: { scheduleId }, data: { status: "ENDED", endedAt: new Date() } });
-
-  // Best-effort AI judgment — never lets a failure here block the end action itself.
-  try {
-    await generateJudgment(scheduleId);
-  } catch {
-    // Swallowed intentionally.
-  }
-}
-
-async function generateJudgment(scheduleId: string): Promise<void> {
-  const [schedule, lines] = await Promise.all([
-    prisma.interviewSchedule.findUnique({ where: { id: scheduleId }, include: { student: { select: { name: true } } } }),
-    prisma.interviewTranscriptLine.findMany({ where: { scheduleId }, orderBy: { occurredAt: "asc" } }),
-  ]);
-  if (!schedule) return;
-
-  const { judgment, model } = await judgeRealInterview({
-    transcriptLines: lines.map((l) => ({ speaker: l.speaker, text: l.text })),
-    candidateName: schedule.student.name ?? undefined,
-    recruiterNote: schedule.note ?? undefined,
-  });
-
-  await prisma.interviewJudgment.upsert({
-    where: { scheduleId },
-    create: {
-      scheduleId,
-      fitVerdict: judgment.fitVerdict,
-      summary: judgment.summary,
-      strengths: judgment.strengths,
-      concerns: judgment.concerns,
-      recommendation: judgment.recommendation,
-      model,
-    },
-    update: {
-      fitVerdict: judgment.fitVerdict,
-      summary: judgment.summary,
-      strengths: judgment.strengths,
-      concerns: judgment.concerns,
-      recommendation: judgment.recommendation,
-      model,
-    },
-  });
+export async function endInterviewRoom(scheduleId: string, finalCode?: string) {
+  await finalizeInterview(scheduleId, finalCode);
 }
 
 /** Re-check the join window (not just ACCEPTED) — a stale accepted-but-expired schedule shouldn't mint a token. */

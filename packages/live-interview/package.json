@@ -14,7 +14,9 @@
     "verify": "tsx scripts/verify.ts"
   },
   "dependencies": {
-    "livekit-server-sdk": "^2.9.0"
+    "livekit-server-sdk": "^2.9.0",
+    "@studentos/ai": "workspace:*",
+    "@studentos/db": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",

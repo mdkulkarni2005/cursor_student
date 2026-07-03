@@ -36,7 +36,7 @@ export default async function InterviewsPage() {
           <table className="w-full text-left text-[12.5px]">
             <thead className="border-b border-line text-[11px] uppercase tracking-wide text-faint">
               <tr>
-                {["Student", "When", "Link", "Note", "Status"].map((h) => (
+                {["Student", "When", "Join", "Note", "Status"].map((h) => (
                   <th key={h} className="px-3 py-2.5 font-semibold">{h}</th>
                 ))}
               </tr>
@@ -50,11 +50,18 @@ export default async function InterviewsPage() {
                   </td>
                   <td className="px-3 py-2.5 text-soft">{fmtDateTime(s.proposedAt)}</td>
                   <td className="px-3 py-2.5">
-                    {s.meetingLink ? (
-                      <a href={s.meetingLink} target="_blank" rel="noopener" className="text-cyan hover:underline">Open link</a>
+                    {s.status === "ACCEPTED" ? (
+                      <Link href={`/interviews/${s.id}`} className="font-semibold text-cyan hover:underline">
+                        Join call
+                      </Link>
                     ) : (
-                      <span className="text-faint">—</span>
+                      <span className="text-faint">Not accepted yet</span>
                     )}
+                    {s.meetingLink ? (
+                      <a href={s.meetingLink} target="_blank" rel="noopener" className="mt-0.5 block text-[11px] text-muted hover:underline">
+                        Backup link
+                      </a>
+                    ) : null}
                   </td>
                   <td className="px-3 py-2.5 text-soft">{s.note ?? "—"}</td>
                   <td className="px-3 py-2.5">

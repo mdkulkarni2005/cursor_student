@@ -25,6 +25,8 @@ export type JudgeRealInterviewRequest = {
   transcriptLines: TranscriptLine[];
   candidateName?: string;
   recruiterNote?: string;
+  /** Final snapshot of the shared code editor at end-of-call, if the interview had a coding round. */
+  finalCode?: string;
 };
 
 const JUDGMENT_SYSTEM = [
@@ -66,6 +68,7 @@ export async function judgeRealInterview(req: JudgeRealInterviewRequest): Promis
     req.candidateName ? `Candidate: ${req.candidateName}` : "",
     req.recruiterNote ? `Recruiter's note when scheduling: ${req.recruiterNote}` : "",
     `Transcript:\n${transcriptText(req.transcriptLines)}`,
+    req.finalCode ? `Candidate's final code from the shared editor:\n${req.finalCode}` : "",
   ].filter(Boolean).join("\n\n");
 
   let lastError: unknown;

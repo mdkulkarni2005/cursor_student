@@ -372,6 +372,12 @@ importers:
 
   packages/live-interview:
     dependencies:
+      '@studentos/ai':
+        specifier: workspace:*
+        version: link:../ai
+      '@studentos/db':
+        specifier: workspace:*
+        version: link:../db
       livekit-server-sdk:
         specifier: ^2.9.0
         version: 2.16.0
