@@ -39,17 +39,17 @@ function templateChecks() {
     studentName: "Asha",
     recruiterCompany: "Acme Corp",
     proposedAt: new Date("2026-07-10T09:30:00Z"),
-    installLink: "https://studentos.app/real-interview",
+    joinLink: "https://studentos.app/real-interview",
   });
   ok("template: subject mentions company", subject.includes("Acme Corp"));
   ok("template: html contains student name", html.includes("Asha"));
-  ok("template: html contains install link", html.includes("https://studentos.app/real-interview"));
+  ok("template: html contains join link", html.includes("https://studentos.app/real-interview"));
   ok("template: text version also renders", text.includes("Asha") && text.includes("Acme Corp"));
 
   const noCompany = interviewInviteEmail({
     studentName: "Rahul",
     proposedAt: new Date(),
-    installLink: "https://studentos.app/real-interview",
+    joinLink: "https://studentos.app/real-interview",
   });
   ok("template: no company still renders cleanly", !noCompany.subject.includes("with undefined"));
 }

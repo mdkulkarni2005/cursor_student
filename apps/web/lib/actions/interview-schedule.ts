@@ -49,12 +49,12 @@ async function sendInterviewInviteEmail(scheduleId: string, user: User): Promise
     include: { recruiter: { select: { companyName: true } } },
   });
   if (!schedule) return;
-  const installLink = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/real-interview`;
+  const joinLink = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/real-interview`;
   const { subject, html, text } = interviewInviteEmail({
     studentName: user.name ?? "there",
     recruiterCompany: schedule.recruiter.companyName,
     proposedAt: schedule.proposedAt,
-    installLink,
+    joinLink,
   });
   await sendEmail({ to: user.email, subject, html, text });
 }

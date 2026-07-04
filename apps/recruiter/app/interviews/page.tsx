@@ -50,10 +50,14 @@ export default async function InterviewsPage() {
                   </td>
                   <td className="px-3 py-2.5 text-soft">{fmtDateTime(s.proposedAt)}</td>
                   <td className="px-3 py-2.5">
-                    {s.status === "ACCEPTED" ? (
+                    {s.joinWindow === "joinable" ? (
                       <Link href={`/interviews/${s.id}`} className="font-semibold text-cyan hover:underline">
                         Join call
                       </Link>
+                    ) : s.joinWindow === "too-early" ? (
+                      <span className="text-faint">Opens 15 min before</span>
+                    ) : s.joinWindow === "expired" ? (
+                      <span className="text-faint">Window passed</span>
                     ) : (
                       <span className="text-faint">Not accepted yet</span>
                     )}

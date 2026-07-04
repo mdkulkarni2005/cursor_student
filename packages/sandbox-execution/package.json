@@ -1,0 +1,24 @@
+{
+  "name": "@studentos/sandbox-execution",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Full-project code sandbox (Vercel Sandbox) for the real-interview coding round — persistent filesystem, package install, multi-language/framework runs. Provider-abstracted. Fails CLOSED: an unreachable/unconfigured sandbox is reported 'unavailable', never a fake run.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "check-types": "tsc --noEmit",
+    "verify": "tsx scripts/verify.ts"
+  },
+  "dependencies": {
+    "@vercel/sandbox": "^2.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "tsx": "^4.19.2",
+    "typescript": "^5.9.3"
+  }
+}

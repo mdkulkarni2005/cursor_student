@@ -1,7 +1,21 @@
 import { prisma } from "@studentos/db";
 
-const JOIN_WINDOW_OPEN_MS = 15 * 60_000; // opens 15 min before proposedAt
-const JOIN_WINDOW_CLOSE_MS = 120 * 60_000; // closes 120 min after proposedAt (tunable)
+// Same window on apps/recruiter's side (see apps/recruiter/lib/interview-schedule.ts's isJoinable)
+// — keeping both in sync is what stops the recruiter and candidate from ever being able to target
+// a schedule the other side considers expired.
+export const JOIN_WINDOW_OPEN_MS = 15 * 60_000; // opens 15 min before proposedAt
+export const JOIN_WINDOW_CLOSE_MS = 7 * 60 * 60_000; // closes 7 hours after proposedAt — generous buffer for real-world delays
+
+/** Distinguishes *why* a schedule isn't joinable right now — "too early" vs "window passed" read
+ *  very differently to a student/recruiter, so don't collapse them into one generic message. */
+export function joinWindowState(status: string, proposedAt: Date): "joinable" | "too-early" | "expired" | "not-accepted" {
+  if (status !== "ACCEPTED") return "not-accepted";
+  const now = Date.now();
+  const t = proposedAt.getTime();
+  if (now < t - JOIN_WINDOW_OPEN_MS) return "too-early";
+  if (now > t + JOIN_WINDOW_CLOSE_MS) return "expired";
+  return "joinable";
+}
 
 /**
  * Does this student have an ACCEPTED real-interview schedule inside the join window right now?

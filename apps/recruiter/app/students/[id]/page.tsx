@@ -1,9 +1,10 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireRecruiter } from "@/lib/recruiter";
 import { NotAuthorized } from "@/components/not-authorized";
 import { RecruiterShell } from "@/components/shell";
 import { getStudentDetail } from "@/lib/student-profile";
-import { listSchedulesForStudent } from "@/lib/interview-schedule";
+import { listSchedulesForStudent, joinWindowState } from "@/lib/interview-schedule";
 import { MessageForm } from "./message/message-form";
 import { ScheduleForm } from "./schedule/schedule-form";
 
@@ -15,6 +16,13 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
   const student = await getStudentDetail(id);
   if (!student) notFound();
   const schedules = await listSchedulesForStudent(guard.recruiter.id, id);
+  // Exactly one schedule should ever be ACCEPTED per pair (see scheduleInterview/
+  // rescheduleInterview, which supersede/replace old rows in place) — this is the single
+  // unambiguous "Join interview" entry point, rather than making the recruiter guess which of
+  // several rows in a list is the current one. Shown even when not joinable yet/anymore, with a
+  // clear reason, rather than silently disappearing (which reads as "there's nothing scheduled").
+  const acceptedSchedule = schedules.find((s) => s.status === "ACCEPTED");
+  const acceptedWindow = acceptedSchedule ? joinWindowState(acceptedSchedule.status, acceptedSchedule.proposedAt) : null;
 
   const initials = student.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 
@@ -40,6 +48,20 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
                 {student.links.portfolio ? <a href={normalize(student.links.portfolio)} target="_blank" rel="noopener" className="text-muted hover:text-cyan">Portfolio</a> : null}
               </div>
             </div>
+            {acceptedSchedule && acceptedWindow === "joinable" ? (
+              <Link
+                href={`/interviews/${acceptedSchedule.id}`}
+                className="ml-auto shrink-0 rounded-xl bg-cyan px-4 py-2.5 text-[13.5px] font-semibold text-on-accent transition-transform active:scale-[0.97]"
+              >
+                Join interview
+              </Link>
+            ) : acceptedSchedule && acceptedWindow === "too-early" ? (
+              <span className="ml-auto shrink-0 text-[12.5px] text-faint">
+                Interview opens 15 min before {fmtDateTime(acceptedSchedule.proposedAt)}
+              </span>
+            ) : acceptedSchedule && acceptedWindow === "expired" ? (
+              <span className="ml-auto shrink-0 text-[12.5px] text-faint">Interview window passed — propose a new time</span>
+            ) : null}
           </div>
 
           <div className="mt-6 grid grid-cols-2 gap-4 border-t border-line pt-6 sm:grid-cols-4">

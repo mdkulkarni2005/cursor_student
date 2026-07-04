@@ -3,7 +3,7 @@ export function interviewInviteEmail(opts: {
   studentName: string;
   recruiterCompany?: string | null;
   proposedAt: Date;
-  installLink: string;
+  joinLink: string;
 }): { subject: string; html: string; text: string } {
   const when = opts.proposedAt.toLocaleString("en-IN", {
     dateStyle: "full",
@@ -18,15 +18,15 @@ export function interviewInviteEmail(opts: {
 
 Your real interview${who} is confirmed for ${when}.
 
-Real interviews run through the StudentOS desktop app. Install it here before your interview time:
-${opts.installLink}
+Join right from your browser — camera and microphone required:
+${opts.joinLink}
 
 Good luck!`;
 
   const html = `<p>Hi ${opts.studentName},</p>
 <p>Your real interview${who} is confirmed for <strong>${when}</strong>.</p>
-<p>Real interviews run through the StudentOS desktop app. Install it before your interview time:</p>
-<p><a href="${opts.installLink}">${opts.installLink}</a></p>
+<p>Join right from your browser — camera and microphone required.</p>
+<p><a href="${opts.joinLink}">${opts.joinLink}</a></p>
 <p>Good luck!</p>`;
 
   return { subject, html, text };

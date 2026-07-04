@@ -64,6 +64,9 @@ export async function mintToken(opts: {
   identity: string;
   role: ParticipantRole;
   ttlSeconds?: number;
+  /** Shown as the participant's display name on the other side's video tile — falls back to the
+   *  bare identity (a cuid) if omitted, which reads as a raw ID rather than a person. */
+  name?: string;
 }): Promise<TokenResult> {
   if (!liveKitEnabled()) return unavailableToken("live interview disabled (LIVEKIT_DRIVER=off)");
   if (useStub()) {
@@ -80,6 +83,7 @@ export async function mintToken(opts: {
   try {
     const at = new AccessToken(cfg.apiKey, cfg.apiSecret, {
       identity: opts.identity,
+      name: opts.name,
       ttl: opts.ttlSeconds ?? 60 * 60,
     });
     at.addGrant({

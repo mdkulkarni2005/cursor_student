@@ -1,8 +1,10 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
-// Everything is private except the auth screens, public legal pages, and
-// the shareable public academic profile at /u/[handle].
+// Everything is private except the auth screens, public legal pages, the
+// shareable public academic profile at /u/[handle], and Phase G4's deep-link
+// handoff routes — /launch and /interview/auto-join both consume a Clerk sign-in
+// TICKET to establish a session, so they must be reachable with no session yet.
 const isPublicRoute = createRouteMatcher([
   "/",
   "/sign-in(.*)",
@@ -10,6 +12,8 @@ const isPublicRoute = createRouteMatcher([
   "/privacy(.*)",
   "/terms(.*)",
   "/u/(.*)",
+  "/launch(.*)",
+  "/interview/auto-join(.*)",
 ]);
 
 

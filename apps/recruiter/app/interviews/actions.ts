@@ -50,6 +50,15 @@ export async function scheduleInterview(studentId: string, _prev: ScheduleState,
   });
   if (!student?.visibleToRecruiters) return { error: "This student is no longer visible to recruiters." };
 
+  // Only one schedule should ever be "live" per recruiter-student pair — otherwise the student and
+  // recruiter can end up looking at (and joining) two different rows, each with its own LiveKit
+  // room, and never actually connect. Superseding old open rows here is cheap insurance against
+  // that; see also rescheduleInterview, which updates a row in place instead of creating a new one.
+  await prisma.interviewSchedule.updateMany({
+    where: { recruiterId: guard.recruiter.id, studentId, status: { in: ["PROPOSED", "ACCEPTED", "RESCHEDULE_REQUESTED"] } },
+    data: { status: "CANCELED" },
+  });
+
   await prisma.interviewSchedule.create({
     data: {
       recruiterId: guard.recruiter.id,
@@ -72,6 +81,42 @@ export async function scheduleInterview(studentId: string, _prev: ScheduleState,
   }).catch(() => {});
 
   return { scheduled: true };
+}
+
+export type RescheduleState = { error?: string; rescheduled?: boolean };
+
+/**
+ * Recruiter changes the time (and optionally the backup meeting link) of an EXISTING schedule —
+ * updates the same row (same id, same LiveKit room) rather than creating a new one, so the
+ * candidate and recruiter never end up pointed at two different rows for the same interview.
+ * Status resets to PROPOSED — the student needs to accept the new time through the normal flow.
+ * Any InterviewRoom tied to this schedule is dropped so a stale admittedAt/candidateReadyAt from
+ * the old time can't leak into the next attempt; createOrGetRoom recreates it idempotently.
+ */
+export async function rescheduleInterview(id: string, _prev: RescheduleState, formData: FormData): Promise<RescheduleState> {
+  const guard = await requireRecruiter();
+  if (!guard.ok) return { error: "Not authorized." };
+
+  const schedule = await prisma.interviewSchedule.findUnique({ where: { id } });
+  if (!schedule || schedule.recruiterId !== guard.recruiter.id) return { error: "Not found." };
+
+  const dateStr = String(formData.get("proposedAt") ?? "").trim();
+  const meetingLink = String(formData.get("meetingLink") ?? "").trim();
+  if (!dateStr) return { error: "Please pick a date and time." };
+  const proposedAt = new Date(dateStr);
+  if (Number.isNaN(proposedAt.getTime())) return { error: "Invalid date/time." };
+  if (proposedAt.getTime() < Date.now()) return { error: "Pick a time in the future." };
+  if (meetingLink && !/^https?:\/\//i.test(meetingLink)) return { error: "Meeting link must be a full URL (https://…)." };
+
+  await prisma.interviewSchedule.update({
+    where: { id },
+    data: { proposedAt, meetingLink: meetingLink || null, status: "PROPOSED" },
+  });
+  await prisma.interviewRoom.deleteMany({ where: { scheduleId: id } });
+
+  revalidatePath("/interviews");
+  revalidatePath(`/students/${schedule.studentId}`);
+  return { rescheduled: true };
 }
 
 export type OutcomeState = { error?: string; saved?: boolean };

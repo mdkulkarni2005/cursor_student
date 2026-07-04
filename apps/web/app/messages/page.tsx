@@ -4,6 +4,7 @@ import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
 import { ChatIcon } from "@/components/icons";
 import { MarkMessageRead } from "@/components/messages/mark-read";
 import { ScheduleResponse } from "@/components/messages/schedule-response";
+import { joinWindowState } from "@/lib/real-interview";
 
 export const metadata = { title: "Messages — Vidyas OS" };
 
@@ -68,7 +69,7 @@ export default async function MessagesPage() {
                     </a>
                   ) : null}
                   <p className="mt-1.5 text-[11px] font-medium text-faint">{SCHEDULE_STATUS_LABEL[s.status] ?? s.status}</p>
-                  <ScheduleResponse id={s.id} status={s.status} />
+                  <ScheduleResponse id={s.id} status={s.status} proposedAt={s.proposedAt} joinWindow={joinWindowState(s.status, s.proposedAt)} />
                 </div>
               ))}
             </div>

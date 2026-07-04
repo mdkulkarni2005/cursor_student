@@ -7,6 +7,7 @@ import { listFlagsForSchedule } from "@/lib/interview-flags";
 import { prisma } from "@studentos/db";
 import { FlagList } from "./flag-list";
 import { JoinPanel } from "./join-panel";
+import { CandidateLobbyMonitor } from "./candidate-lobby-monitor";
 
 export const metadata = { title: "Interview — Recruiter" };
 
@@ -24,6 +25,10 @@ export default async function InterviewDetailPage({ params }: { params: Promise<
   const flags = await listFlagsForSchedule(id, guard.recruiter.id);
   // schedule.recruiterId already checked above (notFound() otherwise), so this query is safe.
   const judgment = await prisma.interviewJudgment.findUnique({ where: { scheduleId: id } });
+  const room = await prisma.interviewRoom.findUnique({
+    where: { scheduleId: id },
+    select: { candidateReadyAt: true, admittedAt: true, candidateChecks: true },
+  });
 
   const VERDICT_LABEL: Record<string, string> = {
     strong_fit: "Strong fit",
@@ -49,7 +54,19 @@ export default async function InterviewDetailPage({ params }: { params: Promise<
       </div>
 
       {schedule.status === "ACCEPTED" ? (
-        <JoinPanel scheduleId={id} />
+        <>
+          {!room?.admittedAt && (
+            <CandidateLobbyMonitor
+              scheduleId={id}
+              initialCandidateReadyAt={room?.candidateReadyAt?.toISOString() ?? null}
+              initialAdmittedAt={null}
+              initialChecks={
+                (room?.candidateChecks as { fullscreen: boolean; monitorCount: number | null } | null) ?? null
+              }
+            />
+          )}
+          <JoinPanel scheduleId={id} />
+        </>
       ) : (
         <div className="mb-6 rounded-2xl border border-dashed border-line bg-card p-5 text-[13px] text-muted">
           {schedule.status === "PROPOSED" && "Waiting for the student to accept this proposal before you can join."}

@@ -550,6 +550,16 @@ model InterviewRoom {
   // Last snapshot of the shared code editor at end-of-call, fed into InterviewJudgment alongside
   // the transcript. Not live-synced here — written once, when the interview is finalized.
   finalCode   String?
+  // Pre-join proctoring gate (Phase E6): candidateReadyAt is set once the candidate finishes local
+  // checks and enters the LiveKit lobby (no tracks published yet); admittedAt is set once the
+  // recruiter lets them in. Durable so state survives page reloads on either side — the live push
+  // between candidate and recruiter is a LiveKit data message on top of these.
+  candidateReadyAt DateTime?
+  admittedAt       DateTime?
+  // Best-effort readiness summary (fullscreen/monitor count) captured alongside candidateReadyAt —
+  // persisted so a recruiter who connects/reloads AFTER the candidate's one-time LiveKit data
+  // message still sees it, not just "checking…" forever.
+  candidateChecks  Json?
 
   @@index([scheduleId])
 }
@@ -558,7 +568,9 @@ enum InterviewFlagKind {
   FULLSCREEN_EXIT
   TAB_HIDDEN
   CAMERA_OFF
+  MIC_OFF
   MULTI_MONITOR
+  COPY_PASTE_ATTEMPT
 }
 
 // Proctoring signal log for ONE InterviewSchedule (Phase E3). Same isolation pattern as
@@ -599,4 +611,25 @@ model InterviewJudgment {
   recommendation String
   model          String
   createdAt      DateTime @default(now())
+}
+
+enum SandboxStatus {
+  PENDING
+  RUNNING
+  STOPPED
+  UNAVAILABLE
+}
+
+// Recruiter-launched full-project code sandbox (Vercel Sandbox) for the coding round — richer than
+// the stateless Piston runner (persistent filesystem, package installs, any language/framework).
+// Same isolation pattern as InterviewRoom above — no relation, joined manually by scheduleId.
+model InterviewSandbox {
+  id         String        @id @default(cuid())
+  scheduleId String        @unique
+  sandboxId  String
+  status     SandboxStatus @default(PENDING)
+  createdAt  DateTime      @default(now())
+  endedAt    DateTime?
+
+  @@index([scheduleId])
 }

@@ -8,9 +8,11 @@ export type { FlagKind };
 export { shouldSendFlag };
 
 /**
- * Fullscreen-exit, tab-switch, camera-off, and (best-effort) multi-monitor detection for a
- * connected real-interview session (Phase E3). DETECTS, doesn't ENFORCE — a candidate can still
- * exit fullscreen or switch tabs; this only logs it for the recruiter to review afterward.
+ * Fullscreen-exit, tab-switch, camera-off, copy/paste, and (best-effort) multi-monitor detection
+ * for a real-interview session — active from the pre-join lobby through the full call (Phase E3 +
+ * E6). DETECTS, doesn't ENFORCE — a candidate can still exit fullscreen, switch tabs, or paste;
+ * this only logs it for the recruiter to review (live in the lobby monitor, or afterward in the
+ * flag list).
  */
 export function useProctoringSignals(opts: { scheduleId: string; room: Room | null; active: boolean }) {
   const { scheduleId, room, active } = opts;
@@ -68,13 +70,33 @@ export function useProctoringSignals(opts: { scheduleId: string; room: Room | nu
     };
   }, [active, postFlag]);
 
-  // Camera-off — the local participant's video track being muted/ended mid-session.
+  // Copy/paste blocking — a deterrent, not airtight (a candidate can still retype content by
+  // hand); preventDefault on copy/cut/paste and log each attempt.
+  useEffect(() => {
+    if (!active) return;
+
+    function onClipboardEvent(e: ClipboardEvent) {
+      e.preventDefault();
+      postFlag("COPY_PASTE_ATTEMPT", e.type);
+    }
+    document.addEventListener("copy", onClipboardEvent);
+    document.addEventListener("cut", onClipboardEvent);
+    document.addEventListener("paste", onClipboardEvent);
+    return () => {
+      document.removeEventListener("copy", onClipboardEvent);
+      document.removeEventListener("cut", onClipboardEvent);
+      document.removeEventListener("paste", onClipboardEvent);
+    };
+  }, [active, postFlag]);
+
+  // Camera/mic-off — the local participant's video or audio track being muted/ended mid-session.
   useEffect(() => {
     if (!active || !room) return;
 
     function onTrackMuted(publication: { source?: Track.Source }, participant: { identity?: string }) {
       if (participant.identity !== room?.localParticipant.identity) return;
       if (publication.source === Track.Source.Camera) postFlag("CAMERA_OFF");
+      else if (publication.source === Track.Source.Microphone) postFlag("MIC_OFF");
     }
 
     room.on(RoomEvent.TrackMuted, onTrackMuted);

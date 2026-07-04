@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { cancelSchedule, logOutcome, type OutcomeState } from "./actions";
+import { cancelSchedule, logOutcome, rescheduleInterview, type OutcomeState, type RescheduleState } from "./actions";
 
 const STATUS_STYLE: Record<string, string> = {
   PROPOSED: "text-warning bg-warning/12",
@@ -22,14 +22,22 @@ export function ScheduleRow({
   proposedAt: number;
 }) {
   const [state, action, pending] = useActionState<OutcomeState, FormData>(logOutcome.bind(null, id), {});
+  const [rescheduleState, rescheduleAction, reschedulePending] = useActionState<RescheduleState, FormData>(
+    rescheduleInterview.bind(null, id),
+    {},
+  );
   const [showOutcome, setShowOutcome] = useState(false);
+  const [showReschedule, setShowReschedule] = useState(false);
 
   const canCancel = status === "PROPOSED" || status === "RESCHEDULE_REQUESTED";
+  const canReschedule = status === "PROPOSED" || status === "ACCEPTED" || status === "RESCHEDULE_REQUESTED";
   // Date.now() is impure — read it once via lazy init, not directly during render.
   const [isPast] = useState(() => proposedAt < Date.now());
   const canLogOutcome = isPast && status !== "COMPLETED" && status !== "CANCELED" && status !== "DECLINED";
 
   if (state.saved) return <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${STATUS_STYLE.COMPLETED}`}>Outcome logged</span>;
+  if (rescheduleState.rescheduled)
+    return <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${STATUS_STYLE.PROPOSED}`}>New time proposed</span>;
 
   return (
     <div className="flex flex-col items-end gap-1.5">
@@ -49,7 +57,36 @@ export function ScheduleRow({
             Log outcome
           </button>
         ) : null}
+        {canReschedule ? (
+          <button type="button" onClick={() => setShowReschedule((v) => !v)} className="text-[11px] font-semibold text-cyan hover:underline">
+            Propose new time
+          </button>
+        ) : null}
       </div>
+      {showReschedule ? (
+        <form action={rescheduleAction} className="mt-1 flex w-[220px] flex-col gap-1.5 rounded-xl border border-line bg-surface p-2.5">
+          <input
+            type="datetime-local"
+            name="proposedAt"
+            required
+            className="rounded-lg border border-line-strong bg-card px-2 py-1.5 text-[12px] text-ink"
+          />
+          <input
+            type="url"
+            name="meetingLink"
+            placeholder="Backup meeting link (optional)"
+            className="rounded-lg border border-line-strong bg-card px-2 py-1.5 text-[12px] text-ink placeholder:text-faint"
+          />
+          {rescheduleState.error ? <p className="text-[11px] text-danger">{rescheduleState.error}</p> : null}
+          <button
+            type="submit"
+            disabled={reschedulePending}
+            className="rounded-lg bg-cyan px-2 py-1.5 text-[11.5px] font-semibold text-on-accent disabled:opacity-60"
+          >
+            {reschedulePending ? "Saving…" : "Send new time"}
+          </button>
+        </form>
+      ) : null}
       {showOutcome ? (
         <form action={action} className="mt-1 flex w-[220px] flex-col gap-1.5 rounded-xl border border-line bg-surface p-2.5">
           <select name="outcome" required className="rounded-lg border border-line-strong bg-card px-2 py-1.5 text-[12px] text-ink">

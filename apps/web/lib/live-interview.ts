@@ -30,13 +30,13 @@ export async function createOrGetRoom(scheduleId: string) {
   });
 }
 
-export async function joinRoom(scheduleId: string, identity: string, role: ParticipantRole) {
+export async function joinRoom(scheduleId: string, identity: string, role: ParticipantRole, name?: string) {
   const room = await prisma.interviewRoom.findUnique({ where: { scheduleId } });
   if (!room || room.status === "UNAVAILABLE") return { unavailable: true as const };
   // Once either side has explicitly ended the interview, the room is gone for good — never
   // re-mint a token or flip status back to ACTIVE. Rejoin is only for accidental disconnects.
   if (room.status === "ENDED") return { ended: true as const };
-  const tok = await mintToken({ roomName: room.livekitRoom, identity, role });
+  const tok = await mintToken({ roomName: room.livekitRoom, identity, role, name });
   if (tok.unavailable) return { unavailable: true as const };
   if (room.status === "PENDING") {
     await prisma.interviewRoom.update({ where: { scheduleId }, data: { status: "ACTIVE" } });
@@ -48,6 +48,35 @@ export async function joinRoom(scheduleId: string, identity: string, role: Parti
  *  see use-proctoring-signals.ts's throttle; nothing here prevents a duplicate row. */
 export async function recordFlag(scheduleId: string, kind: InterviewFlagKind, detail?: string) {
   return prisma.interviewFlag.create({ data: { scheduleId, kind, detail } });
+}
+
+export type PreJoinChecks = { fullscreen: boolean; monitorCount: number | null };
+
+/** Candidate finished local pre-join checks and entered the LiveKit lobby (no tracks published
+ *  yet). Sets candidateReadyAt + the checks summary once; returns whether the recruiter has
+ *  already admitted them, so a reconnecting candidate can skip straight to publishing tracks. */
+export async function markCandidateReady(scheduleId: string, checks?: PreJoinChecks) {
+  const room = await prisma.interviewRoom.findUnique({ where: { scheduleId } });
+  if (!room || room.status === "UNAVAILABLE" || room.status === "ENDED") {
+    return { admitted: false };
+  }
+  if (!room.candidateReadyAt) {
+    await prisma.interviewRoom.update({
+      where: { scheduleId },
+      data: { candidateReadyAt: new Date(), candidateChecks: checks ?? undefined },
+    });
+  }
+  return { admitted: room.admittedAt !== null };
+}
+
+/** Read-only poll target — a safety net alongside the LiveKit "admitted" data message, since a
+ *  single dropped/late data packet shouldn't strand the candidate in the lobby forever. */
+export async function getReadyStatus(scheduleId: string) {
+  const room = await prisma.interviewRoom.findUnique({
+    where: { scheduleId },
+    select: { admittedAt: true },
+  });
+  return { admitted: room?.admittedAt !== null && room?.admittedAt !== undefined };
 }
 
 export async function endInterviewRoom(scheduleId: string, finalCode?: string) {

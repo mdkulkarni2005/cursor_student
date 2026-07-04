@@ -21,6 +21,7 @@
     "@studentos/db": "workspace:*",
     "@studentos/email": "workspace:*",
     "@studentos/live-interview": "workspace:*",
+    "@studentos/sandbox-execution": "workspace:*",
     "@uiw/react-codemirror": "^4.25.2",
     "livekit-client": "^2.9.6",
     "next": "16.2.9",

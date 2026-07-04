@@ -5,6 +5,7 @@ import { Room, RoomEvent, RemoteTrack, RemoteTrackPublication, RemoteParticipant
 import { useTranscriptCapture } from "@/components/use-transcript-capture";
 import { useYjsLiveKitProvider } from "@/components/use-yjs-livekit-provider";
 import { CollabEditor } from "@/components/collab-editor";
+import { SandboxTerminal } from "@/components/sandbox-terminal";
 
 type JoinState =
   | { phase: "idle" }
@@ -18,6 +19,10 @@ type JoinState =
   | { phase: "left" }
   // Recruiter clicked "End interview" — the hard terminator. Room is gone for good.
   | { phase: "interview-ended" }
+  // The 7-hour-after-start join window has passed — reschedule from the interviews list instead.
+  | { phase: "expired" }
+  // Join window hasn't opened yet (more than 15 min before the scheduled time).
+  | { phase: "too-early" }
   | { phase: "waiting"; message: string }
   | { phase: "error"; message: string };
 
@@ -32,6 +37,8 @@ export function JoinPanel({ scheduleId }: { scheduleId: string }) {
   const [room, setRoom] = useState<Room | null>(null);
   const [remoteName, setRemoteName] = useState<string | null>(null);
   const [ending, setEnding] = useState(false);
+  const [sandboxActive, setSandboxActive] = useState(false);
+  const [launchingSandbox, setLaunchingSandbox] = useState(false);
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const roomRef = useRef<Room | null>(null);
@@ -110,6 +117,14 @@ export function JoinPanel({ scheduleId }: { scheduleId: string }) {
         setState({ phase: "interview-ended" });
         return;
       }
+      if (data.expired) {
+        setState({ phase: "expired" });
+        return;
+      }
+      if (data.tooEarly) {
+        setState({ phase: "too-early" });
+        return;
+      }
       if (data.waiting) {
         setState({ phase: "waiting", message: "Waiting for the candidate to open the interview page first." });
         return;
@@ -135,6 +150,25 @@ export function JoinPanel({ scheduleId }: { scheduleId: string }) {
     setState({ phase: "left" });
   }
 
+  /** "Launch Code" — creates (or resumes) the shared Vercel Sandbox for the coding round. Both
+   *  sides read/write the same shared editor either way; this only unlocks the "Run" affordance. */
+  async function handleLaunchSandbox() {
+    setLaunchingSandbox(true);
+    try {
+      const res = await fetch("/api/interview-room/sandbox/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scheduleId }),
+      });
+      const data = await res.json();
+      setSandboxActive(!data.unavailable);
+    } catch {
+      setSandboxActive(false);
+    } finally {
+      setLaunchingSandbox(false);
+    }
+  }
+
   /** Hard terminator — expires the room for both sides and kicks off the AI judgment. */
   async function handleEndInterview() {
     setEnding(true);
@@ -157,6 +191,18 @@ export function JoinPanel({ scheduleId }: { scheduleId: string }) {
 
   if (state.phase === "interview-ended") {
     return <p className="text-[12.5px] text-muted">Interview ended. The AI summary will appear below shortly.</p>;
+  }
+
+  if (state.phase === "expired") {
+    return (
+      <p className="text-[12.5px] text-muted">
+        This interview&rsquo;s join window has passed. Use &ldquo;Propose new time&rdquo; on the interviews list to reschedule.
+      </p>
+    );
+  }
+
+  if (state.phase === "too-early") {
+    return <p className="text-[12.5px] text-muted">This interview isn&rsquo;t joinable yet — the window opens 15 minutes before the scheduled time.</p>;
   }
 
   const showVideo = state.phase === "requesting-media" || state.phase === "joining" || state.phase === "connected";
@@ -198,6 +244,15 @@ export function JoinPanel({ scheduleId }: { scheduleId: string }) {
           >
             {ending ? "Ending…" : "End interview"}
           </button>
+          {!sandboxActive && (
+            <button
+              onClick={handleLaunchSandbox}
+              disabled={launchingSandbox}
+              className="rounded-xl border border-cyan/35 bg-cyan/10 px-4 py-2.5 text-[13.5px] font-semibold text-cyan disabled:opacity-60"
+            >
+              {launchingSandbox ? "Launching…" : "Launch Code"}
+            </button>
+          )}
         </div>
       ) : state.phase === "disconnected" || state.phase === "left" ? (
         <div>
@@ -221,6 +276,7 @@ export function JoinPanel({ scheduleId }: { scheduleId: string }) {
         <p className="mt-2 text-[12.5px] text-muted">{state.message}</p>
       )}
       {state.phase === "connected" && <CollabEditor ydoc={ydoc} />}
+      {state.phase === "connected" && sandboxActive && <SandboxTerminal ydoc={ydoc} scheduleId={scheduleId} />}
     </div>
   );
 }

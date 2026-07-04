@@ -4,7 +4,14 @@ import { getOrCreateUser } from "@/lib/user";
 import { rateLimit, friendlyError, RateLimitError } from "@/lib/reliability";
 import { ownedAcceptedSchedule, recordFlag } from "@/lib/live-interview";
 
-const VALID_KINDS = new Set<InterviewFlagKind>(["FULLSCREEN_EXIT", "TAB_HIDDEN", "CAMERA_OFF", "MULTI_MONITOR"]);
+const VALID_KINDS = new Set<InterviewFlagKind>([
+  "FULLSCREEN_EXIT",
+  "TAB_HIDDEN",
+  "CAMERA_OFF",
+  "MIC_OFF",
+  "MULTI_MONITOR",
+  "COPY_PASTE_ATTEMPT",
+]);
 
 /**
  * Proctoring signal from the candidate's browser (Phase E3). Client-side throttling

@@ -16,7 +16,8 @@
   "dependencies": {
     "livekit-server-sdk": "^2.9.0",
     "@studentos/ai": "workspace:*",
-    "@studentos/db": "workspace:*"
+    "@studentos/db": "workspace:*",
+    "@studentos/sandbox-execution": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",

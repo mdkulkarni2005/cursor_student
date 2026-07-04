@@ -8,7 +8,9 @@ const KIND_LABEL: Record<string, string> = {
   FULLSCREEN_EXIT: "Left fullscreen",
   TAB_HIDDEN: "Switched tab / window",
   CAMERA_OFF: "Camera turned off",
+  MIC_OFF: "Microphone muted",
   MULTI_MONITOR: "Multiple monitors detected",
+  COPY_PASTE_ATTEMPT: "Copy/paste attempt blocked",
 };
 
 const REFRESH_MS = 15_000;

@@ -12,7 +12,7 @@
  */
 import assert from "node:assert";
 import { prisma, type InterviewFlagKind } from "@studentos/db";
-import { ownedAcceptedSchedule, recordFlag } from "../lib/live-interview.js";
+import { ownedAcceptedSchedule, recordFlag, markCandidateReady, getReadyStatus } from "../lib/live-interview.js";
 import { rateLimit, RateLimitError } from "../lib/reliability.js";
 import { shouldSendFlag, type FlagKind } from "../lib/proctoring-throttle.js";
 
@@ -85,10 +85,15 @@ async function main() {
   await recordFlag(schedule.id, "FULLSCREEN_EXIT" as InterviewFlagKind);
   await recordFlag(schedule.id, "TAB_HIDDEN" as InterviewFlagKind, "hidden 12s");
   await recordFlag(schedule.id, "CAMERA_OFF" as InterviewFlagKind);
+  await recordFlag(schedule.id, "MIC_OFF" as InterviewFlagKind);
   await recordFlag(schedule.id, "MULTI_MONITOR" as InterviewFlagKind, "2 displays detected");
+  await recordFlag(schedule.id, "COPY_PASTE_ATTEMPT" as InterviewFlagKind, "paste");
   const rows = await prisma.interviewFlag.findMany({ where: { scheduleId: schedule.id }, orderBy: { occurredAt: "asc" } });
-  ok("all 4 kinds written", rows.length === 4, `${rows.length} rows`);
-  ok("kinds match", rows.map((r) => r.kind).join(",") === "FULLSCREEN_EXIT,TAB_HIDDEN,CAMERA_OFF,MULTI_MONITOR");
+  ok("all 6 kinds written", rows.length === 6, `${rows.length} rows`);
+  ok(
+    "kinds match",
+    rows.map((r) => r.kind).join(",") === "FULLSCREEN_EXIT,TAB_HIDDEN,CAMERA_OFF,MIC_OFF,MULTI_MONITOR,COPY_PASTE_ATTEMPT",
+  );
 
   console.log("\nOwner-guard rejects a non-owned schedule:");
   let threw = false;
@@ -123,6 +128,33 @@ async function main() {
   ok("re-send after throttle window is allowed", shouldSendFlag(lastSent, "TAB_HIDDEN", t0 + 25_000) === true);
   lastSent.set("MULTI_MONITOR", t0);
   ok("MULTI_MONITOR never re-sends in the same session (infinite throttle)", shouldSendFlag(lastSent, "MULTI_MONITOR", t0 + 10_000_000) === false);
+  lastSent.set("COPY_PASTE_ATTEMPT", t0);
+  ok("COPY_PASTE_ATTEMPT re-send within its shorter 10s window is blocked", shouldSendFlag(lastSent, "COPY_PASTE_ATTEMPT", t0 + 5_000) === false);
+  ok("COPY_PASTE_ATTEMPT re-send after its window is allowed", shouldSendFlag(lastSent, "COPY_PASTE_ATTEMPT", t0 + 11_000) === true);
+
+  console.log("\nPre-join lobby/admit reconciliation (Phase E6):");
+  await prisma.interviewRoom.upsert({
+    where: { scheduleId: schedule.id },
+    create: { scheduleId: schedule.id, livekitRoom: `interview-${schedule.id}`, status: "PENDING" },
+    update: { status: "PENDING", candidateReadyAt: null, admittedAt: null, candidateChecks: undefined },
+  });
+  const beforeReady = await getReadyStatus(schedule.id);
+  ok("not admitted before markCandidateReady", beforeReady.admitted === false);
+  const readyResult = await markCandidateReady(schedule.id, { fullscreen: true, monitorCount: 1 });
+  ok("markCandidateReady reports not-yet-admitted", readyResult.admitted === false);
+  const roomAfterReady = await prisma.interviewRoom.findUnique({ where: { scheduleId: schedule.id } });
+  ok("candidateReadyAt persisted", roomAfterReady?.candidateReadyAt != null);
+  ok(
+    "candidateChecks persisted",
+    JSON.stringify(roomAfterReady?.candidateChecks) === JSON.stringify({ fullscreen: true, monitorCount: 1 }),
+  );
+  // Simulate the recruiter's admit (admitCandidate lives in apps/recruiter's lib — same
+  // scheduleId-keyed InterviewRoom write, verified directly here to stay within this app).
+  await prisma.interviewRoom.update({ where: { scheduleId: schedule.id }, data: { admittedAt: new Date() } });
+  const afterAdmit = await getReadyStatus(schedule.id);
+  ok("getReadyStatus reflects admittedAt", afterAdmit.admitted === true);
+  const readyAgain = await markCandidateReady(schedule.id, { fullscreen: true, monitorCount: 1 });
+  ok("a reconnecting candidate's markCandidateReady now reports admitted", readyAgain.admitted === true);
 
   console.log("\nRoute-level rate limit blocks after cap (mirrors interview-room/flag's limit=30):");
   const u = `verify-flag-rl-${Date.now()}`;

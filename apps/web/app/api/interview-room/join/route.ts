@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     if (!(await hasJoinableRealInterview(user.id))) {
       return NextResponse.json({ error: "This interview isn't in its join window right now." }, { status: 403 });
     }
-    const result = await joinRoom(scheduleId, user.id, "candidate");
+    const result = await joinRoom(scheduleId, user.id, "candidate", user.name ?? undefined);
     if (result.unavailable) return NextResponse.json({ unavailable: true });
     return NextResponse.json({ token: result.token, wsUrl: result.wsUrl });
   } catch (err) {
