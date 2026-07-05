@@ -9,6 +9,8 @@ export * from "./resume";
 export * from "./project";
 export * from "./interview";
 export * from "./real-interview-judgment";
+export * from "./job-match";
+export * from "./live-suggestions";
 export * from "./dsa";
 export * from "./image";
 export * from "./cache";

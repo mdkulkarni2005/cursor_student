@@ -6,6 +6,7 @@ import { useTranscriptCapture } from "@/components/use-transcript-capture";
 import { useYjsLiveKitProvider } from "@/components/use-yjs-livekit-provider";
 import { CollabEditor } from "@/components/collab-editor";
 import { SandboxTerminal } from "@/components/sandbox-terminal";
+import { SuggestionsPanel } from "./suggestions-panel";
 
 type JoinState =
   | { phase: "idle" }
@@ -228,6 +229,8 @@ export function JoinPanel({ scheduleId }: { scheduleId: string }) {
           </span>
         </div>
       </div>
+
+      {state.phase === "connected" && <SuggestionsPanel scheduleId={scheduleId} active={state.phase === "connected"} />}
 
       {state.phase === "connected" ? (
         <div className="flex gap-2">

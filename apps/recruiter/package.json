@@ -18,6 +18,7 @@
     "@codemirror/state": "^6.5.2",
     "@codemirror/theme-one-dark": "^6.1.3",
     "@codemirror/view": "^6.36.2",
+    "@studentos/ai": "workspace:*",
     "@studentos/db": "workspace:*",
     "@studentos/email": "workspace:*",
     "@studentos/live-interview": "workspace:*",

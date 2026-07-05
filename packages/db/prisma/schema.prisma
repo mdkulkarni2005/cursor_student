@@ -520,11 +520,16 @@ model InterviewSchedule {
   studentNote String?
   outcome     InterviewOutcome?
   outcomeNote String?
+  // Optional link to the JobPosting this interview was scheduled for (via "Select for interview"
+  // on a posting's matched-candidates list). Null for ad-hoc interviews scheduled without a
+  // posting, same manual-join convention as InterviewRoom/InterviewJudgment below.
+  jobPostingId String?
   createdAt   DateTime                @default(now())
   updatedAt   DateTime                @updatedAt
 
   @@index([studentId, proposedAt])
   @@index([recruiterId, proposedAt])
+  @@index([jobPostingId])
 }
 
 enum InterviewRoomStatus {
@@ -609,8 +614,65 @@ model InterviewJudgment {
   strengths      Json
   concerns       Json
   recommendation String
+  // 0-10, additive on top of fitVerdict — nullable since judgments generated before this field
+  // existed have no score. Not the decision-maker, same disclaimer as the rest of this model.
+  score          Int?
   model          String
   createdAt      DateTime @default(now())
+}
+
+enum JobPostingStatus {
+  OPEN
+  CLOSED
+}
+
+enum JobMatchRunStatus {
+  IDLE
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+// A recruiter-created job posting with a JD, used as the basis for AI candidate matching
+// (JobMatch below) and as optional role context for InterviewSchedule/InterviewJudgment. Same
+// isolation pattern as the interview-cluster models — no relation to Recruiter, joined manually
+// by recruiterId, so this feature stays droppable without touching Recruiter.
+model JobPosting {
+  id          String           @id @default(cuid())
+  recruiterId String
+  title       String
+  description String
+  department  String?
+  status      JobPostingStatus @default(OPEN)
+  // Mirrors GenerationJob's QUEUED/RUNNING/SUCCEEDED/FAILED shape (packages/db schema, Document
+  // generation) but kept as plain fields here rather than a shared model, since JobPosting isn't a
+  // Document. Scoring runs via Next's after() outside the request lifecycle (see
+  // apps/recruiter/app/jobs/actions.ts) so "Find candidates" can't hit a serverless timeout even
+  // once the visible-student pool is large — the client polls these fields instead of awaiting.
+  matchStatus      JobMatchRunStatus @default(IDLE)
+  matchError       String?
+  matchStartedAt   DateTime?
+  matchFinishedAt  DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([recruiterId, createdAt])
+}
+
+// AI-computed match score of one student against one JobPosting (Phase: job matching). Recomputed
+// on-demand (recruiter clicks "Find candidates"), never shown to the student — recruiter-only.
+// Manual join by jobPostingId/studentId, same isolation pattern as everything above.
+model JobMatch {
+  id           String   @id @default(cuid())
+  jobPostingId String
+  studentId    String
+  matchPercent Int
+  rationale    String
+  model        String
+  computedAt   DateTime @default(now())
+
+  @@unique([jobPostingId, studentId])
+  @@index([jobPostingId, matchPercent])
 }
 
 enum SandboxStatus {

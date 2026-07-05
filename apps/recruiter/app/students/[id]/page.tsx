@@ -3,19 +3,37 @@ import { notFound } from "next/navigation";
 import { requireRecruiter } from "@/lib/recruiter";
 import { NotAuthorized } from "@/components/not-authorized";
 import { RecruiterShell } from "@/components/shell";
+import { prisma } from "@studentos/db";
 import { getStudentDetail } from "@/lib/student-profile";
 import { listSchedulesForStudent, joinWindowState } from "@/lib/interview-schedule";
 import { MessageForm } from "./message/message-form";
 import { ScheduleForm } from "./schedule/schedule-form";
 
-export default async function StudentDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function StudentDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ jobPostingId?: string }>;
+}) {
   const guard = await requireRecruiter();
   if (!guard.ok) return <NotAuthorized reason={guard.reason} />;
 
   const { id } = await params;
+  const { jobPostingId: rawJobPostingId } = await searchParams;
   const student = await getStudentDetail(id);
   if (!student) notFound();
   const schedules = await listSchedulesForStudent(guard.recruiter.id, id);
+
+  // Only trust jobPostingId if it's actually this recruiter's own posting — same guard as the
+  // scheduleInterview action itself, so the banner never shows/links to someone else's posting.
+  const selectedPosting =
+    rawJobPostingId
+      ? await prisma.jobPosting.findFirst({
+          where: { id: rawJobPostingId, recruiterId: guard.recruiter.id },
+          select: { id: true, title: true },
+        })
+      : null;
   // Exactly one schedule should ever be ACCEPTED per pair (see scheduleInterview/
   // rescheduleInterview, which supersede/replace old rows in place) — this is the single
   // unambiguous "Join interview" entry point, rather than making the recruiter guess which of
@@ -108,7 +126,12 @@ export default async function StudentDetailPage({ params }: { params: Promise<{ 
 
             <div>
               <h2 className="mb-3 font-display text-[16px] font-semibold text-ink">Schedule real interview</h2>
-              <ScheduleForm studentId={student.id} />
+              {selectedPosting ? (
+                <p className="mb-2 rounded-xl border border-cyan/30 bg-cyan/10 px-3.5 py-2.5 text-[12.5px] text-cyan">
+                  Scheduling for &ldquo;{selectedPosting.title}&rdquo; — they&rsquo;ve already been messaged the JD.
+                </p>
+              ) : null}
+              <ScheduleForm studentId={student.id} jobPostingId={selectedPosting?.id} />
               {schedules.length > 0 ? (
                 <div className="mt-4 flex flex-col gap-2">
                   {schedules.map((s) => (

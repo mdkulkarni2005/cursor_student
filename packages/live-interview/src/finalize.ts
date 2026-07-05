@@ -49,11 +49,17 @@ async function generateJudgment(scheduleId: string, finalCode?: string): Promise
   ]);
   if (!schedule) return;
 
+  const posting = schedule.jobPostingId
+    ? await prisma.jobPosting.findUnique({ where: { id: schedule.jobPostingId } })
+    : null;
+
   const { judgment, model } = await judgeRealInterview({
     transcriptLines: lines.map((l) => ({ speaker: l.speaker, text: l.text })),
     candidateName: schedule.student.name ?? undefined,
     recruiterNote: schedule.note ?? undefined,
     finalCode: finalCode ?? room?.finalCode ?? undefined,
+    jobTitle: posting?.title,
+    jobDescription: posting?.description,
   });
 
   await prisma.interviewJudgment.upsert({
@@ -65,6 +71,7 @@ async function generateJudgment(scheduleId: string, finalCode?: string): Promise
       strengths: judgment.strengths,
       concerns: judgment.concerns,
       recommendation: judgment.recommendation,
+      score: judgment.score,
       model,
     },
     update: {
@@ -73,6 +80,7 @@ async function generateJudgment(scheduleId: string, finalCode?: string): Promise
       strengths: judgment.strengths,
       concerns: judgment.concerns,
       recommendation: judgment.recommendation,
+      score: judgment.score,
       model,
     },
   });

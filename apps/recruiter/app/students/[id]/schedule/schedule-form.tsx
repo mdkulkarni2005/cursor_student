@@ -3,7 +3,7 @@
 import { useActionState } from "react";
 import { scheduleInterview, type ScheduleState } from "@/app/interviews/actions";
 
-export function ScheduleForm({ studentId }: { studentId: string }) {
+export function ScheduleForm({ studentId, jobPostingId }: { studentId: string; jobPostingId?: string }) {
   const [state, action, pending] = useActionState<ScheduleState, FormData>(scheduleInterview.bind(null, studentId), {});
 
   if (state.scheduled) {
@@ -12,6 +12,7 @@ export function ScheduleForm({ studentId }: { studentId: string }) {
 
   return (
     <form action={action} className="flex flex-col gap-2.5">
+      {jobPostingId ? <input type="hidden" name="jobPostingId" value={jobPostingId} /> : null}
       <div>
         <label htmlFor="proposedAt" className="mb-1 block text-[11.5px] font-semibold text-muted">Date &amp; time</label>
         <input

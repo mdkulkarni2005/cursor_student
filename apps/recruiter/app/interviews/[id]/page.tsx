@@ -81,9 +81,16 @@ export default async function InterviewDetailPage({ params }: { params: Promise<
         <div className="mb-6 rounded-2xl border border-line bg-card p-5">
           <div className="mb-2 flex items-center justify-between">
             <h2 className="font-display text-[16px] font-semibold text-ink">AI-assisted summary</h2>
-            <span className="rounded-full bg-cyan/10 px-2.5 py-0.5 text-[11.5px] font-semibold text-cyan">
-              {VERDICT_LABEL[judgment.fitVerdict] ?? judgment.fitVerdict}
-            </span>
+            <div className="flex items-center gap-2">
+              {typeof judgment.score === "number" && (
+                <span className="rounded-full bg-ink/5 px-2.5 py-0.5 text-[11.5px] font-semibold text-ink">
+                  {judgment.score}/10
+                </span>
+              )}
+              <span className="rounded-full bg-cyan/10 px-2.5 py-0.5 text-[11.5px] font-semibold text-cyan">
+                {VERDICT_LABEL[judgment.fitVerdict] ?? judgment.fitVerdict}
+              </span>
+            </div>
           </div>
           <p className="mb-3 text-[11px] text-faint">AI-assisted, not the decision — you make the final call.</p>
           <p className="mb-3 text-[13.5px] text-soft">{judgment.summary}</p>

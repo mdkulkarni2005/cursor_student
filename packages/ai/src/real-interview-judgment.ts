@@ -16,6 +16,9 @@ export const RealInterviewJudgmentSchema = z.object({
   strengths: z.array(z.string()).default([]),
   concerns: z.array(z.string()).default([]),
   recommendation: z.string().min(1),
+  // 0-10, additive alongside fitVerdict — a quick-glance number for the recruiter, not the
+  // decision itself.
+  score: z.number().int().min(0).max(10),
 });
 export type RealInterviewJudgment = z.infer<typeof RealInterviewJudgmentSchema>;
 
@@ -27,6 +30,10 @@ export type JudgeRealInterviewRequest = {
   recruiterNote?: string;
   /** Final snapshot of the shared code editor at end-of-call, if the interview had a coding round. */
   finalCode?: string;
+  /** Title/description of the linked JobPosting, if this interview was scheduled against one —
+   *  when present, judge fit against THIS role specifically rather than generically. */
+  jobTitle?: string;
+  jobDescription?: string;
 };
 
 const JUDGMENT_SYSTEM = [
@@ -35,6 +42,8 @@ const JUDGMENT_SYSTEM = [
   "give them an honest, specific summary of what was said, not a score to defer to.",
   "Base everything ONLY on the transcript provided. If the transcript is thin or ambiguous, say so",
   "plainly rather than inventing confidence you don't have.",
+  "If a job title/description is given, judge fit against THAT specific role. If none is given,",
+  "judge general communication/problem-solving strength instead of inventing a role.",
 ].join("\n");
 
 function transcriptText(lines: TranscriptLine[]): string {
@@ -56,6 +65,7 @@ function stubJudgment(req: JudgeRealInterviewRequest): RealInterviewJudgment {
     strengths: candidateLines.length > 0 ? ["Participated actively in the conversation"] : [],
     concerns: candidateLines.length === 0 ? ["No transcript captured — verify the call actually ran"] : [],
     recommendation: "This is a stub judgment for local testing — review the actual call yourself before deciding.",
+    score: candidateLines.length === 0 ? 0 : totalLen > 400 ? 6 : 3,
   };
 }
 
@@ -66,6 +76,8 @@ export async function judgeRealInterview(req: JudgeRealInterviewRequest): Promis
 
   const prompt = [
     req.candidateName ? `Candidate: ${req.candidateName}` : "",
+    req.jobTitle ? `Role being judged for: ${req.jobTitle}` : "",
+    req.jobDescription ? `Job description:\n${req.jobDescription}` : "",
     req.recruiterNote ? `Recruiter's note when scheduling: ${req.recruiterNote}` : "",
     `Transcript:\n${transcriptText(req.transcriptLines)}`,
     req.finalCode ? `Candidate's final code from the shared editor:\n${req.finalCode}` : "",

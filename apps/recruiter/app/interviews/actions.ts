@@ -59,6 +59,17 @@ export async function scheduleInterview(studentId: string, _prev: ScheduleState,
     data: { status: "CANCELED" },
   });
 
+  // Validate ownership — a hidden field is client-controlled, and this JD text later feeds the
+  // post-interview AI judgment prompt, so don't let a tampered value pull in another recruiter's
+  // posting.
+  const rawJobPostingId = String(formData.get("jobPostingId") ?? "").trim();
+  const jobPostingId = rawJobPostingId
+    ? (await prisma.jobPosting.findUnique({ where: { id: rawJobPostingId }, select: { recruiterId: true } }))?.recruiterId ===
+      guard.recruiter.id
+      ? rawJobPostingId
+      : null
+    : null;
+
   await prisma.interviewSchedule.create({
     data: {
       recruiterId: guard.recruiter.id,
@@ -66,6 +77,7 @@ export async function scheduleInterview(studentId: string, _prev: ScheduleState,
       proposedAt,
       meetingLink: meetingLink || null,
       note: note || null,
+      jobPostingId: jobPostingId || null,
     },
   });
 
