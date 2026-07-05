@@ -22,9 +22,19 @@ export async function completeOnboarding(
   const userType = formData.get("userType") === "PROFESSIONAL" ? "PROFESSIONAL" : "STUDENT";
   const careerGoal = String(formData.get("careerGoal") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
+  const github = String(formData.get("github") ?? "").trim();
+  const linkedin = String(formData.get("linkedin") ?? "").trim();
+  const gpaRaw = String(formData.get("gpa") ?? "").trim();
   const acceptedLegal = formData.get("acceptedLegal") === "on";
 
   if (!PHONE_RE.test(phone)) return { error: "Please enter a valid phone number." };
+  if (!github) return { error: "Please add your GitHub link." };
+  if (!linkedin) return { error: "Please add your LinkedIn link." };
+  let gpa: number | null = null;
+  if (gpaRaw) {
+    gpa = Number(gpaRaw);
+    if (!Number.isFinite(gpa) || gpa < 0 || gpa > 10) return { error: "Please enter a valid GPA between 0 and 10." };
+  }
   if (!acceptedLegal) return { error: "Please accept the Terms and Privacy Policy to continue." };
 
   const me = await prisma.user.findUnique({ where: { clerkId: userId }, select: { id: true } });
@@ -40,7 +50,6 @@ export async function completeOnboarding(
     const companyName = String(formData.get("companyName") ?? "").trim();
     const jobTitle = String(formData.get("jobTitle") ?? "").trim();
     const yearsRaw = String(formData.get("yearsOfExperience") ?? "").trim();
-    const linkedin = String(formData.get("linkedin") ?? "").trim();
 
     if (!companyName) return { error: "Please enter your company name." };
     if (!jobTitle) return { error: "Please enter your job title." };
@@ -53,7 +62,9 @@ export async function completeOnboarding(
         companyName,
         jobTitle,
         yearsOfExperience,
-        linkedin: linkedin || null,
+        githubUrl: github,
+        linkedin,
+        gpa,
         careerGoal: careerGoal || null,
         phone,
         codingEnabled: true,
@@ -88,6 +99,9 @@ export async function completeOnboarding(
       semester,
       careerGoal: careerGoal || null,
       phone,
+      githubUrl: github,
+      linkedin,
+      gpa,
       institutionId: institution.id,
       codingEnabled,
       acceptedLegalAt: new Date(),

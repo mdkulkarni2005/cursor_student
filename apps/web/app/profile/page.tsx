@@ -7,6 +7,7 @@ import { getLeaderboard } from "@/lib/dsa/leaderboard";
 import { getResume } from "@/lib/resume/generate";
 import { ShareProfileButton } from "@/components/profile/share-button";
 import { RecruiterVisibilityToggle } from "@/components/profile/recruiter-visibility-toggle";
+import { SocialLinksForm } from "@/components/profile/social-links-form";
 import { ResumeIcon } from "@/components/icons";
 
 export const metadata = { title: "Profile — Vidyas OS" };
@@ -20,9 +21,13 @@ export default async function ProfilePage() {
     prisma.document.findFirst({ where: { ownerId: user.id, type: "RESUME", status: "READY" }, orderBy: { updatedAt: "desc" } }),
   ]);
 
-  // Real social links from the latest resume's contact block (if any).
+  // Prefer the dedicated onboarding fields; fall back to the resume's parsed contact block for
+  // users who set links there before githubUrl/linkedin existed as real columns.
   const resumeData = resume ? await getResume(user.id, resume.id) : null;
-  const links = resumeData?.resume.contact;
+  const links = {
+    github: user.githubUrl ?? resumeData?.resume.contact.github,
+    linkedin: user.linkedin ?? resumeData?.resume.contact.linkedin,
+  };
 
   const initials = (user.name ?? "Student").split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 
@@ -36,6 +41,10 @@ export default async function ProfilePage() {
   return (
     <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[1080px]">
+        {(!user.githubUrl || !user.linkedin) ? (
+          <SocialLinksForm initialGithub={user.githubUrl} initialLinkedin={user.linkedin} initialGpa={user.gpa} />
+        ) : null}
+
         {/* Header card */}
         <div className="rounded-2xl border border-line bg-card p-6 sm:p-8">
           <div className="flex flex-col items-start justify-between gap-5 sm:flex-row">

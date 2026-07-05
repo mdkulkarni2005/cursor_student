@@ -133,11 +133,6 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
                 <label htmlFor="yearsOfExperience" className={fieldLabel}>Years of experience</label>
                 <input id="yearsOfExperience" name="yearsOfExperience" type="number" min={0} max={60} placeholder="e.g. 3" className={`${fieldBox} placeholder:text-faint`} />
               </div>
-
-              <div className="mb-4">
-                <label htmlFor="linkedin" className={fieldLabel}>LinkedIn / contact link</label>
-                <input id="linkedin" name="linkedin" type="text" placeholder="e.g. linkedin.com/in/yourname (optional)" className={`${fieldBox} placeholder:text-faint`} />
-              </div>
             </>
           )}
 
@@ -145,6 +140,21 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
             <label htmlFor="phone" className={fieldLabel}>Phone number</label>
             <input id="phone" name="phone" type="tel" required placeholder="e.g. 9876543210" className={`${fieldBox} placeholder:text-faint`} />
             <p className="mt-1 text-[11px] text-faint">Used only to verify you&apos;re a unique person — never shared or used for marketing.</p>
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="github" className={fieldLabel}>GitHub link</label>
+            <input id="github" name="github" type="text" required placeholder="e.g. github.com/yourname" className={`${fieldBox} placeholder:text-faint`} />
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="linkedin" className={fieldLabel}>LinkedIn link</label>
+            <input id="linkedin" name="linkedin" type="text" required placeholder="e.g. linkedin.com/in/yourname" className={`${fieldBox} placeholder:text-faint`} />
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="gpa" className={fieldLabel}>GPA / CGPA <span className="font-normal text-faint">(optional, out of 10)</span></label>
+            <input id="gpa" name="gpa" type="number" min={0} max={10} step="0.01" placeholder="e.g. 8.5" className={`${fieldBox} placeholder:text-faint`} />
           </div>
 
           {/* Career-goal mapping — "What's your vision?" */}

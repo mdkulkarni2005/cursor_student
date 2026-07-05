@@ -110,6 +110,7 @@ enum InterviewScheduleStatus {
   RESCHEDULE_REQUESTED
   CANCELED
   COMPLETED
+  RESCHEDULE_DECLINED
 }
 
 enum InterviewOutcome {
@@ -128,6 +129,9 @@ model User {
   // Academic context — powers department/semester-aware generation.
   department   String?
   semester     String?
+  // GPA/CGPA out of 10, self-reported at onboarding — optional, shown publicly on /u/[handle]
+  // when present (no visibility toggle, unlike visibleToRecruiters below).
+  gpa          Float?
   // Career intent captured at onboarding (e.g. "Software Engineer") — powers career-goal mapping.
   careerGoal   String?
   // Public shareable profile handle (e.g. "arjun-mehta-4f2a"). Null = the student hasn't shared
@@ -137,12 +141,18 @@ model User {
   plan         Plan      @default(FREE)
   userType     UserType  @default(STUDENT)
 
+  // Required contact/identity links — collected at onboarding for both STUDENT and PROFESSIONAL
+  // users. Gate the "Share Profile" action (see apps/web/lib/actions/profile.ts): a student can't
+  // generate a /u/[handle] link until both are set. Nullable here only because existing users
+  // predate this requirement and must be prompted to fill them in after the fact.
+  githubUrl String?
+  linkedin  String?
+
   // Working-professional onboarding context (null for STUDENT) — surfaced to recruiters so they
   // can reach out directly instead of guessing from a resume.
   companyName       String?
   jobTitle          String?
   yearsOfExperience Int?
-  linkedin          String?
 
   // Branch-aware capability: coding track (DSA + coding interview round). Department seeds the
   // default at onboarding, but the student can opt in/out. Default true = fail-open (show everything).
@@ -505,17 +515,23 @@ model Recruiter {
 // via a normal reply, but recruiters cannot be messaged back through a separate student->recruiter
 // row here — see apps/web's inbox, which only reads, never writes, this table.
 model RecruiterMessage {
-  id          String    @id @default(cuid())
+  id          String           @id @default(cuid())
   recruiterId String
-  recruiter   Recruiter @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  recruiter   Recruiter        @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
   studentId   String
-  student     User      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  student     User             @relation(fields: [studentId], references: [id], onDelete: Cascade)
   body        String
   readAt      DateTime?
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime         @default(now())
+  direction   MessageDirection @default(RECRUITER_TO_STUDENT)
 
   @@index([studentId, createdAt])
   @@index([recruiterId, createdAt])
+}
+
+enum MessageDirection {
+  RECRUITER_TO_STUDENT
+  STUDENT_TO_RECRUITER
 }
 
 // A recruiter-proposed REAL interview slot with a student — separate from the student's own

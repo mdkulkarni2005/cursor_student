@@ -62,16 +62,29 @@ export default async function PublicIdentityPage({ params }: { params: Promise<{
           </div>
         </div>
 
-        {/* Stats — real DSA activity */}
-        <div className="mt-6 grid grid-cols-3 gap-4">
+        {/* Stats — real DSA activity, interview activity, GPA */}
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
           {[
-            { value: String(profile.stats.solved), label: "DSA Problems Solved" },
-            { value: profile.stats.rank ? `#${profile.stats.rank}` : "—", label: "Global Rank" },
-            { value: profile.stats.streak > 0 ? `${profile.stats.streak} 🔥` : "—", label: "Day Streak" },
+            {
+              value: String(profile.stats.solved),
+              label: "DSA Problems Solved",
+              sub: profile.stats.solved > 0
+                ? `${profile.dsaByDifficulty.easy}E · ${profile.dsaByDifficulty.medium}M · ${profile.dsaByDifficulty.hard}H`
+                : null,
+            },
+            { value: profile.stats.rank ? `#${profile.stats.rank}` : "—", label: "Global Rank", sub: null },
+            { value: profile.stats.streak > 0 ? `${profile.stats.streak} 🔥` : "—", label: "Day Streak", sub: null },
+            {
+              value: String(profile.interviews.completed),
+              label: "Interviews Completed",
+              sub: profile.interviews.completionRate != null ? `${Math.round(profile.interviews.completionRate * 100)}% completion` : null,
+            },
+            ...(profile.gpa != null ? [{ value: profile.gpa.toFixed(2), label: "GPA", sub: null }] : []),
           ].map((s) => (
             <div key={s.label} className="rounded-2xl border border-line bg-card p-5 text-center">
               <p className="font-display text-[24px] font-bold text-ink">{s.value}</p>
               <p className="mt-1 text-[11.5px] uppercase tracking-wide text-muted">{s.label}</p>
+              {s.sub ? <p className="mt-1 text-[11px] text-faint">{s.sub}</p> : null}
             </div>
           ))}
         </div>
