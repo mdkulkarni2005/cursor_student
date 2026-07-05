@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
-import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
+import { requireStudentRoute, shellUserFrom } from "@/lib/user";
 import { quotaStatus } from "@/lib/entitlements";
 import { GenerateReportForm } from "@/components/reports/generate-report-form";
 import { SlidesIcon } from "@/components/icons";
@@ -17,7 +17,7 @@ const STATUS_BADGE: Record<string, string> = {
 const STATUS_LABEL: Record<string, string> = { READY: "Ready", GENERATING: "Generating", NEEDS_INPUT: "Input", FAILED: "Failed", DRAFT: "Draft", QUEUED: "Queued" };
 
 export default async function ReportsPage() {
-  const user = await requireOnboardedUser();
+  const user = await requireStudentRoute();
   const [reports, quota] = await Promise.all([
     prisma.document.findMany({ where: { ownerId: user.id, type: "REPORT" }, orderBy: { updatedAt: "desc" }, take: 30 }),
     quotaStatus(user, "REPORT"),

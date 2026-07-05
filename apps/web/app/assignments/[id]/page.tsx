@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
-import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
+import { requireStudentRoute, shellUserFrom } from "@/lib/user";
 import { askAssignmentAction } from "@/lib/actions/assignments";
 import { GeneratingPoller } from "@/components/reports/generating-poller";
 import { DeleteDocButton } from "@/components/delete-doc-button";
@@ -26,7 +26,7 @@ export default async function AssignmentDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const user = await requireOnboardedUser();
+  const user = await requireStudentRoute();
 
   const doc = await prisma.document.findFirst({
     where: { id, ownerId: user.id, type: "ASSIGNMENT" },

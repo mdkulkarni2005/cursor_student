@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
-import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
+import { requireStudentRoute, shellUserFrom } from "@/lib/user";
 import { resumePptAction, convertPptToReportAction } from "@/lib/actions/ppt";
 import { ClarifyQuestions } from "@/components/clarify-questions";
 import { GeneratingPoller } from "@/components/reports/generating-poller";
@@ -31,7 +31,7 @@ type PptData = {
 
 export default async function PptDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const user = await requireOnboardedUser();
+  const user = await requireStudentRoute();
 
   const doc = await prisma.document.findFirst({
     where: { id, ownerId: user.id, type: "PPT" },

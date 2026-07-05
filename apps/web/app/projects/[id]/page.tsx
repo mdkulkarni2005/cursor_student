@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
-import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
+import { requireStudentRoute, shellUserFrom } from "@/lib/user";
 import { getProject, type BundleItem } from "@/lib/projects/generate";
 import { generateBundleAction, generatePlanAction } from "@/lib/actions/projects";
 import { DIFFICULTY_LABELS } from "@/components/projects/idea-card";
@@ -46,7 +46,7 @@ function BundleRow({ label, icon, href, item }: { label: string; icon: string; h
 
 export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const user = await requireOnboardedUser();
+  const user = await requireStudentRoute();
   const project = await getProject(user.id, id);
   if (!project) notFound();
 

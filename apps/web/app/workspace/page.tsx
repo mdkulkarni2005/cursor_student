@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
-import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
+import { requireStudentRoute, shellUserFrom } from "@/lib/user";
 import { getOrCreateCurrentWorkspace } from "@/lib/workspace";
 import { DocumentRow } from "@/components/document-row";
 
@@ -14,7 +14,7 @@ const GROUP_ORDER: { type: string; label: string }[] = [
 ];
 
 export default async function WorkspacePage() {
-  const user = await requireOnboardedUser();
+  const user = await requireStudentRoute();
   const workspace = await getOrCreateCurrentWorkspace(user);
 
   const docs = await prisma.document.findMany({

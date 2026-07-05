@@ -32,9 +32,21 @@ const fieldLabel = "mb-1.5 block text-[12.5px] font-semibold text-muted";
 const fieldBox =
   "w-full rounded-xl border border-line-strong bg-surface px-3.5 py-2.5 text-[14px] text-ink outline-none transition-colors focus:border-cyan/50";
 
+const ROLE_COPY: Record<"STUDENT" | "PROFESSIONAL", { title: string; body: string }> = {
+  STUDENT: {
+    title: "I'm a Student",
+    body: "Tell us your academic context so every assignment, report and PPT comes out in the right format for your branch and college.",
+  },
+  PROFESSIONAL: {
+    title: "I'm a Working Professional",
+    body: "Tell us where you work so recruiters can reach out — you'll get DSA practice, mock interviews, and real recruiter interviews.",
+  },
+};
+
 export function OnboardingForm({ firstName }: { firstName: string | null }) {
   const [state, action, pending] = useActionState<OnboardingState, FormData>(completeOnboarding, {});
 
+  const [userType, setUserType] = useState<"STUDENT" | "PROFESSIONAL">("STUDENT");
   const [dept, setDept] = useState("");
   const [coding, setCoding] = useState(false);
   const [codingTouched, setCodingTouched] = useState(false);
@@ -60,32 +72,74 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
         <h1 className="font-display text-[24px] font-bold leading-tight text-ink">
           {firstName ? `Welcome, ${firstName}.` : "Welcome."}
         </h1>
-        <p className="mb-6 mt-1.5 text-[14px] text-muted">
-          Tell us your academic context so every assignment, report and PPT comes out in the right
-          format for your branch and college.
-        </p>
+        <p className="mb-6 mt-1.5 text-[14px] text-muted">{ROLE_COPY[userType].body}</p>
 
         <form action={action} className="rounded-2xl border border-line bg-card p-5">
-          <div className="mb-4">
-            <label htmlFor="department" className={fieldLabel}>Department</label>
-            <select id="department" name="department" value={dept} onChange={(e) => onDept(e.target.value)} required className={fieldBox}>
-              <option value="" disabled>Select your department…</option>
-              {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-            </select>
+          <input type="hidden" name="userType" value={userType} />
+
+          {/* Role toggle — determines which fields below apply. */}
+          <div className="mb-4 grid grid-cols-2 gap-2 rounded-xl border border-line-strong bg-surface/60 p-1">
+            {(["STUDENT", "PROFESSIONAL"] as const).map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setUserType(t)}
+                className={[
+                  "rounded-lg px-3 py-2 text-[12.5px] font-semibold transition-colors",
+                  userType === t ? "bg-accent-gradient text-on-accent" : "text-muted hover:text-soft",
+                ].join(" ")}
+              >
+                {ROLE_COPY[t].title}
+              </button>
+            ))}
           </div>
 
-          <div className="mb-4">
-            <label htmlFor="college" className={fieldLabel}>College / University</label>
-            <input id="college" name="college" type="text" required placeholder="e.g. Sardar Patel Institute of Technology" className={`${fieldBox} placeholder:text-faint`} />
-          </div>
+          {userType === "STUDENT" ? (
+            <>
+              <div className="mb-4">
+                <label htmlFor="department" className={fieldLabel}>Department</label>
+                <select id="department" name="department" value={dept} onChange={(e) => onDept(e.target.value)} required className={fieldBox}>
+                  <option value="" disabled>Select your department…</option>
+                  {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
 
-          <div className="mb-4">
-            <label htmlFor="semester" className={fieldLabel}>Current semester</label>
-            <select id="semester" name="semester" defaultValue="" required className={fieldBox}>
-              <option value="" disabled>Select…</option>
-              {SEMESTERS.map((s) => <option key={s} value={s}>Semester {s}</option>)}
-            </select>
-          </div>
+              <div className="mb-4">
+                <label htmlFor="college" className={fieldLabel}>College / University</label>
+                <input id="college" name="college" type="text" required placeholder="e.g. Sardar Patel Institute of Technology" className={`${fieldBox} placeholder:text-faint`} />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="semester" className={fieldLabel}>Current semester</label>
+                <select id="semester" name="semester" defaultValue="" required className={fieldBox}>
+                  <option value="" disabled>Select…</option>
+                  {SEMESTERS.map((s) => <option key={s} value={s}>Semester {s}</option>)}
+                </select>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mb-4">
+                <label htmlFor="companyName" className={fieldLabel}>Company</label>
+                <input id="companyName" name="companyName" type="text" required placeholder="e.g. Acme Corp" className={`${fieldBox} placeholder:text-faint`} />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="jobTitle" className={fieldLabel}>Job title</label>
+                <input id="jobTitle" name="jobTitle" type="text" required placeholder="e.g. Software Engineer" className={`${fieldBox} placeholder:text-faint`} />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="yearsOfExperience" className={fieldLabel}>Years of experience</label>
+                <input id="yearsOfExperience" name="yearsOfExperience" type="number" min={0} max={60} placeholder="e.g. 3" className={`${fieldBox} placeholder:text-faint`} />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="linkedin" className={fieldLabel}>LinkedIn / contact link</label>
+                <input id="linkedin" name="linkedin" type="text" placeholder="e.g. linkedin.com/in/yourname (optional)" className={`${fieldBox} placeholder:text-faint`} />
+              </div>
+            </>
+          )}
 
           <div className="mb-4">
             <label htmlFor="phone" className={fieldLabel}>Phone number</label>
@@ -108,14 +162,16 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
             ) : null}
           </div>
 
-          {/* Coding track — seeded by branch, but the student decides. */}
-          <label className="mb-5 flex cursor-pointer items-start gap-2.5 rounded-xl border border-line-strong bg-surface/60 p-3">
-            <input type="checkbox" name="codingEnabled" checked={coding} onChange={(e) => { setCoding(e.target.checked); setCodingTouched(true); }} className="mt-0.5 size-4 accent-cyan" />
-            <span className="text-[12.5px] text-soft">
-              I want <b>DSA practice &amp; coding interviews</b>
-              <span className="block text-[11.5px] text-faint">On by default for CS/IT. Any branch can turn it on — turn it off if you only want reports, PPTs, resume &amp; non-coding interviews.</span>
-            </span>
-          </label>
+          {/* Coding track — seeded by branch, but the student decides. Professionals always get it. */}
+          {userType === "STUDENT" ? (
+            <label className="mb-5 flex cursor-pointer items-start gap-2.5 rounded-xl border border-line-strong bg-surface/60 p-3">
+              <input type="checkbox" name="codingEnabled" checked={coding} onChange={(e) => { setCoding(e.target.checked); setCodingTouched(true); }} className="mt-0.5 size-4 accent-cyan" />
+              <span className="text-[12.5px] text-soft">
+                I want <b>DSA practice &amp; coding interviews</b>
+                <span className="block text-[11.5px] text-faint">On by default for CS/IT. Any branch can turn it on — turn it off if you only want reports, PPTs, resume &amp; non-coding interviews.</span>
+              </span>
+            </label>
+          ) : null}
 
           {/* Legal acceptance — the last step before entering. */}
           <label className="mb-4 flex cursor-pointer items-start gap-2.5">

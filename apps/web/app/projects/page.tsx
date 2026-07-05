@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
-import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
+import { requireStudentRoute, shellUserFrom } from "@/lib/user";
 import { ProjectIdeasForm } from "@/components/projects/project-ideas-form";
 import { IdeaCard } from "@/components/projects/idea-card";
 import { getOrGeneratePregeneratedIdeas } from "@/lib/projects/generate";
@@ -10,7 +10,7 @@ import { NavSpinner, SubmitButton } from "@/components/ui/button";
 import { DeleteDocButton } from "@/components/delete-doc-button";
 
 export default async function ProjectsPage() {
-  const user = await requireOnboardedUser();
+  const user = await requireStudentRoute();
   const [projects, pregeneratedIdeas] = await Promise.all([
     prisma.document.findMany({
       where: { ownerId: user.id, type: "PROJECT" },

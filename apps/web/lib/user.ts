@@ -87,6 +87,18 @@ export async function requireOnboardedUser(): Promise<User> {
   return user;
 }
 
+/**
+ * For pages that are student-only self-serve tools (assignments, planner, ppt, projects,
+ * reports, resume, vault, viva, workspace) — a PROFESSIONAL user is bounced to /interview
+ * instead of rendering. Mirrors requireOnboardedUser's per-page guard pattern (no middleware.ts
+ * in this app) rather than duplicating the redirect at every call site.
+ */
+export async function requireStudentRoute(): Promise<User> {
+  const user = await requireOnboardedUser();
+  if (user.userType === "PROFESSIONAL") redirect("/interview");
+  return user;
+}
+
 /** Maps the DB user to the shape the app shell needs. */
 export async function shellUserFrom(user: User): Promise<ShellUser> {
   return {
@@ -96,5 +108,6 @@ export async function shellUserFrom(user: User): Promise<ShellUser> {
     plan: PLAN_LABEL[user.plan] ?? "Free",
     codingEnabled: user.codingEnabled !== false,
     hasJoinableRealInterview: await hasJoinableRealInterview(user.id),
+    userType: user.userType,
   };
 }

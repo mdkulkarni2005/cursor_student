@@ -53,12 +53,29 @@ export default async function StudentDetailPage({
               {initials}
             </span>
             <div>
-              <h1 className="font-display text-[24px] font-bold text-ink">{student.name}</h1>
-              <p className="mt-1 text-[14px] text-muted">
-                {student.careerGoal ?? "Student"}
-                {student.department ? ` · ${student.department}` : ""}
-                {student.semester ? ` · Sem ${student.semester}` : ""}
-              </p>
+              <div className="flex items-center gap-2">
+                <h1 className="font-display text-[24px] font-bold text-ink">{student.name}</h1>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10.5px] font-semibold ${
+                    student.userType === "PROFESSIONAL" ? "bg-indigo/15 text-indigo" : "bg-cyan/10 text-cyan"
+                  }`}
+                >
+                  {student.userType === "PROFESSIONAL" ? "Working Professional" : "Student"}
+                </span>
+              </div>
+              {student.userType === "PROFESSIONAL" ? (
+                <p className="mt-1 text-[14px] text-muted">
+                  {student.jobTitle ?? "Professional"}
+                  {student.companyName ? ` · ${student.companyName}` : ""}
+                  {student.yearsOfExperience != null ? ` · ${student.yearsOfExperience} yrs exp` : ""}
+                </p>
+              ) : (
+                <p className="mt-1 text-[14px] text-muted">
+                  {student.careerGoal ?? "Student"}
+                  {student.department ? ` · ${student.department}` : ""}
+                  {student.semester ? ` · Sem ${student.semester}` : ""}
+                </p>
+              )}
               {student.institution ? <p className="mt-0.5 text-[12.5px] text-faint">{student.institution}</p> : null}
               <div className="mt-2 flex gap-3 text-[12.5px]">
                 {student.links.github ? <a href={normalize(student.links.github)} target="_blank" rel="noopener" className="text-muted hover:text-cyan">GitHub</a> : null}

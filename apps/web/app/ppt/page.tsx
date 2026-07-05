@@ -1,14 +1,14 @@
 import Link from "next/link";
 import { prisma } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
-import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
+import { requireStudentRoute, shellUserFrom } from "@/lib/user";
 import { quotaStatus } from "@/lib/entitlements";
 import { GeneratePptForm } from "@/components/ppt/generate-ppt-form";
 import { ConvertReportToPpt } from "@/components/ppt/convert-report-to-ppt";
 import { DocumentRow } from "@/components/document-row";
 
 export default async function PptPage() {
-  const user = await requireOnboardedUser();
+  const user = await requireStudentRoute();
   const [decks, reports, quota] = await Promise.all([
     prisma.document.findMany({
       where: { ownerId: user.id, type: "PPT" },

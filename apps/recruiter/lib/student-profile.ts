@@ -4,10 +4,14 @@ import type { CandidateProfileSummary } from "@studentos/ai";
 export type StudentListItem = {
   id: string;
   name: string;
+  userType: "STUDENT" | "PROFESSIONAL";
   department: string | null;
   semester: string | null;
   careerGoal: string | null;
   institution: string | null;
+  companyName: string | null;
+  jobTitle: string | null;
+  yearsOfExperience: number | null;
   dsaSolved: number;
 };
 
@@ -43,10 +47,14 @@ export async function listVisibleStudents(params: { department?: string | null; 
   return users.map((u) => ({
     id: u.id,
     name: u.name ?? "Student",
+    userType: u.userType,
     department: u.department,
     semester: u.semester,
     careerGoal: u.careerGoal,
     institution: u.institution?.name ?? null,
+    companyName: u.companyName,
+    jobTitle: u.jobTitle,
+    yearsOfExperience: u.yearsOfExperience,
     dsaSolved: solvedByUser.get(u.id) ?? 0,
   }));
 }
@@ -106,10 +114,14 @@ export async function getStudentDetail(id: string): Promise<StudentDetail | null
   return {
     id: user.id,
     name: user.name ?? "Student",
+    userType: user.userType,
     department: user.department,
     semester: user.semester,
     careerGoal: user.careerGoal,
     institution: user.institution?.name ?? null,
+    companyName: user.companyName,
+    jobTitle: user.jobTitle,
+    yearsOfExperience: user.yearsOfExperience,
     dsaSolved: solvedCount,
     skills,
     links,

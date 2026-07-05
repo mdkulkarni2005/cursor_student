@@ -1,6 +1,6 @@
 import { prisma } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
-import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
+import { requireStudentRoute, shellUserFrom } from "@/lib/user";
 import { generateStudyPlan, type RoadmapDay } from "@/lib/actions/planner";
 import { Sparkle, BellIcon } from "@/components/icons";
 import { SubmitButton } from "@/components/ui/button";
@@ -20,7 +20,7 @@ const REMINDERS = [
 ];
 
 export default async function PlannerPage() {
-  const user = await requireOnboardedUser();
+  const user = await requireStudentRoute();
   const plan = await prisma.studyPlan.findFirst({
     where: { userId: user.id },
     orderBy: { createdAt: "desc" },

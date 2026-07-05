@@ -66,11 +66,27 @@ export default async function StudentsPage({
               href={`/students/${s.id}`}
               className="rounded-2xl border border-line bg-card p-5 transition-all hover:-translate-y-1 hover:border-cyan/40"
             >
-              <p className="text-[15px] font-semibold text-ink">{s.name}</p>
-              <p className="mt-1 text-[12.5px] text-muted">
-                {s.careerGoal ?? "Student"}
-                {s.department ? ` · ${s.department}` : ""}
-              </p>
+              <div className="flex items-center gap-2">
+                <p className="text-[15px] font-semibold text-ink">{s.name}</p>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    s.userType === "PROFESSIONAL" ? "bg-indigo/15 text-indigo" : "bg-cyan/10 text-cyan"
+                  }`}
+                >
+                  {s.userType === "PROFESSIONAL" ? "Working Professional" : "Student"}
+                </span>
+              </div>
+              {s.userType === "PROFESSIONAL" ? (
+                <p className="mt-1 text-[12.5px] text-muted">
+                  {s.jobTitle ?? "Professional"}
+                  {s.companyName ? ` · ${s.companyName}` : ""}
+                </p>
+              ) : (
+                <p className="mt-1 text-[12.5px] text-muted">
+                  {s.careerGoal ?? "Student"}
+                  {s.department ? ` · ${s.department}` : ""}
+                </p>
+              )}
               {s.institution ? <p className="mt-0.5 text-[11.5px] text-faint">{s.institution}</p> : null}
               <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold text-cyan">
                 <span className="rounded-full bg-cyan/10 px-2 py-0.5">{s.dsaSolved} DSA solved</span>

@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@studentos/db";
 import type { Resume } from "@studentos/documents";
 import { AppShell } from "@/components/app-shell";
-import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
+import { requireStudentRoute, shellUserFrom } from "@/lib/user";
 import { toggleResumeDensityAction } from "@/lib/actions/resume";
 import type { ResumeMeta } from "@/lib/resume/generate";
 import { RESUME_STAGES } from "@/lib/resume/generate";
@@ -74,7 +74,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 export default async function ResumeDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const user = await requireOnboardedUser();
+  const user = await requireStudentRoute();
 
   const doc = await prisma.document.findFirst({
     where: { id, ownerId: user.id, type: "RESUME" },

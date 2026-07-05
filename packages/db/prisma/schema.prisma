@@ -22,6 +22,14 @@ enum Plan {
   PREMIUM
 }
 
+// STUDENT gets the full academic toolkit; PROFESSIONAL is restricted to DSA + mock interview
+// (plus the recruiter-driven surfaces: messages, real interview) — see apps/web/lib/nav.ts and
+// requireStudentRoute() in apps/web/lib/user.ts for where this is enforced.
+enum UserType {
+  STUDENT
+  PROFESSIONAL
+}
+
 enum SubscriptionStatus {
   ACTIVE
   PAST_DUE
@@ -127,6 +135,14 @@ model User {
   publicHandle String?   @unique
   onboardedAt  DateTime?
   plan         Plan      @default(FREE)
+  userType     UserType  @default(STUDENT)
+
+  // Working-professional onboarding context (null for STUDENT) — surfaced to recruiters so they
+  // can reach out directly instead of guessing from a resume.
+  companyName       String?
+  jobTitle          String?
+  yearsOfExperience Int?
+  linkedin          String?
 
   // Branch-aware capability: coding track (DSA + coding interview round). Department seeds the
   // default at onboarding, but the student can opt in/out. Default true = fail-open (show everything).

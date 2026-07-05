@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@studentos/db";
 import type { DocumentType } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
-import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
+import { requireStudentRoute, shellUserFrom } from "@/lib/user";
 import { SearchIcon, SlidesIcon, PencilIcon, ResumeIcon, MicIcon, CodeIcon } from "@/components/icons";
 import { DeleteDocButton } from "@/components/vault/delete-doc-button";
 
@@ -41,7 +41,7 @@ function relTime(d: Date): string {
 
 export default async function VaultPage({ searchParams }: { searchParams: Promise<{ q?: string; type?: string }> }) {
   const { q, type } = await searchParams;
-  const user = await requireOnboardedUser();
+  const user = await requireStudentRoute();
 
   const typeFilter = FILTERS.some((f) => f.value && f.value === type) ? (type as DocumentType) : undefined;
   const query = q?.trim();

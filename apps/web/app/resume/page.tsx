@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
-import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
+import { requireStudentRoute, shellUserFrom } from "@/lib/user";
 import { GenerateResumeForm } from "@/components/resume/generate-resume-form";
 import { ImportResumeForm } from "@/components/resume/import-resume-form";
 import { ResumeIcon } from "@/components/icons";
@@ -14,7 +14,7 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 export default async function ResumePage() {
-  const user = await requireOnboardedUser();
+  const user = await requireStudentRoute();
   const resumes = await prisma.document.findMany({ where: { ownerId: user.id, type: "RESUME" }, orderBy: { updatedAt: "desc" }, take: 30 });
 
   return (

@@ -17,7 +17,19 @@ export type ShellUser = {
   codingEnabled: boolean;
   /** Recruiter-led real interview — hidden unless there's an ACCEPTED schedule in the join window. */
   hasJoinableRealInterview: boolean;
+  /** PROFESSIONAL only gets DSA + Interview Prep (+ Real Interview, Messages) — see lib/nav.ts studentOnly. */
+  userType: "STUDENT" | "PROFESSIONAL";
 };
+
+/** Shared visibility rule for both the desktop sidebar and the mobile bottom bar. */
+function visibleNav(items: NavItem[], user: ShellUser): NavItem[] {
+  return items.filter(
+    (item) =>
+      (user.codingEnabled || item.href !== "/dsa") &&
+      (user.hasJoinableRealInterview || item.href !== "/real-interview") &&
+      (!item.studentOnly || user.userType !== "PROFESSIONAL"),
+  );
+}
 
 function NavRow({ item, active }: { item: NavItem; active: boolean }) {
   const Icon = item.icon;
@@ -53,20 +65,18 @@ function Sidebar({ pathname, user }: { pathname: string; user: ShellUser }) {
         </span>
       </Link>
 
-      <Link
-        href="/workspace"
-        className="mb-6 flex items-center justify-center gap-2 rounded-xl bg-cyan px-4 py-3 text-[13.5px] font-semibold text-on-accent transition-transform active:scale-[0.97]"
-      >
-        <PlusIcon size={17} />
-        New Project
-      </Link>
+      {user.userType === "PROFESSIONAL" ? null : (
+        <Link
+          href="/workspace"
+          className="mb-6 flex items-center justify-center gap-2 rounded-xl bg-cyan px-4 py-3 text-[13.5px] font-semibold text-on-accent transition-transform active:scale-[0.97]"
+        >
+          <PlusIcon size={17} />
+          New Project
+        </Link>
+      )}
 
       <nav className="flex-1">
-        {WORKSPACE_NAV.filter(
-          (item) =>
-            (user.codingEnabled || item.href !== "/dsa") &&
-            (user.hasJoinableRealInterview || item.href !== "/real-interview"),
-        ).map((item) => (
+        {visibleNav(WORKSPACE_NAV, user).map((item) => (
           <NavRow key={item.href} item={item} active={pathname === item.href} />
         ))}
       </nav>
@@ -112,8 +122,8 @@ function Topbar() {
   );
 }
 
-function MobileNav({ pathname }: { pathname: string }) {
-  const items = ALL_NAV.filter((i) => i.mobile).slice(0, 5);
+function MobileNav({ pathname, user }: { pathname: string; user: ShellUser }) {
+  const items = visibleNav(ALL_NAV.filter((i) => i.mobile), user).slice(0, 5);
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-around border-t border-line bg-base/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden">
       {items.map((item) => {
@@ -147,7 +157,7 @@ export function AppShell({ children, user }: { children: React.ReactNode; user: 
         <main className="flex-1 overflow-y-auto px-4 pb-28 pt-6 sm:px-6 lg:px-7 lg:pb-10">{children}</main>
       </div>
       <AssistantPanel name={user.name} />
-      <MobileNav pathname={pathname} />
+      <MobileNav pathname={pathname} user={user} />
       <InstallPrompt />
     </div>
   );

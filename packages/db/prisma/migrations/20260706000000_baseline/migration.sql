@@ -47,6 +47,9 @@ CREATE TYPE "InterviewFlagKind" AS ENUM ('FULLSCREEN_EXIT', 'TAB_HIDDEN', 'CAMER
 CREATE TYPE "JobPostingStatus" AS ENUM ('OPEN', 'CLOSED');
 
 -- CreateEnum
+CREATE TYPE "JobMatchRunStatus" AS ENUM ('IDLE', 'RUNNING', 'SUCCEEDED', 'FAILED');
+
+-- CreateEnum
 CREATE TYPE "SandboxStatus" AS ENUM ('PENDING', 'RUNNING', 'STOPPED', 'UNAVAILABLE');
 
 -- CreateTable
@@ -416,6 +419,10 @@ CREATE TABLE "JobPosting" (
     "description" TEXT NOT NULL,
     "department" TEXT,
     "status" "JobPostingStatus" NOT NULL DEFAULT 'OPEN',
+    "matchStatus" "JobMatchRunStatus" NOT NULL DEFAULT 'IDLE',
+    "matchError" TEXT,
+    "matchStartedAt" TIMESTAMP(3),
+    "matchFinishedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 

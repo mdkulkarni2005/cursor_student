@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
-import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
+import { requireStudentRoute, shellUserFrom } from "@/lib/user";
 import { quotaStatus } from "@/lib/entitlements";
 import { SolveAssignmentForm } from "@/components/assignments/solve-form";
 import { PencilIcon } from "@/components/icons";
@@ -18,7 +18,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default async function AssignmentsPage() {
-  const user = await requireOnboardedUser();
+  const user = await requireStudentRoute();
   const [items, quota] = await Promise.all([
     prisma.document.findMany({ where: { ownerId: user.id, type: "ASSIGNMENT" }, orderBy: { updatedAt: "desc" }, take: 20 }),
     quotaStatus(user, "ASSIGNMENT"),

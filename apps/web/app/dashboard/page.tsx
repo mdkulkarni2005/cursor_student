@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { prisma } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
 import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
@@ -47,6 +48,8 @@ const DOC_HREF: Record<string, (id: string) => string> = {
 
 export default async function DashboardPage() {
   const user = await requireOnboardedUser();
+  // Professionals only get DSA + Interview Prep — the widgets below are student-shaped.
+  if (user.userType === "PROFESSIONAL") redirect("/interview");
   const firstName = user.name?.split(" ")[0] ?? "there";
 
   const [dsa, board, recentDocs] = await Promise.all([

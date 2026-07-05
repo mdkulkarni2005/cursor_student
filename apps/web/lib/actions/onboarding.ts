@@ -19,18 +19,11 @@ export async function completeOnboarding(
   const { userId } = await auth();
   if (!userId) return { error: "You must be signed in." };
 
-  const department = String(formData.get("department") ?? "").trim();
-  const college = String(formData.get("college") ?? "").trim();
-  const semester = String(formData.get("semester") ?? "").trim();
+  const userType = formData.get("userType") === "PROFESSIONAL" ? "PROFESSIONAL" : "STUDENT";
   const careerGoal = String(formData.get("careerGoal") ?? "").trim();
   const phone = String(formData.get("phone") ?? "").trim();
-  const codingEnabled = formData.get("codingEnabled") === "on";
   const acceptedLegal = formData.get("acceptedLegal") === "on";
 
-  if (!DEPARTMENTS.includes(department as (typeof DEPARTMENTS)[number]))
-    return { error: "Please choose your department." };
-  if (college.length < 2) return { error: "Please enter your college name." };
-  if (!semester) return { error: "Please choose your semester." };
   if (!PHONE_RE.test(phone)) return { error: "Please enter a valid phone number." };
   if (!acceptedLegal) return { error: "Please accept the Terms and Privacy Policy to continue." };
 
@@ -43,6 +36,45 @@ export async function completeOnboarding(
     return { error: err instanceof Error ? err.message : "That phone number is already in use." };
   }
 
+  if (userType === "PROFESSIONAL") {
+    const companyName = String(formData.get("companyName") ?? "").trim();
+    const jobTitle = String(formData.get("jobTitle") ?? "").trim();
+    const yearsRaw = String(formData.get("yearsOfExperience") ?? "").trim();
+    const linkedin = String(formData.get("linkedin") ?? "").trim();
+
+    if (!companyName) return { error: "Please enter your company name." };
+    if (!jobTitle) return { error: "Please enter your job title." };
+    const yearsOfExperience = yearsRaw ? Number(yearsRaw) : null;
+
+    await prisma.user.update({
+      where: { clerkId: userId },
+      data: {
+        userType: "PROFESSIONAL",
+        companyName,
+        jobTitle,
+        yearsOfExperience,
+        linkedin: linkedin || null,
+        careerGoal: careerGoal || null,
+        phone,
+        codingEnabled: true,
+        acceptedLegalAt: new Date(),
+        onboardedAt: new Date(),
+      },
+    });
+
+    redirect("/interview");
+  }
+
+  const department = String(formData.get("department") ?? "").trim();
+  const college = String(formData.get("college") ?? "").trim();
+  const semester = String(formData.get("semester") ?? "").trim();
+  const codingEnabled = formData.get("codingEnabled") === "on";
+
+  if (!DEPARTMENTS.includes(department as (typeof DEPARTMENTS)[number]))
+    return { error: "Please choose your department." };
+  if (college.length < 2) return { error: "Please enter your college name." };
+  if (!semester) return { error: "Please choose your semester." };
+
   // Find-or-create the institution (college), then attach to the user.
   let institution = await prisma.institution.findFirst({ where: { name: college } });
   institution ??= await prisma.institution.create({ data: { name: college } });
@@ -51,6 +83,7 @@ export async function completeOnboarding(
   await prisma.user.update({
     where: { clerkId: userId },
     data: {
+      userType: "STUDENT",
       department,
       semester,
       careerGoal: careerGoal || null,

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
-import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
+import { requireStudentRoute, shellUserFrom } from "@/lib/user";
 import { generateVivaAction } from "@/lib/actions/viva";
 import { SubmitButton } from "@/components/ui/button";
 
@@ -17,7 +17,7 @@ const FREQ: Record<string, { label: string; cls: string }> = {
 
 export default async function VivaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const user = await requireOnboardedUser();
+  const user = await requireStudentRoute();
 
   const doc = await prisma.document.findFirst({ where: { id, ownerId: user.id }, include: { viva: true } });
   if (!doc) notFound();

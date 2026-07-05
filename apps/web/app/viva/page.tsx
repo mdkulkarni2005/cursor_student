@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
-import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
+import { requireStudentRoute, shellUserFrom } from "@/lib/user";
 import { generateVivaAction } from "@/lib/actions/viva";
 import { SlidesIcon, PencilIcon } from "@/components/icons";
 import { SubmitButton } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { SubmitButton } from "@/components/ui/button";
 const TYPE_LABEL: Record<string, string> = { REPORT: "Report", PPT: "PPT", ASSIGNMENT: "Assignment" };
 
 export default async function VivaPage() {
-  const user = await requireOnboardedUser();
+  const user = await requireStudentRoute();
   const docs = await prisma.document.findMany({
     where: {
       ownerId: user.id,
