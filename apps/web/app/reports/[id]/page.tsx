@@ -92,7 +92,12 @@ export default async function ReportDetailPage({
           <div className="flex shrink-0 items-center gap-2">
             {doc.status === "READY" && hasExport ? (
               <a href={`/reports/${doc.id}/download`} className="flex items-center gap-1.5 rounded-xl bg-cyan px-4 py-2.5 text-[13.5px] font-semibold text-on-accent transition-transform hover:-translate-y-0.5">
-                ⬆ Export
+                ⬆ Word (.docx)
+              </a>
+            ) : null}
+            {doc.status === "READY" && hasExport && process.env.GOTENBERG_URL ? (
+              <a href={`/reports/${doc.id}/pdf?download=1`} className="flex items-center gap-1.5 rounded-xl border border-line bg-card px-4 py-2.5 text-[13.5px] font-semibold text-ink transition-transform hover:-translate-y-0.5">
+                ⬆ PDF
               </a>
             ) : null}
             <DeleteDocButton docId={doc.id} kind="report" />

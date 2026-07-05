@@ -4,6 +4,10 @@ import { getOrCreateUser } from "@/lib/user";
 
 const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
+function slugify(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60) || "report";
+}
+
 /**
  * Cheap availability probe (no conversion): does an exact page-PDF preview work right now?
  * 200 = Gotenberg is configured AND reachable AND a DOCX export exists. 503 otherwise.
@@ -41,10 +45,12 @@ export async function HEAD(_req: Request, { params }: { params: Promise<{ id: st
  * a container) addressed by GOTENBERG_URL — this keeps the heavy binary off Vercel's functions.
  * When GOTENBERG_URL is unset we return 503 and the client falls back to the HTML renderer.
  */
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const user = await getOrCreateUser();
   if (!user) return new Response("Unauthorized", { status: 401 });
+
+  const download = new URL(req.url).searchParams.get("download") === "1";
 
   const gotenberg = process.env.GOTENBERG_URL;
   if (!gotenberg) return new Response("PDF rendering not configured", { status: 503 });
@@ -81,7 +87,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   return new Response(new Uint8Array(pdf), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="report.pdf"`,
+      "Content-Disposition": download
+        ? `attachment; filename="${slugify(doc.title)}.pdf"`
+        : `inline; filename="report.pdf"`,
       "Cache-Control": "private, max-age=60",
     },
   });
