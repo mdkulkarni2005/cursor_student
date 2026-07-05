@@ -30,12 +30,13 @@ async function bumpActivity(user: User): Promise<void> {
  * Later hardening: also sync via a Clerk `user.created` webhook so the row exists
  * even before the user's first authenticated page load.
  */
-export async function getOrCreateUser(): Promise<User | null> {
+export async function getOrCreateUser(existingLookup?: User | null): Promise<User | null> {
   const { userId } = await auth();
   if (!userId) return null;
 
-  // Fast path: user already exists with this clerkId.
-  const existing = await prisma.user.findUnique({ where: { clerkId: userId } });
+  // Fast path: caller already looked up this clerkId (e.g. requireOnboardedUser) — reuse it
+  // instead of round-tripping to Neon a second time for the same row.
+  const existing = existingLookup !== undefined ? existingLookup : await prisma.user.findUnique({ where: { clerkId: userId } });
   if (existing) {
     if (existing.suspended) return null;
     await bumpActivity(existing);
@@ -80,7 +81,7 @@ export async function requireOnboardedUser(): Promise<User> {
   const raw = await prisma.user.findUnique({ where: { clerkId: userId } });
   if (raw?.suspended) redirect("/suspended");
 
-  const user = await getOrCreateUser();
+  const user = await getOrCreateUser(raw);
   if (!user) redirect("/sign-in");
   if (!user.onboardedAt) redirect("/onboarding");
   return user;
