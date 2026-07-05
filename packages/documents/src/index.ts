@@ -6,6 +6,8 @@ export * from "./pptx-clone";
 export * from "./pptx-structure";
 export * from "./pptx-fill";
 export * from "./assignment";
+export * from "./lab-report";
+export * from "./boq";
 export * from "./resume";
 export * from "./resume-pdf";
 export * from "./resume-parse";

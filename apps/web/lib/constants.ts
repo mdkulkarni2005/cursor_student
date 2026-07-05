@@ -5,6 +5,7 @@ export const DEPARTMENTS = [
   "Electrical Engineering",
   "Civil Engineering",
   "Electronics & Telecommunication",
+  "Chemical Engineering",
   "Other",
 ] as const;
 

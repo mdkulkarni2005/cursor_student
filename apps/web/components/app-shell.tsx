@@ -7,6 +7,7 @@ import { WORKSPACE_NAV, YOU_NAV, ALL_NAV, type NavItem } from "@/lib/nav";
 import { SearchIcon, PlusIcon } from "@/components/icons";
 import { AssistantPanel } from "@/components/assistant/assistant-panel";
 import { InstallPrompt } from "@/components/install-prompt";
+import { hasBranchFeature } from "@/lib/capabilities";
 
 export type ShellUser = {
   name: string;
@@ -27,7 +28,8 @@ function visibleNav(items: NavItem[], user: ShellUser): NavItem[] {
     (item) =>
       (user.codingEnabled || item.href !== "/dsa") &&
       (user.hasJoinableRealInterview || item.href !== "/real-interview") &&
-      (!item.studentOnly || user.userType !== "PROFESSIONAL"),
+      (!item.studentOnly || user.userType !== "PROFESSIONAL") &&
+      (!item.branchFeature || hasBranchFeature(user.department, item.branchFeature)),
   );
 }
 

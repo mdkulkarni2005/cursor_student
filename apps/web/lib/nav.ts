@@ -14,6 +14,7 @@ import {
   ChatIcon,
   VideoIcon,
   SupportIcon,
+  LayersIcon,
 } from "@/components/icons";
 
 export type NavItem = {
@@ -24,6 +25,8 @@ export type NavItem = {
   mobile?: boolean;
   /** Hidden for PROFESSIONAL users — the student-only self-serve toolkit. */
   studentOnly?: boolean;
+  /** Branch-specific tool — hidden unless hasBranchFeature(user.department, this) is true. */
+  branchFeature?: string;
 };
 
 export const WORKSPACE_NAV: NavItem[] = [
@@ -31,6 +34,14 @@ export const WORKSPACE_NAV: NavItem[] = [
   { label: "Vault", href: "/vault", icon: ArchiveIcon, mobile: true, studentOnly: true },
   { label: "Assignments", href: "/assignments", icon: PencilIcon, mobile: true, studentOnly: true },
   { label: "Reports & PPT", href: "/reports", icon: SlidesIcon, mobile: true, studentOnly: true },
+  { label: "Lab Reports", href: "/lab-reports", icon: LayersIcon, studentOnly: true },
+  { label: "Mechanical Solver", href: "/solve/mech-solver", icon: CodeIcon, studentOnly: true, branchFeature: "mech-solver" },
+  { label: "Drawing Viva Prep", href: "/drawing-viva", icon: HelpIcon, studentOnly: true, branchFeature: "drawing-viva" },
+  { label: "Structural Checker", href: "/solve/structural-checker", icon: CodeIcon, studentOnly: true, branchFeature: "structural-checker" },
+  { label: "BOQ Estimator", href: "/boq-estimator", icon: LayersIcon, studentOnly: true, branchFeature: "boq-estimator" },
+  { label: "Electrical Solver", href: "/solve/ee-solver", icon: CodeIcon, studentOnly: true, branchFeature: "ee-solver" },
+  { label: "ECE Solver", href: "/solve/ece-solver", icon: CodeIcon, studentOnly: true, branchFeature: "ece-solver" },
+  { label: "Chemical Solver", href: "/solve/chem-solver", icon: CodeIcon, studentOnly: true, branchFeature: "chem-solver" },
   { label: "Viva Prep", href: "/viva", icon: HelpIcon, studentOnly: true },
   { label: "Resume Builder", href: "/resume", icon: ResumeIcon, studentOnly: true },
   { label: "Interview Prep", href: "/interview", icon: MicIcon },

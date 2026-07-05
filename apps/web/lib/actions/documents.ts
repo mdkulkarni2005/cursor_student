@@ -13,6 +13,8 @@ const LIST_PATH: Record<string, string> = {
   RESUME: "/resume",
   ASSIGNMENT: "/assignments",
   PROJECT: "/projects",
+  LAB_REPORT: "/lab-reports",
+  DRAWING_VIVA: "/drawing-viva",
 };
 
 /**
@@ -27,7 +29,7 @@ export async function deleteDocumentAction(formData: FormData): Promise<void> {
 
   const doc = await prisma.document.findFirst({
     where: { id: docId, ownerId: user.id },
-    select: { id: true, type: true, exports: { select: { storageKey: true } } },
+    select: { id: true, type: true, feature: true, exports: { select: { storageKey: true } } },
   });
   if (!doc) return;
 
@@ -36,7 +38,10 @@ export async function deleteDocumentAction(formData: FormData): Promise<void> {
 
   await prisma.document.delete({ where: { id: doc.id } });
 
-  const dest = LIST_PATH[doc.type] ?? "/dashboard";
+  const dest =
+    doc.type === "BRANCH_SOLVER" && doc.feature === "boq-estimator" ? "/boq-estimator"
+    : doc.type === "BRANCH_SOLVER" && doc.feature ? `/solve/${doc.feature}`
+    : (LIST_PATH[doc.type] ?? "/dashboard");
   revalidatePath(dest);
   revalidatePath("/dashboard");
   revalidatePath("/vault");

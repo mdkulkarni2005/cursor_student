@@ -45,6 +45,9 @@ enum DocumentType {
   VIVA
   RESUME
   INTERVIEW
+  LAB_REPORT
+  BRANCH_SOLVER
+  DRAWING_VIVA
 }
 
 enum DocumentStatus {
@@ -88,6 +91,10 @@ enum UsageKind {
   ASSIGNMENT
   REPORT
   PPT
+  LAB_REPORT
+  // Shared quota bucket for every branch-specific tool (numerical solvers + drawing viva prep) —
+  // deliberately one bucket, not one per feature, since each is a small niche tool.
+  BRANCH_SOLVER
 }
 
 // Recruiter onboarding lifecycle. DRAFT = still filling the multi-step form (resumable on
@@ -280,6 +287,8 @@ model Document {
   type    DocumentType
   title   String
   status  DocumentStatus @default(DRAFT)
+  /** Branch-solver feature slug (e.g. "mech-solver", "structural-checker") — see lib/capabilities.ts. */
+  feature String?
 
   workspaceId String?
   workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)

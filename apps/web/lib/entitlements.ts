@@ -11,9 +11,9 @@ import type { Plan, UsageKind, User } from "@studentos/db";
 const QUOTAS: Record<Plan, Record<UsageKind, number | null>> = {
   // Limits removed while we're in global testing — everything is unlimited for now.
   // Revisit and set real FREE-tier numbers once the app is finalized.
-  FREE: { ASSIGNMENT: null, REPORT: null, PPT: null },
-  PRO: { ASSIGNMENT: null, REPORT: null, PPT: null },
-  PREMIUM: { ASSIGNMENT: null, REPORT: null, PPT: null },
+  FREE: { ASSIGNMENT: null, REPORT: null, PPT: null, LAB_REPORT: null, BRANCH_SOLVER: null },
+  PRO: { ASSIGNMENT: null, REPORT: null, PPT: null, LAB_REPORT: null, BRANCH_SOLVER: null },
+  PREMIUM: { ASSIGNMENT: null, REPORT: null, PPT: null, LAB_REPORT: null, BRANCH_SOLVER: null },
 };
 
 export class QuotaExceededError extends Error {

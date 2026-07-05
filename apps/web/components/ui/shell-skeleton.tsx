@@ -1,12 +1,15 @@
 import Link from "next/link";
-import { WORKSPACE_NAV, YOU_NAV } from "@/lib/nav";
-import { PlusIcon } from "@/components/icons";
 import { Skeleton } from "@/components/ui/skeleton";
 
+const NAV_ROW_WIDTHS = ["w-24", "w-32", "w-28", "w-20", "w-28", "w-24", "w-32", "w-20"];
+
 /**
- * A loading.tsx-only shell that mirrors AppShell's static chrome (real nav links/icons — no
- * DB needed) so a page's skeleton doesn't flash in without a sidebar. No active-route highlight
- * and no user info (both need data this component intentionally doesn't fetch) — just structure.
+ * A loading.tsx-only shell that mirrors AppShell's static layout so a page's skeleton doesn't
+ * flash in without a sidebar. Deliberately does NOT render real nav labels/hrefs from lib/nav —
+ * this renders before the user's entitlements (department, plan, userType) are known, and the
+ * real list is filtered per-user in app-shell.tsx's visibleNav(). Rendering the unfiltered list
+ * here would leak branch-locked / professional-hidden feature names to every visitor on every
+ * page load. Plain bars only — no user info either (also not yet known).
  */
 function SidebarSkeleton() {
   return (
@@ -18,36 +21,24 @@ function SidebarSkeleton() {
         </span>
       </Link>
 
-      <Link
-        href="/workspace"
-        className="mb-6 flex items-center justify-center gap-2 rounded-xl bg-cyan px-4 py-3 text-[13.5px] font-semibold text-on-accent transition-transform active:scale-[0.97]"
-      >
-        <PlusIcon size={17} />
-        New Project
-      </Link>
+      <Skeleton className="mb-6 h-[46px] w-full rounded-xl" />
 
       <nav className="flex-1">
-        {WORKSPACE_NAV.map((item) => {
-          const Icon = item.icon;
-          return (
-            <Link key={item.href} href={item.href} className="mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium text-muted transition-colors hover:bg-surface hover:text-soft">
-              <Icon size={17} />
-              {item.label}
-            </Link>
-          );
-        })}
+        {NAV_ROW_WIDTHS.map((width, i) => (
+          <div key={i} className="mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5">
+            <Skeleton className="size-[17px] shrink-0 rounded-md" />
+            <Skeleton className={`h-3.5 ${width}`} />
+          </div>
+        ))}
       </nav>
 
       <div className="my-3 h-px bg-line" />
-      {YOU_NAV.map((item) => {
-        const Icon = item.icon;
-        return (
-          <Link key={item.href} href={item.href} className="mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium text-muted transition-colors hover:bg-surface hover:text-soft">
-            <Icon size={17} />
-            {item.label}
-          </Link>
-        );
-      })}
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5">
+          <Skeleton className="size-[17px] shrink-0 rounded-md" />
+          <Skeleton className="h-3.5 w-20" />
+        </div>
+      ))}
 
       <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-line bg-surface p-2.5">
         <Skeleton className="size-[34px] shrink-0 rounded-full" />

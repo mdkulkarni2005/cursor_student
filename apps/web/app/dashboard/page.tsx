@@ -6,13 +6,16 @@ import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
 import { getDsaProgress } from "@/lib/dsa/practice";
 import { getLeaderboard } from "@/lib/dsa/leaderboard";
 import { DSA_PROBLEMS } from "@/lib/dsa/catalog";
-import { PencilIcon, ResumeIcon, MicIcon, SlidesIcon } from "@/components/icons";
+import { PencilIcon, ResumeIcon, MicIcon, SlidesIcon, LayersIcon, CodeIcon, HelpIcon, Sparkle } from "@/components/icons";
+import { branchFeaturesFor, CODING_DEPARTMENTS } from "@/lib/capabilities";
+import { BRANCH_TOOL_CARDS } from "@/lib/branch-tools";
 
 const ACCELERATORS = [
   { label: "Assignments", href: "/assignments", icon: PencilIcon, blurb: "Keep track of upcoming deadlines and snap-and-solve with AI.", cta: "Go to Tracker", accent: "cyan" },
   { label: "Reports & PPT", href: "/reports", icon: SlidesIcon, blurb: "Generate polished reports and presentation decks in minutes.", cta: "Create Doc", accent: "teal" },
   { label: "Resume Builder", href: "/resume", icon: ResumeIcon, blurb: "Update your tech stack with your latest project contributions.", cta: "Open Builder", accent: "indigo" },
   { label: "Interview Prep", href: "/interview", icon: MicIcon, blurb: "Practice mock behavioral & technical rounds with AI feedback.", cta: "Start Mock", accent: "cyan" },
+  { label: "Lab Reports", href: "/lab-reports", icon: LayersIcon, blurb: "Turn raw readings into a complete, college-format lab report.", cta: "Generate Report", accent: "teal" },
 ] as const;
 
 const ACC: Record<string, string> = {
@@ -39,11 +42,14 @@ function relTime(d: Date): string {
 }
 
 const DOC_ICON: Record<string, typeof SlidesIcon> = {
-  REPORT: SlidesIcon, PPT: SlidesIcon, ASSIGNMENT: PencilIcon, RESUME: ResumeIcon, PROJECT: SlidesIcon, INTERVIEW: MicIcon,
+  REPORT: SlidesIcon, PPT: SlidesIcon, ASSIGNMENT: PencilIcon, RESUME: ResumeIcon, PROJECT: SlidesIcon, INTERVIEW: MicIcon, LAB_REPORT: LayersIcon,
+  BRANCH_SOLVER: CodeIcon, DRAWING_VIVA: HelpIcon,
 };
-const DOC_HREF: Record<string, (id: string) => string> = {
-  REPORT: (id) => `/reports/${id}`, PPT: (id) => `/ppt/${id}`, ASSIGNMENT: (id) => `/assignments/${id}`,
-  RESUME: (id) => `/resume/${id}`, PROJECT: (id) => `/projects/${id}`, INTERVIEW: () => "/interview",
+type RecentDoc = { id: string; feature: string | null };
+const DOC_HREF: Record<string, (d: RecentDoc) => string> = {
+  REPORT: (d) => `/reports/${d.id}`, PPT: (d) => `/ppt/${d.id}`, ASSIGNMENT: (d) => `/assignments/${d.id}`,
+  RESUME: (d) => `/resume/${d.id}`, PROJECT: (d) => `/projects/${d.id}`, INTERVIEW: () => "/interview", LAB_REPORT: (d) => `/lab-reports/${d.id}`,
+  BRANCH_SOLVER: (d) => d.feature === "boq-estimator" ? `/boq-estimator/${d.id}` : `/solve/${d.feature ?? ""}/${d.id}`, DRAWING_VIVA: (d) => `/drawing-viva/${d.id}`,
 };
 
 export default async function DashboardPage() {
@@ -55,7 +61,7 @@ export default async function DashboardPage() {
   const [dsa, board, recentDocs] = await Promise.all([
     getDsaProgress(user.id),
     getLeaderboard(user.id),
-    prisma.document.findMany({ where: { ownerId: user.id }, orderBy: { updatedAt: "desc" }, take: 4, select: { id: true, title: true, type: true, updatedAt: true } }),
+    prisma.document.findMany({ where: { ownerId: user.id }, orderBy: { updatedAt: "desc" }, take: 4, select: { id: true, title: true, type: true, feature: true, updatedAt: true } }),
   ]);
 
   // Real solved-by-difficulty from the catalog.
@@ -111,6 +117,51 @@ export default async function DashboardPage() {
           })}
         </div>
 
+        {/* Branch Tools — department-specific solvers, or a coming-soon placeholder.
+            CS/IT students have the coding track (DSA etc.) instead, so they get no section here.
+            Every other department — including "Other" and any future/unlisted branch — sees
+            either its real tools or an explicit "coming soon", never nothing. */}
+        {(() => {
+          if (user.department && CODING_DEPARTMENTS.includes(user.department)) return null;
+          const unlocked = branchFeaturesFor(user.department);
+          const cards = BRANCH_TOOL_CARDS.filter((c) => unlocked.includes(c.feature));
+          return (
+            <>
+              <h2 className="mb-5 mt-10 font-display text-[20px] font-semibold text-ink">
+                {user.department ?? "Your"} Tools
+              </h2>
+              {cards.length > 0 ? (
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                  {cards.map((c) => {
+                    const Icon = c.icon;
+                    return (
+                      <Link key={c.feature} href={c.href} className="group rounded-2xl border border-line bg-card p-6 transition-all hover:-translate-y-1 hover:shadow-[0_14px_30px_rgba(15,23,42,0.08)]">
+                        <span className="mb-4 flex size-12 items-center justify-center rounded-xl bg-cyan/12 text-cyan transition-transform group-hover:scale-110">
+                          <Icon size={22} />
+                        </span>
+                        <h3 className="mb-2 font-display text-[17px] font-semibold text-ink">{c.label}</h3>
+                        <p className="mb-5 text-[13.5px] leading-relaxed text-muted">{c.blurb}</p>
+                        <span className="text-[13px] font-semibold text-cyan">{c.cta} →</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-dashed border-line bg-card p-8 text-center">
+                  <span className="mx-auto mb-3 flex size-11 items-center justify-center rounded-xl bg-cyan/10 text-cyan">
+                    <Sparkle size={20} />
+                  </span>
+                  <p className="text-[14px] font-semibold text-ink">Your {user.department} tools are coming soon</p>
+                  <p className="mx-auto mt-1 max-w-[420px] text-[13px] text-muted">
+                    We&apos;re building solvers and helpers tuned to your branch&apos;s coursework. In the meantime,
+                    reports, assignments, resume, and interview prep all work for you today.
+                  </p>
+                </div>
+              )}
+            </>
+          );
+        })()}
+
         {/* DSA stats strip */}
         <div className="mb-4 mt-10 flex items-center justify-between">
           <h2 className="font-display text-[20px] font-semibold text-ink">DSA Progress</h2>
@@ -147,7 +198,7 @@ export default async function DashboardPage() {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {recentDocs.map((d) => {
               const Icon = DOC_ICON[d.type] ?? SlidesIcon;
-              const href = (DOC_HREF[d.type] ?? (() => "/vault"))(d.id);
+              const href = (DOC_HREF[d.type] ?? (() => "/vault"))(d);
               return (
                 <Link key={d.id} href={href} className="group flex items-start gap-3 rounded-2xl border border-line bg-card p-4 transition-colors hover:border-cyan/40">
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-cyan/10 text-cyan">

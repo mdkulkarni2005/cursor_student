@@ -35,6 +35,7 @@
     "verify:cache": "tsx scripts/verify-cache.ts",
     "verify:reliability": "tsx scripts/verify-reliability.ts",
     "verify:capabilities": "tsx scripts/verify-capabilities.ts",
+    "verify:branch-features": "tsx scripts/verify-branch-features.ts",
     "verify:real-interview": "tsx scripts/verify-real-interview.ts",
     "verify:interview-flags": "tsx scripts/verify-interview-flags.ts",
     "verify:interview-transcript": "tsx scripts/verify-interview-transcript.ts"

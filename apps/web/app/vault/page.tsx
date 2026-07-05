@@ -3,7 +3,7 @@ import { prisma } from "@studentos/db";
 import type { DocumentType } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
 import { requireStudentRoute, shellUserFrom } from "@/lib/user";
-import { SearchIcon, SlidesIcon, PencilIcon, ResumeIcon, MicIcon, CodeIcon } from "@/components/icons";
+import { SearchIcon, SlidesIcon, PencilIcon, ResumeIcon, MicIcon, CodeIcon, LayersIcon, HelpIcon } from "@/components/icons";
 import { DeleteDocButton } from "@/components/vault/delete-doc-button";
 
 const FILTERS = [
@@ -12,15 +12,23 @@ const FILTERS = [
   { label: "PPTs", value: "PPT" },
   { label: "Assignments", value: "ASSIGNMENT" },
   { label: "Projects", value: "PROJECT" },
+  { label: "Lab Reports", value: "LAB_REPORT" },
+  { label: "Branch Tools", value: "BRANCH_SOLVER" },
+  { label: "Drawing Viva", value: "DRAWING_VIVA" },
 ] as const;
 
-const TYPE_META: Record<string, { icon: typeof SlidesIcon; tint: string; href: (id: string) => string }> = {
-  REPORT: { icon: SlidesIcon, tint: "bg-cyan/12 text-cyan", href: (id) => `/reports/${id}` },
-  PPT: { icon: SlidesIcon, tint: "bg-indigo/15 text-indigo", href: (id) => `/ppt/${id}` },
-  ASSIGNMENT: { icon: PencilIcon, tint: "bg-danger/12 text-danger", href: (id) => `/assignments/${id}` },
-  PROJECT: { icon: CodeIcon, tint: "bg-warning/15 text-warning", href: (id) => `/projects/${id}` },
-  RESUME: { icon: ResumeIcon, tint: "bg-teal/12 text-teal", href: (id) => `/resume/${id}` },
+type VaultDoc = { id: string; feature: string | null };
+
+const TYPE_META: Record<string, { icon: typeof SlidesIcon; tint: string; href: (d: VaultDoc) => string }> = {
+  REPORT: { icon: SlidesIcon, tint: "bg-cyan/12 text-cyan", href: (d) => `/reports/${d.id}` },
+  PPT: { icon: SlidesIcon, tint: "bg-indigo/15 text-indigo", href: (d) => `/ppt/${d.id}` },
+  ASSIGNMENT: { icon: PencilIcon, tint: "bg-danger/12 text-danger", href: (d) => `/assignments/${d.id}` },
+  PROJECT: { icon: CodeIcon, tint: "bg-warning/15 text-warning", href: (d) => `/projects/${d.id}` },
+  RESUME: { icon: ResumeIcon, tint: "bg-teal/12 text-teal", href: (d) => `/resume/${d.id}` },
   INTERVIEW: { icon: MicIcon, tint: "bg-indigo/15 text-indigo", href: () => "/interview" },
+  LAB_REPORT: { icon: LayersIcon, tint: "bg-teal/12 text-teal", href: (d) => `/lab-reports/${d.id}` },
+  BRANCH_SOLVER: { icon: CodeIcon, tint: "bg-teal/12 text-teal", href: (d) => d.feature === "boq-estimator" ? `/boq-estimator/${d.id}` : `/solve/${d.feature ?? ""}/${d.id}` },
+  DRAWING_VIVA: { icon: HelpIcon, tint: "bg-indigo/15 text-indigo", href: (d) => `/drawing-viva/${d.id}` },
 };
 
 const STATUS_BADGE: Record<string, string> = {
@@ -129,7 +137,7 @@ export default async function VaultPage({ searchParams }: { searchParams: Promis
               const Icon = meta.icon;
               return (
                 <div key={d.id} className="group/card relative">
-                  <Link href={meta.href(d.id)} className="group flex h-full flex-col rounded-2xl border border-line bg-card p-4 transition-all hover:-translate-y-1 hover:border-cyan/40 hover:shadow-[0_12px_28px_rgba(15,23,42,0.07)]">
+                  <Link href={meta.href(d)} className="group flex h-full flex-col rounded-2xl border border-line bg-card p-4 transition-all hover:-translate-y-1 hover:border-cyan/40 hover:shadow-[0_12px_28px_rgba(15,23,42,0.07)]">
                     <div className="mb-4 flex items-start justify-between">
                       <span className={`flex size-10 items-center justify-center rounded-xl ${meta.tint}`}><Icon size={19} /></span>
                       <span className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide transition-opacity group-hover/card:opacity-0 ${STATUS_BADGE[d.status] ?? STATUS_BADGE.DRAFT}`}>
