@@ -1,5 +1,6 @@
 import { generateObject } from "ai";
 import { z } from "zod";
+import { costCentsFromUsage } from "./pricing";
 import {
   PptContentSchema,
   PptLayoutSchema,
@@ -74,7 +75,7 @@ function stubPptBody(req: PptRequest): z.infer<typeof PptBodySchema> {
   };
 }
 
-export type GeneratePptResult = { content: PptContent; model: string };
+export type GeneratePptResult = { content: PptContent; model: string; costCents: number };
 
 // ---- Template-aware content (fill an uploaded template's OWN sections) ----
 
@@ -87,7 +88,7 @@ export type PptTemplateRequest = {
   sections: PptTemplateSection[];
   guidelines?: string;
 };
-export type GeneratePptTemplateResult = { contentByHeading: Record<string, string[]>; model: string };
+export type GeneratePptTemplateResult = { contentByHeading: Record<string, string[]>; model: string; costCents: number };
 
 const TemplateSlidesSchema = z.object({
   slides: z
@@ -120,9 +121,9 @@ function stubTemplateContent(req: PptTemplateRequest): Record<string, string[]> 
 export async function generatePptTemplateContent(
   req: PptTemplateRequest,
 ): Promise<GeneratePptTemplateResult> {
-  if (req.sections.length === 0) return { contentByHeading: {}, model: "none" };
+  if (req.sections.length === 0) return { contentByHeading: {}, model: "none", costCents: 0 };
   if (process.env.AI_DRIVER === "stub") {
-    return { contentByHeading: stubTemplateContent(req), model: "stub" };
+    return { contentByHeading: stubTemplateContent(req), model: "stub", costCents: 0 };
   }
 
   const system = [
@@ -145,7 +146,7 @@ export async function generatePptTemplateContent(
   let lastError: unknown;
   for (const model of [PRIMARY_MODEL, FALLBACK_MODEL]) {
     try {
-      const { object } = await generateObject({ model, schema: TemplateSlidesSchema, system, prompt });
+      const { object, usage } = await generateObject({ model, schema: TemplateSlidesSchema, system, prompt });
       const map: Record<string, string[]> = {};
       // Map by position against the ORIGINAL headings (the model may lightly reword a heading).
       // Fall back to heading-text match if counts line up oddly.
@@ -156,7 +157,7 @@ export async function generatePptTemplateContent(
         const bullets = positional ?? matched;
         if (bullets && bullets.length) map[sec.heading] = bullets;
       });
-      return { contentByHeading: map, model };
+      return { contentByHeading: map, model, costCents: costCentsFromUsage(model, usage) };
     } catch (err) {
       lastError = err;
     }
@@ -171,7 +172,7 @@ export async function generatePptContent(req: PptRequest): Promise<GeneratePptRe
     const object = PptBodySchema.parse(stubPptBody(req));
     const slides = object.slides.map(sanitizeSlide);
     const content = PptContentSchema.parse({ title: req.title, subtitle: req.subtitle, slides });
-    return { content, model: "stub" };
+    return { content, model: "stub", costCents: 0 };
   }
 
   const system = [
@@ -210,10 +211,10 @@ export async function generatePptContent(req: PptRequest): Promise<GeneratePptRe
   let lastError: unknown;
   for (const model of [PRIMARY_MODEL, FALLBACK_MODEL]) {
     try {
-      const { object } = await generateObject({ model, schema: PptBodySchema, system, prompt });
+      const { object, usage } = await generateObject({ model, schema: PptBodySchema, system, prompt });
       const slides = object.slides.map(sanitizeSlide);
       const content = PptContentSchema.parse({ title: req.title, subtitle: req.subtitle, slides });
-      return { content, model };
+      return { content, model, costCents: costCentsFromUsage(model, usage) };
     } catch (err) {
       lastError = err;
     }

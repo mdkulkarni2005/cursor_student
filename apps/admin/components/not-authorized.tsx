@@ -9,9 +9,11 @@ export function NotAuthorized({ reason }: { reason: Extract<AdminGuardResult, { 
         <p className="mt-1.5 text-[13px] text-muted">
           {reason === "signed-out"
             ? "You need to sign in with an admin account."
-            : "Your account doesn't have admin access. Ask an existing admin to set publicMetadata.role = \"admin\" on your Clerk user."}
+            : reason === "not-super-admin"
+              ? "This page is restricted to super-admins. Ask an existing super-admin for access."
+              : "Your account doesn't have admin access. Ask an existing admin to set publicMetadata.role = \"admin\" on your Clerk user."}
         </p>
-        {reason === "not-admin" && (
+        {reason !== "signed-out" && (
           <div className="mt-4">
             <SignOutButtonPlain className="rounded-lg border border-line px-3 py-1.5 text-[12.5px] font-medium text-soft hover:bg-surface">
               Sign out

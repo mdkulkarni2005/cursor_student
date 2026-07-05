@@ -5,6 +5,7 @@ import {
   ReportSectionSchema,
   type ReportContent,
 } from "@studentos/documents";
+import { costCentsFromUsage } from "./pricing";
 
 // Latest models via Vercel AI Gateway (verified live from the gateway model list).
 // Claude primary for quality; Gemini fallback for resilience.
@@ -64,6 +65,8 @@ export type GenerateReportResult = {
   content: ReportContent;
   /** Which gateway model actually produced the content. */
   model: string;
+  /** Estimated AI spend attributable to this call, for per-user/per-document cost attribution. */
+  costCents: number;
 };
 
 /**
@@ -126,7 +129,7 @@ export async function expandPptToReport(req: PptToReportRequest): Promise<Genera
     ReportContentSchema.parse({ title: req.title, student: req.student, abstract: body.abstract, sections: body.sections, references: body.references });
 
   if (process.env.AI_DRIVER === "stub") {
-    return { content: assemble(ReportBodySchema.parse(stubPptToReportBody(req))), model: "stub" };
+    return { content: assemble(ReportBodySchema.parse(stubPptToReportBody(req))), model: "stub", costCents: 0 };
   }
 
   const system = systemPrompt();
@@ -145,8 +148,8 @@ export async function expandPptToReport(req: PptToReportRequest): Promise<Genera
   let lastError: unknown;
   for (const model of [PRIMARY_MODEL, FALLBACK_MODEL]) {
     try {
-      const { object } = await generateObject({ model, schema: ReportBodySchema, system, prompt });
-      return { content: assemble(object), model };
+      const { object, usage } = await generateObject({ model, schema: ReportBodySchema, system, prompt });
+      return { content: assemble(object), model, costCents: costCentsFromUsage(model, usage) };
     } catch (err) {
       lastError = err;
     }
@@ -165,7 +168,7 @@ export async function generateReportContent(req: ReportRequest): Promise<Generat
       sections: object.sections,
       references: object.references,
     });
-    return { content, model: "stub" };
+    return { content, model: "stub", costCents: 0 };
   }
 
   const system = systemPrompt();
@@ -174,7 +177,7 @@ export async function generateReportContent(req: ReportRequest): Promise<Generat
 
   for (const model of [PRIMARY_MODEL, FALLBACK_MODEL]) {
     try {
-      const { object } = await generateObject({
+      const { object, usage } = await generateObject({
         model,
         schema: ReportBodySchema,
         system,
@@ -191,7 +194,7 @@ export async function generateReportContent(req: ReportRequest): Promise<Generat
         references: object.references,
       });
 
-      return { content, model };
+      return { content, model, costCents: costCentsFromUsage(model, usage) };
     } catch (err) {
       lastError = err;
       // Try the fallback model before giving up.
@@ -224,8 +227,8 @@ export type SuggestFiguresRequest = {
   max?: number;
 };
 
-export async function suggestReportFigures(req: SuggestFiguresRequest): Promise<{ figures: FigureSuggestion[]; model: string }> {
-  if (process.env.AI_DRIVER === "stub") return { figures: [], model: "stub" };
+export async function suggestReportFigures(req: SuggestFiguresRequest): Promise<{ figures: FigureSuggestion[]; model: string; costCents: number }> {
+  if (process.env.AI_DRIVER === "stub") return { figures: [], model: "stub", costCents: 0 };
 
   const max = req.max ?? 3;
   const outline = req.sections.map((s, i) => `[${i}] ${s.heading}: ${s.content.slice(0, 240)}`).join("\n");
@@ -241,9 +244,9 @@ export async function suggestReportFigures(req: SuggestFiguresRequest): Promise<
   let lastError: unknown;
   for (const model of [PRIMARY_MODEL, FALLBACK_MODEL]) {
     try {
-      const { object } = await generateObject({ model, schema: FigureSuggestionsSchema, system, prompt });
+      const { object, usage } = await generateObject({ model, schema: FigureSuggestionsSchema, system, prompt });
       const figures = object.figures.filter((f) => f.sectionIndex < req.sections.length).slice(0, max);
-      return { figures, model };
+      return { figures, model, costCents: costCentsFromUsage(model, usage) };
     } catch (err) {
       lastError = err;
     }

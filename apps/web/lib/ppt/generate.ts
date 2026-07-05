@@ -24,7 +24,7 @@ import {
 } from "@studentos/ai";
 import { assertWithinQuota, recordUsage } from "@/lib/entitlements";
 import { getOrCreateCurrentWorkspace } from "@/lib/workspace";
-import { setJobStage } from "@/lib/jobs";
+import { setJobStage, addJobCostCents } from "@/lib/jobs";
 
 const PPTX_MIME =
   "application/vnd.openxmlformats-officedocument.presentationml.presentation";
@@ -43,6 +43,7 @@ export type GeneratePptInput = {
 type Produced = {
   content: PptContent;
   model: string;
+  costCents: number;
   theme?: PptxTheme;
   /** The user's template bytes — present only when a template was uploaded (enables layout cloning). */
   templateBuffer?: Buffer;
@@ -92,7 +93,7 @@ async function produceStructured(
     .filter((s): s is Extract<PptxStructure["slides"][number], { kind: "section" }> => s.kind === "section")
     .map((s) => ({ heading: s.heading, instruction: s.instruction }));
 
-  const { contentByHeading, model } = await withAiRetry(
+  const { contentByHeading, model, costCents } = await withAiRetry(
     () =>
       generatePptTemplateContent({
         topic: input.title,
@@ -137,7 +138,7 @@ async function produceStructured(
     }
   }
 
-  return { content, model, theme, templateBuffer, structure, fieldValues, fieldQuestions, templateKey: input.templateKey };
+  return { content, model, costCents, theme, templateBuffer, structure, fieldValues, fieldQuestions, templateKey: input.templateKey };
 }
 
 /** Generate the deck content (no rendering yet), plus the user's theme if a template was given. */
@@ -165,7 +166,7 @@ async function produceContent(
     // Otherwise it's a theme-only design deck — fall through to a generic deck + clone/theme render.
   }
 
-  const { content, model } = await withAiRetry(() => generatePptContent({
+  const { content, model, costCents } = await withAiRetry(() => generatePptContent({
     title: input.title,
     subtitle,
     department: user.department ?? "—",
@@ -176,7 +177,7 @@ async function produceContent(
   // Images are generated in finalize() (once content is truly final — see comment there), not
   // here: this function can run again on resume after a NEEDS_INPUT pause, and generating here
   // would waste an image-model call on a draft that gets thrown away.
-  return { content, model, theme, templateBuffer };
+  return { content, model, costCents, theme, templateBuffer };
 }
 
 /** Persist the resolved render theme alongside the content so the in-app canvas renders
@@ -237,12 +238,14 @@ async function finalize(docId: string, userId: string, produced: Produced): Prom
   // slides, so generating there would waste an image-model call on a draft that gets discarded).
   // Templates keep their own design and skip generated images.
   const images: (string | null)[] = produced.content.slides.map(() => null);
+  let imageCostCentsTotal = 0;
   if (!produced.templateBuffer) {
     await Promise.all(
       produced.content.slides.map(async (s, i) => {
         if (s.layout !== "image") return;
         const img = await generateSlideImage(slideImagePrompt(richToPlain(s.heading) || produced.content.title, produced.content.title));
         if (!img) return;
+        imageCostCentsTotal += img.costCents;
         const m = /^data:(image\/[a-z0-9.+-]+);base64,(.*)$/i.exec(img.dataUrl);
         if (!m) return;
         const key = keys.slideImage(docId, i);
@@ -295,7 +298,7 @@ async function finalize(docId: string, userId: string, produced: Produced): Prom
     prisma.document.update({ where: { id: docId }, data: { status: "READY" } }),
     prisma.generationJob.update({
       where: { documentId: docId },
-      data: { status: "SUCCEEDED", model: produced.model, finishedAt: new Date(), pending: undefined },
+      data: { status: "SUCCEEDED", model: produced.model, finishedAt: new Date(), pending: undefined, costCents: { increment: produced.costCents + imageCostCentsTotal } },
     }),
   ]);
   await recordUsage(userId, "PPT", docId);

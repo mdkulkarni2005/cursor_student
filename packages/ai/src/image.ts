@@ -1,4 +1,5 @@
 import { experimental_generateImage as generateImage } from "ai";
+import { imageCostCents } from "./pricing";
 
 /**
  * Slide image generation. Images are an ENHANCEMENT — generation is best-effort and never breaks a
@@ -10,7 +11,7 @@ import { experimental_generateImage as generateImage } from "ai";
 // gpt-image-1 is verified on the AI Gateway; dall-e-3 is NOT available there. Override with IMAGE_MODEL.
 const IMAGE_MODEL = process.env.IMAGE_MODEL || "openai/gpt-image-1";
 
-export type SlideImage = { dataUrl: string };
+export type SlideImage = { dataUrl: string; costCents: number };
 export type ImageSize = "1024x1024" | "1536x1024" | "1024x1536";
 
 export async function generateSlideImage(prompt: string, size: ImageSize = "1024x1024"): Promise<SlideImage | null> {
@@ -20,7 +21,7 @@ export async function generateSlideImage(prompt: string, size: ImageSize = "1024
   try {
     const { image } = await generateImage({ model: IMAGE_MODEL, prompt, size });
     const mediaType = image.mediaType || "image/png";
-    return { dataUrl: `data:${mediaType};base64,${image.base64}` };
+    return { dataUrl: `data:${mediaType};base64,${image.base64}`, costCents: imageCostCents() };
   } catch (err) {
     // Image generation is optional — a failure must not fail the whole deck.
     if (process.env.IMAGE_DEBUG) {

@@ -1,5 +1,6 @@
 import { generateObject } from "ai";
 import { z } from "zod";
+import { costCentsFromUsage } from "./pricing";
 
 const PRIMARY_MODEL = "anthropic/claude-sonnet-4.6";
 const FALLBACK_MODEL = "google/gemini-3.5-flash";
@@ -35,9 +36,9 @@ function stub(req: TemplateContentRequest): Record<string, string> {
  */
 export async function generateTemplateContent(
   req: TemplateContentRequest,
-): Promise<{ contentByHeading: Record<string, string>; model: string }> {
+): Promise<{ contentByHeading: Record<string, string>; model: string; costCents: number }> {
   if (process.env.AI_DRIVER === "stub") {
-    return { contentByHeading: stub(req), model: "stub" };
+    return { contentByHeading: stub(req), model: "stub", costCents: 0 };
   }
 
   const system = [
@@ -74,10 +75,10 @@ export async function generateTemplateContent(
   let lastError: unknown;
   for (const model of [PRIMARY_MODEL, FALLBACK_MODEL]) {
     try {
-      const { object } = await generateObject({ model, schema: SectionsSchema, system, prompt });
+      const { object, usage } = await generateObject({ model, schema: SectionsSchema, system, prompt });
       const map: Record<string, string> = {};
       for (const s of object.sections) map[s.heading] = s.content;
-      return { contentByHeading: map, model };
+      return { contentByHeading: map, model, costCents: costCentsFromUsage(model, usage) };
     } catch (err) {
       lastError = err;
     }

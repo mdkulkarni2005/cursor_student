@@ -14,6 +14,9 @@ const isPublicRoute = createRouteMatcher([
   "/u/(.*)",
   "/launch(.*)",
   "/interview/auto-join(.*)",
+  // Server-to-server webhooks (Razorpay) carry no Clerk session — verified by HMAC signature
+  // inside the route itself, not by auth middleware.
+  "/api/webhooks/(.*)",
 ]);
 
 

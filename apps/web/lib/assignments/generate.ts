@@ -4,7 +4,7 @@ import { renderAssignmentDocx, type AssignmentSolution } from "@studentos/docume
 import { generateAssignmentSolution, assignmentFollowUp, withAiRetry, type AssignmentTurn } from "@studentos/ai";
 import { assertWithinQuota, recordUsage } from "@/lib/entitlements";
 import { getOrCreateCurrentWorkspace } from "@/lib/workspace";
-import { setJobStage } from "@/lib/jobs";
+import { setJobStage, addJobCostCents } from "@/lib/jobs";
 
 const DOCX_MIME =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -59,7 +59,7 @@ export async function runAssignmentGeneration(docId: string, input: GenerateAssi
       image = { data: new Uint8Array(bytes), mediaType: input.uploadMime };
     }
 
-    const { solution, model } = await withAiRetry(() => generateAssignmentSolution({
+    const { solution, model, costCents } = await withAiRetry(() => generateAssignmentSolution({
       questionText: input.questionText,
       instructions: input.instructions,
       subject: user.department ?? undefined,
@@ -79,7 +79,7 @@ export async function runAssignmentGeneration(docId: string, input: GenerateAssi
       prisma.document.update({ where: { id: docId }, data: { status: "READY" } }),
       prisma.generationJob.update({
         where: { documentId: docId },
-        data: { status: "SUCCEEDED", model, finishedAt: new Date() },
+        data: { status: "SUCCEEDED", model, finishedAt: new Date(), costCents: { increment: costCents } },
       }),
     ]);
 
@@ -130,12 +130,13 @@ export async function addAssignmentTurn(userId: string, docId: string, message: 
     const user = await prisma.user.findUnique({ where: { id: userId } });
     const { conversation = [], ...solution } = loaded.data;
 
-    const { result } = await withAiRetry(() => assignmentFollowUp({
+    const { result, costCents } = await withAiRetry(() => assignmentFollowUp({
       solution: solution as AssignmentSolution,
       conversation,
       message: text,
       subject: user?.department ?? undefined,
     }), { label: "assignment.followup" });
+    await addJobCostCents(docId, costCents);
 
     const nextConversation: AssignmentTurn[] = [
       ...conversation,

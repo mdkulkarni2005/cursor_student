@@ -4,6 +4,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { prisma, type User } from "@studentos/db";
 import type { ShellUser } from "@/components/app-shell";
 import { hasJoinableRealInterview } from "@/lib/real-interview";
+import { enforceConcurrentSessionLimit } from "@/lib/sessions";
 
 const PLAN_LABEL: Record<string, string> = {  FREE: "Free", PRO: "Pro", PREMIUM: "Premium" };
 const ACTIVITY_STALE_MS = 30 * 60 * 1000; // bump "last seen" / opens at most twice an hour per user
@@ -40,6 +41,11 @@ export async function getOrCreateUser(existingLookup?: User | null): Promise<Use
   if (existing) {
     if (existing.suspended) return null;
     await bumpActivity(existing);
+    // Anti account-sharing: cap concurrent devices, kicking the oldest session beyond the limit.
+    // Throttled internally (checks a DB timestamp first) so this only calls the Clerk API on the
+    // rare request that crosses the throttle window — awaited because serverless functions don't
+    // outlive the response, so a fire-and-forget call here could get killed before it runs.
+    await enforceConcurrentSessionLimit(existing.id, userId).catch(() => {});
     return existing;
   }
 

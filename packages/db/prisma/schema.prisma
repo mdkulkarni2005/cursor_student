@@ -162,6 +162,9 @@ model User {
   // Lightweight activity metrics for the admin panel (no per-token accounting).
   lastSeenAt      DateTime?
   appOpens        Int       @default(0)
+  // Throttle for the concurrent-session enforcement check (see apps/web/lib/sessions.ts) — separate
+  // from lastSeenAt's 30-min window because the anti-account-sharing check needs to run more often.
+  sessionCheckedAt DateTime?
 
   // Admin-controlled account hold. Enforced in apps/web's requireOnboardedUser — a suspended
   // user is bounced to /suspended instead of the app. Set/cleared only from apps/admin.
@@ -192,6 +195,7 @@ model User {
   documents          Document[]
   uploads            Upload[]
   subscription       Subscription?
+  payments           Payment[]
   usageEvents        UsageEvent[]
   dsaAttempts        DsaAttempt[]
   assistantThread    AssistantThread?
@@ -334,7 +338,7 @@ model GenerationJob {
   // When paused at NEEDS_INPUT: { questions, title, reportType, guidelines, templateKey }
   pending    Json?
   error      String?
-  costCents  Int?
+  costCents  Int       @default(0)
   startedAt  DateTime?
   finishedAt DateTime?
   createdAt  DateTime  @default(now())
@@ -375,8 +379,38 @@ model Subscription {
   razorpaySubId      String?            @unique
   razorpayCustomerId String?
   currentPeriodEnd   DateTime?
+  // Recurring mandate is live at Razorpay (razorpaySubId set) unless the student has requested
+  // cancellation, in which case it still runs until currentPeriodEnd but won't renew. "Autopay" in
+  // the admin UI = razorpaySubId != null && !cancelAtPeriodEnd.
+  cancelAtPeriodEnd  Boolean            @default(false)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
+}
+
+enum PaymentStatus {
+  CAPTURED
+  FAILED
+  REFUNDED
+}
+
+// One row per Razorpay payment event (captured/failed/refunded) — the payment history + receipt
+// trail. Populated by the Razorpay webhook (apps/web/app/api/webhooks/razorpay), not written
+// directly from the app, so this only reflects what Razorpay actually processed.
+model Payment {
+  id                String        @id @default(cuid())
+  userId            String
+  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  razorpayPaymentId String        @unique
+  razorpayOrderId   String?
+  amountCents       Int
+  currency          String        @default("INR")
+  status            PaymentStatus
+  method            String?
+  // Razorpay-hosted receipt/invoice URL when the webhook payload includes one.
+  receiptUrl        String?
+  createdAt         DateTime      @default(now())
+
+  @@index([userId, createdAt])
 }
 
 // One row per quota-consuming generation; counted per billing period for plan-gating.
@@ -474,6 +508,14 @@ model AdminAuditLog {
 
   @@index([targetType, targetId])
   @@index([createdAt])
+}
+
+// Small admin-editable key/value store for platform-wide config — currently just the concurrent
+// session cap (key "MAX_CONCURRENT_SESSIONS"), read by apps/web's session-enforcement check.
+model PlatformSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
 
 // ----------------------------- Recruiter -----------------------------------

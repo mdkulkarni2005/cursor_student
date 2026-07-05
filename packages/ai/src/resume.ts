@@ -1,4 +1,5 @@
 import { generateObject } from "ai";
+import { costCentsFromUsage } from "./pricing";
 import { z } from "zod";
 import {
   ResumeSkillGroupSchema,
@@ -39,7 +40,7 @@ export type GenerateResumeRequest = {
   existing?: Resume;
 };
 
-export type GenerateResumeResult = { resume: Resume; model: string };
+export type GenerateResumeResult = { resume: Resume; model: string; costCents: number };
 
 function stubBody(req: GenerateResumeRequest): z.infer<typeof ResumeBodySchema> {
   const role = req.targetRole?.trim() || "Software Engineer";
@@ -81,7 +82,7 @@ function stubBody(req: GenerateResumeRequest): z.infer<typeof ResumeBodySchema> 
 export async function generateResume(req: GenerateResumeRequest): Promise<GenerateResumeResult> {
   if (process.env.AI_DRIVER === "stub") {
     const body = ResumeBodySchema.parse(stubBody(req));
-    return { resume: { contact: req.contact, ...body }, model: "stub" };
+    return { resume: { contact: req.contact, ...body }, model: "stub", costCents: 0 };
   }
 
   const system = [
@@ -109,8 +110,8 @@ export async function generateResume(req: GenerateResumeRequest): Promise<Genera
   let lastError: unknown;
   for (const model of [PRIMARY_MODEL, FALLBACK_MODEL]) {
     try {
-      const { object } = await generateObject({ model, schema: ResumeBodySchema, system, prompt });
-      return { resume: { contact: req.contact, ...object }, model };
+      const { object, usage } = await generateObject({ model, schema: ResumeBodySchema, system, prompt });
+      return { resume: { contact: req.contact, ...object }, model, costCents: costCentsFromUsage(model, usage) };
     } catch (err) {
       lastError = err;
     }

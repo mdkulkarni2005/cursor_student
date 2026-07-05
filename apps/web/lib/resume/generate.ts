@@ -4,7 +4,7 @@ import { renderResumeDocx, type Resume, type ResumeContact, type ResumeDensity }
 import { generateResume, withAiRetry } from "@studentos/ai";
 import { getOrCreateCurrentWorkspace } from "@/lib/workspace";
 import { analyzeAts, type AtsReport } from "@/lib/resume/ats";
-import { setJobStage } from "@/lib/jobs";
+import { setJobStage, addJobCostCents } from "@/lib/jobs";
 
 const DOCX_MIME =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -109,7 +109,7 @@ export async function runResumeGeneration(docId: string, input: GenerateResumeIn
   if (!user) return;
   try {
     await setJobStage(docId, "draft");
-    const { resume, model } = await withAiRetry(() => generateResume({
+    const { resume, model, costCents } = await withAiRetry(() => generateResume({
       contact: contactFrom(user, input.contact),
       targetRole: input.targetRole,
       department: user.department ?? undefined,
@@ -118,6 +118,7 @@ export async function runResumeGeneration(docId: string, input: GenerateResumeIn
     }), { label: "resume.generate" });
     await setJobStage(docId, "format");
     await persistRender(docId, resume, { density: "normal", targetRole: input.targetRole }, model);
+    await addJobCostCents(docId, costCents);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     await prisma.document.update({ where: { id: docId }, data: { status: "FAILED" } }).catch(() => {});

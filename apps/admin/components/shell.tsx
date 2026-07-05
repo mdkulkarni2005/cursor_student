@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
+import { isSuperAdmin } from "@/lib/admin";
 
-export function AdminShell({ children }: { children: React.ReactNode }) {
+export async function AdminShell({ children }: { children: React.ReactNode }) {
+  const showAdminsLink = await isSuperAdmin();
   return (
     <div className="min-h-screen bg-canvas">
       <header className="sticky top-0 z-10 border-b border-line bg-base/90 backdrop-blur">
@@ -15,8 +17,14 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <Link href="/" className="hover:text-ink">
                 Overview
               </Link>
+              <Link href="/platform" className="hover:text-ink">
+                Platform
+              </Link>
               <Link href="/users" className="hover:text-ink">
                 Users
+              </Link>
+              <Link href="/payments" className="hover:text-ink">
+                Payments
               </Link>
               <Link href="/jobs" className="hover:text-ink">
                 Jobs
@@ -36,6 +44,11 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <Link href="/audit" className="hover:text-ink">
                 Audit
               </Link>
+              {showAdminsLink && (
+                <Link href="/admins" className="hover:text-ink">
+                  Admins
+                </Link>
+              )}
             </nav>
           </div>
           <UserButton appearance={{ elements: { avatarBox: "width:32px;height:32px" } }} />

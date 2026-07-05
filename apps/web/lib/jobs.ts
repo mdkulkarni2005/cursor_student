@@ -20,3 +20,18 @@ export async function setJobStage(docId: string, stage: string): Promise<void> {
 export function stageOf(pending: unknown): string {
   return (pending as { stage?: string } | null)?.stage ?? "draft";
 }
+
+/**
+ * Add to a document's GenerationJob.costCents (never overwrite — a document can accrue cost across
+ * multiple AI calls: draft generation, figure suggestions, per-figure image generation, edits).
+ * Best-effort: never throws into the generation path, and no-ops for zero/negative deltas.
+ */
+export async function addJobCostCents(docId: string, deltaCents: number): Promise<void> {
+  if (!deltaCents || deltaCents <= 0) return;
+  await prisma.generationJob
+    .update({
+      where: { documentId: docId },
+      data: { costCents: { increment: deltaCents } },
+    })
+    .catch(() => {});
+}

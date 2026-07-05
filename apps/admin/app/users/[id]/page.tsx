@@ -6,6 +6,9 @@ import { NotAuthorized } from "@/components/not-authorized";
 import { AdminShell } from "@/components/shell";
 import { PlanSelector } from "./plan-selector";
 import { AccountOps } from "./account-ops";
+import { getUserCostSummary } from "@/lib/platform-cost";
+import { listActiveSessions } from "@/lib/sessions";
+import { SessionsPanel } from "./sessions-panel";
 
 export const metadata = { title: "User — Admin" };
 
@@ -39,14 +42,20 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
       subscription: true,
       documents: { orderBy: { createdAt: "desc" }, take: 10, select: { id: true, title: true, type: true, status: true, createdAt: true } },
       dsaAttempts: { orderBy: { createdAt: "desc" }, take: 10, select: { id: true, problemSlug: true, solved: true, createdAt: true } },
+      payments: { orderBy: { createdAt: "desc" }, take: 20 },
     },
   });
 
   if (!user) notFound();
 
-  const [usageByKindAll, usageByKindPeriod] = await Promise.all([
+  const [usageByKindAll, usageByKindPeriod, cost, sessionsResult] = await Promise.all([
     prisma.usageEvent.groupBy({ by: ["kind"], where: { userId: id }, _count: { _all: true } }),
     prisma.usageEvent.groupBy({ by: ["kind"], where: { userId: id, createdAt: { gte: periodStart() } }, _count: { _all: true } }),
+    getUserCostSummary(id),
+    listActiveSessions(user.clerkId).then(
+      (sessions) => ({ sessions, error: undefined as string | undefined }),
+      (err) => ({ sessions: [], error: err instanceof Error ? err.message : "Failed to load sessions" }),
+    ),
   ]);
 
   const periodCountByKind = Object.fromEntries(usageByKindPeriod.map((r) => [r.kind, r._count._all]));
@@ -81,6 +90,10 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
         />
       </div>
 
+      <div className="mb-6">
+        <SessionsPanel userId={user.id} sessions={sessionsResult.sessions} error={sessionsResult.error} />
+      </div>
+
       <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="rounded-2xl border border-line bg-card p-4">
           <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-faint">Profile</p>
@@ -106,7 +119,13 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
                 </dd>
               </div>
               <div className="flex justify-between"><dt className="text-muted">Plan</dt><dd className="text-ink">{user.subscription.plan}</dd></div>
-              <div className="flex justify-between"><dt className="text-muted">Period ends</dt><dd className="text-ink">{fmtDateTime(user.subscription.currentPeriodEnd)}</dd></div>
+              <div className="flex justify-between"><dt className="text-muted">Next payment</dt><dd className="text-ink">{fmtDateTime(user.subscription.currentPeriodEnd)}</dd></div>
+              <div className="flex justify-between">
+                <dt className="text-muted">Autopay</dt>
+                <dd className="text-ink">
+                  {user.subscription.razorpaySubId && !user.subscription.cancelAtPeriodEnd ? "On" : "Off"}
+                </dd>
+              </div>
               <div className="flex justify-between"><dt className="text-muted">Razorpay sub</dt><dd className="text-ink">{user.subscription.razorpaySubId ?? "—"}</dd></div>
             </dl>
           ) : (
@@ -141,6 +160,60 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
             );
           })}
         </div>
+      </div>
+
+      <div className="mb-6 rounded-2xl border border-line bg-card p-4">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-faint">Cost to us (estimated)</p>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-xl border border-line/60 bg-surface p-3">
+            <p className="text-[11px] font-medium text-faint">AI spend</p>
+            <p className="font-display text-[20px] font-bold text-ink">${(cost.aiCostCentsThisMonth / 100).toFixed(2)}</p>
+            <p className="text-[11px] text-faint">this month · ${(cost.aiCostCentsAllTime / 100).toFixed(2)} all-time</p>
+          </div>
+          <div className="rounded-xl border border-line/60 bg-surface p-3">
+            <p className="text-[11px] font-medium text-faint">Storage</p>
+            <p className="font-display text-[20px] font-bold text-ink">${cost.storageCostUsdPerMonth.toFixed(3)}/mo</p>
+            <p className="text-[11px] text-faint">{(cost.storageBytes / 1024 ** 2).toFixed(1)} MB in R2</p>
+          </div>
+          <div className="rounded-xl border border-line/60 bg-surface p-3">
+            <p className="text-[11px] font-medium text-faint">Total est. cost</p>
+            <p className="font-display text-[20px] font-bold text-ink">
+              ${(cost.aiCostCentsAllTime / 100 + cost.storageCostUsdPerMonth).toFixed(2)}
+            </p>
+            <p className="text-[11px] text-faint">AI all-time + storage/mo</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-6 rounded-2xl border border-line bg-card p-4">
+        <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-faint">Payment history</p>
+        {user.payments.length === 0 ? (
+          <p className="text-[13px] text-faint">No payments recorded yet.</p>
+        ) : (
+          <ul className="space-y-2 text-[13px]">
+            {user.payments.map((p) => (
+              <li key={p.id} className="flex items-center justify-between border-b border-line/60 pb-2 last:border-0 last:pb-0">
+                <div>
+                  <p className="text-ink">
+                    {p.currency} {(p.amountCents / 100).toFixed(2)} · {p.method ?? "—"}
+                  </p>
+                  <p className="text-[11px] text-faint">{fmtDateTime(p.createdAt)} · {p.razorpayPaymentId}</p>
+                </div>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                    p.status === "CAPTURED"
+                      ? "text-success bg-success/12"
+                      : p.status === "REFUNDED"
+                        ? "text-faint bg-surface"
+                        : "text-danger bg-danger/12"
+                  }`}
+                >
+                  {p.status}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

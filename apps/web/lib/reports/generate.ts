@@ -17,6 +17,7 @@ import { assertWithinQuota, recordUsage } from "@/lib/entitlements";
 import { getOrCreateCurrentWorkspace } from "@/lib/workspace";
 import { analyzeReport, type ReportLike } from "@/lib/quality";
 import { intakeQuestions } from "@/lib/reports/intake";
+import { addJobCostCents } from "@/lib/jobs";
 
 const DOCX_MIME =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -104,6 +105,7 @@ function mergeQuestions(intake: ClarifyQuestion[], gaps: ClarifyQuestion[]): Cla
 type Produced = {
   data: ReportLike;
   model: string;
+  costCents: number;
   render: () => Promise<Buffer>;
   templateIdToSet?: string;
 };
@@ -130,7 +132,7 @@ async function produceContent(user: User & { institution: { name: string } | nul
       sections: fillHeadings.map((h) => ({ heading: h, content: gen.contentByHeading[h] ?? "" })),
     };
     const fields: PlaceholderFields = { ...profileFields(user), ...input.fields };
-    return { data, model: gen.model, render: async () => fillTemplate(templateBuffer, gen.contentByHeading, fields).buffer };
+    return { data, model: gen.model, costCents: gen.costCents, render: async () => fillTemplate(templateBuffer, gen.contentByHeading, fields).buffer };
   }
 
   const template = await prisma.template.findFirst({ where: { type: "REPORT", isDefault: true } });
@@ -145,6 +147,7 @@ async function produceContent(user: User & { institution: { name: string } | nul
   return {
     data: gen.content,
     model: gen.model,
+    costCents: gen.costCents,
     templateIdToSet: template.id,
     // Default format → programmatic builder (supports embedded AI figures). Custom uploaded
     // templates keep the docxtemplater path above.
@@ -169,7 +172,7 @@ async function finalize(docId: string, userId: string, produced: Produced): Prom
     prisma.document.update({ where: { id: docId }, data: { status: "READY", quality: analyzeReport(produced.data) } }),
     prisma.generationJob.update({
       where: { documentId: docId },
-      data: { status: "SUCCEEDED", model: produced.model, finishedAt: new Date(), pending: undefined },
+      data: { status: "SUCCEEDED", model: produced.model, finishedAt: new Date(), pending: undefined, costCents: { increment: produced.costCents } },
     }),
   ]);
   await recordUsage(userId, "REPORT", docId);
@@ -352,6 +355,7 @@ export async function runConvertedReport(reportDocId: string, userId: string, pp
     await finalize(reportDocId, userId, {
       data: gen.content,
       model: gen.model,
+      costCents: gen.costCents,
       render: async () => renderReportDocx(gen.content, await getObjectBuffer(template.storageKey)).buffer,
     });
   } catch (err) {
@@ -533,7 +537,8 @@ export async function getReportFigureSuggestions(userId: string, docId: string):
   if (!doc?.content) return [];
   if (doc.template && !doc.template.isDefault) return []; // custom template can't embed figures
   const content = doc.content.data as unknown as ReportContent;
-  const { figures } = await withAiRetry(() => suggestReportFigures({ title: content.title, sections: content.sections }), { label: "report.figures.suggest" });
+  const { figures, costCents } = await withAiRetry(() => suggestReportFigures({ title: content.title, sections: content.sections }), { label: "report.figures.suggest" });
+  await addJobCostCents(docId, costCents);
   // Skip sections that already have an approved figure.
   return figures.filter((f) => f.sectionIndex < content.sections.length && !content.sections[f.sectionIndex]?.image);
 }
@@ -560,6 +565,7 @@ export async function approveReportFigure(userId: string, docId: string, section
 
   const img = await generateSlideImage(imagePrompt, "1536x1024");
   if (!img) return { ok: false, error: "Image generation isn't available right now — try again." };
+  await addJobCostCents(docId, img.costCents);
   const bytes = Buffer.from(img.dataUrl.split(",")[1] ?? "", "base64");
   const imageKey = `figures/${docId}/section-${sectionIndex}.png`;
   await putObject(imageKey, bytes, PNG_MIME);

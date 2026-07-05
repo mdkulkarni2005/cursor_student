@@ -2,6 +2,7 @@ import { generateObject, type ModelMessage } from "ai";
 import { z } from "zod";
 import { AssignmentSolutionSchema, type AssignmentSolution } from "@studentos/documents";
 import { cachedSystem, logCacheUsage } from "./cache";
+import { costCentsFromUsage } from "./pricing";
 
 const PRIMARY_MODEL = "anthropic/claude-sonnet-4.6";
 const FALLBACK_MODEL = "google/gemini-3.5-flash";
@@ -31,13 +32,13 @@ function stubSolution(req: AssignmentRequest): AssignmentSolution {
   };
 }
 
-export type GenerateAssignmentResult = { solution: AssignmentSolution; model: string };
+export type GenerateAssignmentResult = { solution: AssignmentSolution; model: string; costCents: number };
 
 export async function generateAssignmentSolution(
   req: AssignmentRequest,
 ): Promise<GenerateAssignmentResult> {
   if (process.env.AI_DRIVER === "stub") {
-    return { solution: AssignmentSolutionSchema.parse(stubSolution(req)), model: "stub" };
+    return { solution: AssignmentSolutionSchema.parse(stubSolution(req)), model: "stub", costCents: 0 };
   }
 
   const system =
@@ -67,8 +68,8 @@ export async function generateAssignmentSolution(
   let lastError: unknown;
   for (const model of [PRIMARY_MODEL, FALLBACK_MODEL]) {
     try {
-      const { object } = await generateObject({ model, schema: AssignmentSolutionSchema, system, messages });
-      return { solution: object, model };
+      const { object, usage } = await generateObject({ model, schema: AssignmentSolutionSchema, system, messages });
+      return { solution: object, model, costCents: costCentsFromUsage(model, usage) };
     } catch (err) {
       lastError = err;
     }
@@ -114,9 +115,9 @@ function stubFollowUp(req: AssignmentFollowUpRequest): AssignmentFollowUp {
 }
 
 /** Multi-turn tutoring: answer a student's follow-up and revise the solution when warranted. */
-export async function assignmentFollowUp(req: AssignmentFollowUpRequest): Promise<{ result: AssignmentFollowUp; model: string }> {
+export async function assignmentFollowUp(req: AssignmentFollowUpRequest): Promise<{ result: AssignmentFollowUp; model: string; costCents: number }> {
   if (process.env.AI_DRIVER === "stub") {
-    return { result: stubFollowUp(req), model: "stub" };
+    return { result: stubFollowUp(req), model: "stub", costCents: 0 };
   }
 
   // Stable prefix (cached): tutor instructions + the current solution — re-sent every follow-up.
@@ -138,9 +139,9 @@ export async function assignmentFollowUp(req: AssignmentFollowUpRequest): Promis
   let lastError: unknown;
   for (const model of [PRIMARY_MODEL, FALLBACK_MODEL]) {
     try {
-      const { object, providerMetadata } = await generateObject({ model, schema: AssignmentFollowUpSchema, messages });
+      const { object, providerMetadata, usage } = await generateObject({ model, schema: AssignmentFollowUpSchema, messages });
       logCacheUsage("assignment.followup", providerMetadata);
-      return { result: object, model };
+      return { result: object, model, costCents: costCentsFromUsage(model, usage) };
     } catch (err) {
       lastError = err;
     }

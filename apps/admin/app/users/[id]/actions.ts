@@ -5,6 +5,7 @@ import { Plan, prisma } from "@studentos/db";
 import { deleteObject } from "@studentos/storage";
 import { requireAdmin } from "@/lib/admin";
 import { logAdminAction } from "@/lib/audit";
+import { revokeClerkSession } from "@/lib/sessions";
 
 const PLAN_VALUES = new Set(Object.values(Plan));
 
@@ -55,6 +56,22 @@ export async function setUserSuspended(userId: string, suspended: boolean): Prom
 
   revalidatePath(`/users/${userId}`);
   revalidatePath("/users");
+}
+
+/** Force-logout one of a user's active devices (revoke Clerk session). */
+export async function revokeUserSession(userId: string, sessionId: string): Promise<void> {
+  const guard = await requireAdmin();
+  if (!guard.ok) throw new Error("Not authorized");
+
+  await revokeClerkSession(sessionId);
+  await logAdminAction({
+    action: "user.session.revoke",
+    targetType: "user",
+    targetId: userId,
+    after: { sessionId },
+  });
+
+  revalidatePath(`/users/${userId}`);
 }
 
 /** Admin override for the branch-aware coding track (DSA + coding interview round). */
