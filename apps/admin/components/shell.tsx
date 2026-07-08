@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { isSuperAdmin } from "@/lib/admin";
 
 export async function AdminShell({ children }: { children: React.ReactNode }) {
@@ -54,7 +55,10 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
               )}
             </nav>
           </div>
-          <UserButton appearance={{ elements: { avatarBox: "width:32px;height:32px" } }} />
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <UserButton appearance={{ elements: { avatarBox: "width:32px;height:32px" } }} />
+          </div>
         </div>
       </header>
       <div className="mx-auto max-w-[1200px] px-5 py-8">{children}</div>

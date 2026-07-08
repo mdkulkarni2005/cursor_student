@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { currentUser } from "@clerk/nextjs/server";
 import { prisma, assertPhoneAvailable } from "@studentos/db";
+import { SESSION_EXPIRED_ERROR } from "./onboarding-constants";
 
 export type OnboardingState = { error?: string };
 
@@ -16,7 +17,7 @@ const PHONE_RE = /^\+?[0-9]{10,15}$/;
  */
 export async function saveApplication(_prev: OnboardingState, formData: FormData): Promise<OnboardingState> {
   const user = await currentUser();
-  if (!user) return { error: "You must be signed in." };
+  if (!user) return { error: SESSION_EXPIRED_ERROR };
 
   const intent = String(formData.get("intent") ?? "draft");
   const name = String(formData.get("name") ?? "").trim();

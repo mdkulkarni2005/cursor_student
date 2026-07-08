@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import { InstallPrompt } from "@/components/install-prompt";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function RecruiterShell({ children }: { children: React.ReactNode }) {
   return (
@@ -33,7 +34,10 @@ export function RecruiterShell({ children }: { children: React.ReactNode }) {
               </Link>
             </nav>
           </div>
-          <UserButton appearance={{ elements: { avatarBox: "width:32px;height:32px" } }} />
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <UserButton appearance={{ elements: { avatarBox: "width:32px;height:32px" } }} />
+          </div>
         </div>
       </header>
       <div className="mx-auto max-w-[1200px] px-5 py-8">{children}</div>

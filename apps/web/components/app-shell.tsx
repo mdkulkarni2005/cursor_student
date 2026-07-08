@@ -7,6 +7,7 @@ import { WORKSPACE_NAV, YOU_NAV, ALL_NAV, type NavItem } from "@/lib/nav";
 import { SearchIcon, PlusIcon } from "@/components/icons";
 import { AssistantPanel } from "@/components/assistant/assistant-panel";
 import { InstallPrompt } from "@/components/install-prompt";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { hasBranchFeature } from "@/lib/capabilities";
 
 export type ShellUser = {
@@ -87,6 +88,8 @@ function Sidebar({ pathname, user }: { pathname: string; user: ShellUser }) {
       {YOU_NAV.map((item) => (
         <NavRow key={item.href} item={item} active={pathname === item.href} />
       ))}
+
+      <ThemeToggle className="mt-3 w-full justify-center border border-line" />
 
       <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-line bg-surface p-2.5">
         <UserButton appearance={{ elements: { avatarBox: "width:34px;height:34px" } }} />

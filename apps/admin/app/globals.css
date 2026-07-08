@@ -1,18 +1,21 @@
 @import "tailwindcss";
 
-/* Shares the Vidyas OS light design tokens (apps/web/app/globals.css) so the
+/* Enable class-based dark mode */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Shares the Vidyas OS orange/navy design tokens (apps/web/app/globals.css) so the
    admin app reads as the same product, not a bolted-on tool. */
 @theme {
-  --color-canvas: #f8fafc;
+  --color-canvas: #f7f7f7;
   --color-base: #ffffff;
   --color-surface: #f2f4f6;
   --color-card: #ffffff;
   --color-raised: #eceef0;
   --color-input: #ffffff;
 
-  --color-cyan: #4f46e5;
-  --color-indigo: #6366f1;
-  --color-primary-deep: #3525cd;
+  --color-cyan: #f6921e;
+  --color-indigo: #F7C131;
+  --color-primary-deep: #d97a10;
   --color-teal: #006a61;
   --color-teal-soft: #86f2e4;
   --color-on-accent: #ffffff;
@@ -21,18 +24,38 @@
   --color-warning: #d97706;
   --color-danger: #ba1a1a;
 
-  --color-ink: #191c1e;
-  --color-soft: #334155;
-  --color-muted: #464555;
-  --color-faint: #777587;
-  --color-dim: #9aa0ab;
+  --color-ink: #152241;
+  --color-soft: #000000;
+  --color-muted: #5c5555;
+  --color-faint: #858585;
+  --color-dim: #a7a7a7;
 
   --color-line: rgba(15, 23, 42, 0.08);
   --color-line-strong: rgba(15, 23, 42, 0.12);
 
-  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
-  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
+}
+
+html.dark {
+  --color-canvas: #0f1117 !important;
+  --color-base: #1a1d27 !important;
+  --color-surface: #232733 !important;
+  --color-card: #1a1d27 !important;
+  --color-raised: #2a2e3a !important;
+  --color-input: #232733 !important;
+
+  --color-ink: #e8eaed !important;
+  --color-soft: #c9cdd4 !important;
+  --color-muted: #9aa0ab !important;
+  --color-faint: #6b7280 !important;
+  --color-dim: #4b5563 !important;
+
+  --color-line: rgba(255, 255, 255, 0.08) !important;
+  --color-line-strong: rgba(255, 255, 255, 0.12) !important;
+
+  --color-on-accent: #000000 !important;
 }
 
 body {

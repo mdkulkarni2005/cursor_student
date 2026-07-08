@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { prisma, assertPhoneAvailable } from "@studentos/db";
 import { DEPARTMENTS } from "@/lib/constants";
+import { SESSION_EXPIRED_ERROR } from "@/lib/actions/onboarding-constants";
 
 export type OnboardingState = { error?: string };
 
@@ -17,7 +18,7 @@ export async function completeOnboarding(
   formData: FormData,
 ): Promise<OnboardingState> {
   const { userId } = await auth();
-  if (!userId) return { error: "You must be signed in." };
+  if (!userId) return { error: SESSION_EXPIRED_ERROR };
 
   const userType = formData.get("userType") === "PROFESSIONAL" ? "PROFESSIONAL" : "STUDENT";
   const careerGoal = String(formData.get("careerGoal") ?? "").trim();

@@ -192,7 +192,7 @@ export function ResumeOptimizer({ docId, targetRole, jobDescription }: { docId: 
                   <button
                     onClick={claimSelected}
                     disabled={checked.size === 0 || claiming}
-                    className="mt-2 rounded-lg bg-accent-gradient px-3 py-1.5 text-[12px] font-semibold text-on-accent shadow-[0_4px_14px_rgba(79,70,229,0.3)] disabled:opacity-60"
+                    className="mt-2 rounded-lg bg-accent-gradient px-3 py-1.5 text-[12px] font-semibold text-on-accent shadow-[0_4px_14px_rgba(246,146,30,0.3)] disabled:opacity-60"
                   >
                     {claiming ? "Adding…" : `✦ Add ${checked.size || ""} checked skill${checked.size === 1 ? "" : "s"}`.trim()}
                   </button>
@@ -230,7 +230,7 @@ export function ResumeOptimizer({ docId, targetRole, jobDescription }: { docId: 
                         <button
                           onClick={() => approve(c)}
                           disabled={c.state === "applying" || missingMetrics(c)}
-                          className="rounded-lg bg-accent-gradient px-3 py-1.5 text-[12px] font-semibold text-on-accent shadow-[0_4px_14px_rgba(79,70,229,0.3)] disabled:opacity-60"
+                          className="rounded-lg bg-accent-gradient px-3 py-1.5 text-[12px] font-semibold text-on-accent shadow-[0_4px_14px_rgba(246,146,30,0.3)] disabled:opacity-60"
                         >
                           {c.state === "applying" ? "Applying…" : "✦ Approve"}
                         </button>

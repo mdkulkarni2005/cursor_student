@@ -65,7 +65,7 @@ export default async function LandingPage() {
       <header className="animate-fade-in-up fixed inset-x-0 top-0 z-50 border-b border-line bg-base/80 backdrop-blur-lg">
         <div className="mx-auto flex h-[64px] max-w-7xl items-center justify-between px-5">
           <Link href="/" className="flex items-center gap-2.5">
-            <span className="flex size-[28px] items-center justify-center rounded-lg bg-accent-gradient shadow-[0_0_16px_rgba(79,70,229,0.4)]">
+            <span className="flex size-[28px] items-center justify-center rounded-lg bg-accent-gradient shadow-[0_0_16px_rgba(246,146,30,0.4)]">
               <Sparkle size={15} className="text-on-accent" />
             </span>
             <span className="font-display text-[16px] font-bold text-ink">Vidyas OS</span>
@@ -90,7 +90,7 @@ export default async function LandingPage() {
       {/* HERO */}
       <section className="relative mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center px-5 pt-20 text-center">
         {/* Background orbs */}
-        <div className="pointer-events-none absolute -top-40 left-1/2 size-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(79,70,229,0.08),transparent_70%)] animate-float-drift" />
+        <div className="pointer-events-none absolute -top-40 left-1/2 size-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(246,146,30,0.08),transparent_70%)] animate-float-drift" />
         <div className="pointer-events-none absolute -bottom-20 right-10 size-[300px] animate-float-drift rounded-full bg-[radial-gradient(circle,rgba(129,140,248,0.06),transparent_70%)]" style={{ animationDelay: "-5s" }} />
         <div className="pointer-events-none absolute -left-20 top-1/3 size-[250px] animate-float-drift rounded-full bg-[radial-gradient(circle,rgba(251,191,36,0.04),transparent_70%)]" style={{ animationDelay: "-9s" }} />
 
@@ -121,7 +121,7 @@ export default async function LandingPage() {
           <div className="animate-fade-in-up stagger-4 mt-8 flex flex-wrap items-center justify-center gap-4">
             <Link
               href="/sign-up"
-              className="group relative rounded-xl bg-accent-gradient px-[26px] py-3 text-[15px] font-semibold text-on-accent shadow-[0_8px_28px_rgba(79,70,229,0.3)] transition-all hover:-translate-y-0.5"
+              className="group relative rounded-xl bg-accent-gradient px-[26px] py-3 text-[15px] font-semibold text-on-accent shadow-[0_8px_28px_rgba(246,146,30,0.3)] transition-all hover:-translate-y-0.5"
             >
               <span className="absolute -inset-1 rounded-xl bg-accent-gradient opacity-0 blur-lg transition-opacity group-hover:opacity-60" />
               <span className="relative z-10">Get started free →</span>
@@ -232,7 +232,7 @@ export default async function LandingPage() {
 
       {/* CTA */}
       <section className="relative border-t border-line overflow-hidden">
-        <div className="pointer-events-none absolute -left-20 -top-20 size-[400px] animate-float-drift rounded-full bg-[radial-gradient(circle,rgba(79,70,229,0.05),transparent_70%)]" />
+        <div className="pointer-events-none absolute -left-20 -top-20 size-[400px] animate-float-drift rounded-full bg-[radial-gradient(circle,rgba(246,146,30,0.05),transparent_70%)]" />
         <Reveal>
           <div className="relative mx-auto max-w-3xl px-5 py-24 text-center">
             <h2 className="font-display text-[30px] font-bold text-ink sm:text-[36px]">
@@ -243,7 +243,7 @@ export default async function LandingPage() {
             </p>
             <Link
               href="/sign-up"
-              className="group relative mt-8 inline-block rounded-xl bg-accent-gradient px-[26px] py-3 text-[15px] font-semibold text-on-accent shadow-[0_8px_28px_rgba(79,70,229,0.3)] transition-all hover:-translate-y-0.5"
+              className="group relative mt-8 inline-block rounded-xl bg-accent-gradient px-[26px] py-3 text-[15px] font-semibold text-on-accent shadow-[0_8px_28px_rgba(246,146,30,0.3)] transition-all hover:-translate-y-0.5"
             >
               <span className="absolute -inset-1 rounded-xl bg-accent-gradient opacity-0 blur-lg transition-opacity group-hover:opacity-50" />
               <span className="relative z-10">Get started free →</span>

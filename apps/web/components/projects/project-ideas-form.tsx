@@ -43,7 +43,7 @@ export function ProjectIdeasForm() {
         <button
           type="submit"
           disabled={pending}
-          className="w-full rounded-xl bg-accent-gradient py-3 text-[14px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(79,70,229,0.3)] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
+          className="w-full rounded-xl bg-accent-gradient py-3 text-[14px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(246,146,30,0.3)] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
         >
           {pending ? "Thinking up ideas…" : questions.length > 0 ? "Continue →" : ideas.length > 0 ? "Suggest more →" : "Suggest project ideas →"}
         </button>

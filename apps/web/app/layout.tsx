@@ -1,17 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, DM_Sans, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "sonner";
 import "./globals.css";
 
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-});
-
-const dmSans = DM_Sans({
-  variable: "--font-dm-sans",
-  subsets: ["latin"],
 });
 
 const jetBrainsMono = JetBrains_Mono({
@@ -27,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f8fafc",
+  themeColor: "#f7f7f7",
   width: "device-width",
   initialScale: 1,
 };
@@ -45,21 +42,27 @@ export default function RootLayout({
       signUpFallbackRedirectUrl="/dashboard"
       appearance={{
         variables: {
-          colorPrimary: "#4f46e5",
+          colorPrimary: "#f6921e",
           colorBackground: "#ffffff",
           colorInputBackground: "#f2f4f6",
-          colorText: "#191c1e",
-          colorTextSecondary: "#464555",
-          colorInputText: "#191c1e",
+          colorText: "#152241",
+          colorTextSecondary: "#5c5555",
+          colorInputText: "#152241",
           borderRadius: "0.75rem",
         },
       }}
     >
       <html
         lang="en"
-        className={`${spaceGrotesk.variable} ${dmSans.variable} ${jetBrainsMono.variable} h-full antialiased`}
+        suppressHydrationWarning
+        className={`${inter.variable} ${jetBrainsMono.variable} h-full antialiased`}
       >
-        <body className="min-h-full font-sans text-soft">{children}</body>
+        <body className="min-h-full font-sans text-soft">
+          <ThemeProvider>
+            {children}
+            <Toaster position="top-right" richColors duration={3000} />
+          </ThemeProvider>
+        </body>
       </html>
     </ClerkProvider>
   );

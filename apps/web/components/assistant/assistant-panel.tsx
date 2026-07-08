@@ -128,7 +128,7 @@ export function AssistantPanel({ name }: { name?: string }) {
           <button
             onClick={() => setOpen(true)}
             aria-label="Open AI mentor"
-            className="flex size-14 items-center justify-center rounded-full bg-accent-gradient shadow-[0_10px_30px_rgba(79,70,229,0.45)] animate-pulse-ring"
+            className="flex size-14 items-center justify-center rounded-full bg-accent-gradient shadow-[0_10px_30px_rgba(246,146,30,0.45)] animate-pulse-ring"
           >
             <ChatIcon size={26} className="text-on-accent" />
           </button>

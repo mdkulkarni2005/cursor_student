@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import { useActionState } from "react";
+import Link from "next/link";
 import { completeOnboarding, type OnboardingState } from "@/lib/actions/onboarding";
+import { SESSION_EXPIRED_ERROR } from "@/lib/actions/onboarding-constants";
 import { DEPARTMENTS, SEMESTERS } from "@/lib/constants";
 import { CODING_DEPARTMENTS } from "@/lib/capabilities";
 import { Sparkle } from "@/components/icons";
+import { SignOutButtonPlain } from "@/components/sign-out-button";
 
 // Target roles for career-goal mapping (mockup: "What's your vision?").
 const CAREER_GOALS = [
@@ -62,11 +65,16 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-12">
       <div className="w-full max-w-[440px]">
-        <div className="mb-6 flex items-center gap-2.5">
-          <span className="flex size-9 items-center justify-center rounded-xl bg-accent-gradient shadow-[0_0_18px_rgba(79,70,229,0.4)]">
-            <Sparkle size={18} className="text-on-accent" />
-          </span>
-          <span className="font-display text-lg font-bold text-ink">Vidyas OS</span>
+        <div className="mb-6 flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-accent-gradient shadow-[0_0_18px_rgba(246,146,30,0.4)]">
+              <Sparkle size={18} className="text-on-accent" />
+            </span>
+            <span className="font-display text-lg font-bold text-ink">Vidyas OS</span>
+          </div>
+          <SignOutButtonPlain className="text-[12.5px] font-medium text-faint hover:text-muted hover:underline">
+            Not you? Sign out
+          </SignOutButtonPlain>
         </div>
 
         <h1 className="font-display text-[24px] font-bold leading-tight text-ink">
@@ -193,14 +201,21 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
             </span>
           </label>
 
-          {state.error ? (
+          {state.error === SESSION_EXPIRED_ERROR ? (
+            <div className="mb-4 rounded-lg border border-danger/25 bg-danger/10 px-3 py-2 text-[12.5px] text-danger">
+              <p>Your session has expired.</p>
+              <Link href="/sign-in" className="font-semibold underline underline-offset-2 hover:opacity-80">
+                Sign in again →
+              </Link>
+            </div>
+          ) : state.error ? (
             <p className="mb-4 rounded-lg border border-danger/25 bg-danger/10 px-3 py-2 text-[12.5px] text-danger">{state.error}</p>
           ) : null}
 
           <button
             type="submit"
             disabled={pending || !accepted}
-            className="w-full rounded-xl bg-accent-gradient py-3 text-[14px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(79,70,229,0.3)] transition-transform hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
+            className="w-full rounded-xl bg-accent-gradient py-3 text-[14px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(246,146,30,0.3)] transition-transform hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
           >
             {pending ? "Setting up your workspace…" : "Enter Vidyas OS →"}
           </button>

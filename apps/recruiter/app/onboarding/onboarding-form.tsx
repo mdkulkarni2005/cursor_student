@@ -1,8 +1,11 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import Link from "next/link";
 import { saveApplication, type OnboardingState } from "./actions";
+import { SESSION_EXPIRED_ERROR } from "./onboarding-constants";
 import { INDUSTRIES } from "@/lib/industries";
+import { SignOutButtonPlain } from "@/components/sign-out-button";
 
 type Initial = {
   name: string;
@@ -45,11 +48,16 @@ export function OnboardingForm({ initial }: { initial: Initial }) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-12">
       <div className="w-full max-w-[480px]">
-        <div className="mb-6 text-center">
-          <span className="font-display text-[19px] font-bold text-cyan">Vidyas OS</span>
-          <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-[0.18em] text-faint">
-            Recruiter Application
-          </span>
+        <div className="mb-6 flex items-start justify-between gap-2.5">
+          <div className="text-center">
+            <span className="font-display text-[19px] font-bold text-cyan">Vidyas OS</span>
+            <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-[0.18em] text-faint">
+              Recruiter Application
+            </span>
+          </div>
+          <SignOutButtonPlain className="mt-1 text-[12.5px] font-medium text-faint hover:text-muted hover:underline">
+            Not you? Sign out
+          </SignOutButtonPlain>
         </div>
 
         <form action={submitAction} className="rounded-2xl border border-line bg-card p-5">
@@ -97,7 +105,14 @@ export function OnboardingForm({ initial }: { initial: Initial }) {
             <input id="linkedinUrl" name="linkedinUrl" type="url" placeholder="https://linkedin.com/in/…" value={fields.linkedinUrl} onChange={(e) => set("linkedinUrl", e.target.value)} className={`${fieldBox} placeholder:text-faint`} />
           </div>
 
-          {state.error ? (
+          {state.error === SESSION_EXPIRED_ERROR ? (
+            <div className="mb-4 rounded-lg border border-danger/25 bg-danger/10 px-3 py-2 text-[12.5px] text-danger">
+              <p>Your session has expired.</p>
+              <Link href="/sign-in" className="font-semibold underline underline-offset-2 hover:opacity-80">
+                Sign in again →
+              </Link>
+            </div>
+          ) : state.error ? (
             <p className="mb-4 rounded-lg border border-danger/25 bg-danger/10 px-3 py-2 text-[12.5px] text-danger">{state.error}</p>
           ) : null}
           {savedAt && !state.error ? (
@@ -116,7 +131,7 @@ export function OnboardingForm({ initial }: { initial: Initial }) {
             <button
               type="submit"
               disabled={pending}
-              className="flex-1 rounded-xl bg-accent-gradient py-3 text-[13.5px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(79,70,229,0.3)] disabled:opacity-60"
+              className="flex-1 rounded-xl bg-accent-gradient py-3 text-[13.5px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(246,146,30,0.3)] disabled:opacity-60"
             >
               Submit for review
             </button>
