@@ -1,0 +1,34 @@
+.git
+.gitignore
+
+# dependencies
+node_modules
+**/node_modules
+.pnp
+.pnp.js
+
+# turbo
+.turbo
+**/.turbo
+
+# next.js
+.next
+**/.next
+out
+**/out
+
+# env (never send secrets into a build context; keep .env.example)
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# misc
+*.tsbuildinfo
+next-env.d.ts
+.DS_Store
+
+# docs / local tooling, not needed inside images
+docs
+.claude
+scripts/dsa-verify

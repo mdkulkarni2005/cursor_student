@@ -19,7 +19,11 @@
     "check-types": "turbo check-types",
     "gotenberg": "docker run --rm -p 9000:3000 gotenberg/gotenberg:8",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\" --ignore-path .gitignore",
-    "dsa:verify": "tsx scripts/dsa-verify/verify.ts"
+    "dsa:verify": "tsx scripts/dsa-verify/verify.ts",
+    "docker:build": "docker compose -f docker-compose.prod.yml build",
+    "docker:up": "docker compose -f docker-compose.prod.yml up -d",
+    "docker:down": "docker compose -f docker-compose.prod.yml down",
+    "docker:provision-piston": "docker compose -f docker-compose.prod.yml run --rm piston-runtimes"
   },
   "devDependencies": {
     "prettier": "^3.4.2",

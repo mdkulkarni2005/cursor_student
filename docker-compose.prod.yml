@@ -1,0 +1,110 @@
+# Production deploy for StudentOS — single VM, all services on one Docker network.
+#
+# Why one VM instead of "deploy each app anywhere": Piston (code execution/grading) requires
+# `privileged: true`, which serverless container platforms (Cloud Run, ECS Fargate, App Runner,
+# Azure Container Apps) refuse to run. A single VM running this compose file works on any cloud
+# (EC2, GCE, Azure VM, or a plain box) and is the simplest model that keeps Piston legal.
+#
+# Usage:
+#   1. Copy each app's .env.example to a real prod env file (e.g. apps/web/.env.production) and
+#      fill in real values — see each .env.example for the full list.
+#   2. NEXT_PUBLIC_* vars are baked into the client bundle at BUILD time, not read at container
+#      start — pass them as build args (see `build.args` below), not just in the env file.
+#   3. docker compose -f docker-compose.prod.yml build
+#   4. docker compose -f docker-compose.prod.yml up -d
+#   5. First run only: docker compose -f docker-compose.prod.yml run --rm piston-runtimes
+#      (installs Piston language runtimes into the persistent volume; already-installed runtimes
+#      are skipped on subsequent runs, so it's safe to re-run any time.)
+#
+# Note: the in-memory rate limiter (see docs/APP_STATUS.md) only works correctly with exactly
+# one replica per app, which is what this file runs. Scaling to multiple replicas requires moving
+# that limiter to a shared store (Neon/Upstash) first.
+
+services:
+  gotenberg:
+    image: gotenberg/gotenberg:8
+    container_name: studentos_gotenberg
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:3000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [studentos]
+
+  piston:
+    image: ghcr.io/engineer-man/piston:latest
+    container_name: studentos_piston
+    privileged: true
+    restart: unless-stopped
+    volumes:
+      - piston_data:/piston
+    networks: [studentos]
+
+  # One-shot: installs Piston language runtimes into piston_data. Not started by `up`; run
+  # explicitly (see usage note above). Safe to re-run — already-installed runtimes are skipped.
+  piston-runtimes:
+    image: node:20-alpine
+    container_name: studentos_piston_runtimes
+    depends_on: [piston]
+    environment:
+      PISTON_URL: "http://piston:2000/api/v2"
+    volumes:
+      - ./scripts/provision-piston.mjs:/provision-piston.mjs:ro
+    entrypoint: ["node", "/provision-piston.mjs"]
+    networks: [studentos]
+    profiles: ["tools"]
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+        NEXT_PUBLIC_VAPI_PUBLIC_KEY: ${NEXT_PUBLIC_VAPI_PUBLIC_KEY}
+        NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL}
+        NEXT_PUBLIC_RECRUITER_APP_URL: ${NEXT_PUBLIC_RECRUITER_APP_URL}
+    container_name: studentos_web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file: apps/web/.env.production
+    environment:
+      PISTON_URL: "http://piston:2000/api/v2"
+      GOTENBERG_URL: "http://gotenberg:3000"
+    depends_on: [gotenberg, piston]
+    networks: [studentos]
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      args:
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+    container_name: studentos_admin
+    restart: unless-stopped
+    ports:
+      - "3100:3100"
+    env_file: apps/admin/.env.production
+    depends_on: [gotenberg, piston]
+    networks: [studentos]
+
+  recruiter:
+    build:
+      context: .
+      dockerfile: apps/recruiter/Dockerfile
+      args:
+        NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
+    container_name: studentos_recruiter
+    restart: unless-stopped
+    ports:
+      - "3200:3200"
+    env_file: apps/recruiter/.env.production
+    depends_on: [gotenberg, piston]
+    networks: [studentos]
+
+networks:
+  studentos:
+
+volumes:
+  piston_data:
