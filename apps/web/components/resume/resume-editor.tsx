@@ -64,7 +64,7 @@ export function ResumeEditor({ docId, resume }: { docId: string; resume: Resume 
       {/* Personal Information */}
       <div className={sectionCard}>
         <SectionHead title="Personal Information" />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {(["name", "email", "phone", "location", "linkedin", "github"] as const).map((k) => (
             <div key={k}>
               <label className={label}>{CONTACT_LABELS[k]}</label>
@@ -112,7 +112,7 @@ export function ResumeEditor({ docId, resume }: { docId: string; resume: Resume 
               const main = isProj ? (e as Resume["projects"][number]).name : (e as Resume["experience"][number]).organization;
               return (
                 <div key={i} className="rounded-xl border border-line bg-surface p-3">
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <input className={box} value={main} placeholder={isProj ? "Project name" : "Organization"} onChange={(ev) => updateEntry(kind, i, isProj ? { name: ev.target.value } : { organization: ev.target.value })} />
                     <input className={box} value={(e as { role?: string }).role ?? ""} placeholder="Role" onChange={(ev) => updateEntry(kind, i, { role: ev.target.value })} />
                     <input className={box} value={(e as { dates?: { start?: string } }).dates?.start ?? ""} placeholder="Start (e.g. Jan 2026)" onChange={(ev) => updateEntry(kind, i, { dates: { ...(e as { dates?: object }).dates, start: ev.target.value } })} />
@@ -142,7 +142,7 @@ export function ResumeEditor({ docId, resume }: { docId: string; resume: Resume 
         <div className="space-y-3">
           {r.education.map((ed, i) => (
             <div key={i} className="rounded-xl border border-line bg-surface p-3">
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 <input className={box} value={ed.institution} placeholder="Institution" onChange={(ev) => updateEntry("education", i, { institution: ev.target.value })} />
                 <input className={box} value={ed.degree ?? ""} placeholder="Degree" onChange={(ev) => updateEntry("education", i, { degree: ev.target.value })} />
                 <input className={box} value={ed.dates?.start ?? ""} placeholder="Start" onChange={(ev) => updateEntry("education", i, { dates: { ...ed.dates, start: ev.target.value } })} />

@@ -38,7 +38,7 @@ export function GenerateResumeForm({ defaults }: { defaults: { name?: string; em
         />
       </div>
 
-      <div className="mb-4 grid grid-cols-2 gap-3">
+      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label htmlFor="name" className={label}>Full name</label>
           <input id="name" name="name" type="text" defaultValue={defaults.name} className={box} />

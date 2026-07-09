@@ -16,7 +16,7 @@ export function CheckoutForm({ amountLabel }: { amountLabel: string }) {
   return (
     <div>
       <h4 className="mb-4 text-[12px] font-bold uppercase tracking-widest text-muted">Select Payment Method</h4>
-      <div className="mb-6 grid grid-cols-3 gap-3">
+      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
         {METHODS.map((m) => (
           <button
             key={m.id}

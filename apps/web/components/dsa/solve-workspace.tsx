@@ -70,73 +70,95 @@ export function SolveWorkspace({
 
   const supported = starters[language] !== undefined;
 
-  return (
-    <div className="flex h-[calc(100vh-190px)] min-h-[560px] flex-col rounded-2xl border border-line bg-card">
-      <PanelGroup direction="horizontal" className="flex-1">
-        <Panel defaultSize={35} minSize={20} className="min-w-0">
-          <div className="h-full overflow-y-auto p-5">
-            <p className="text-[13.5px] leading-relaxed text-soft">{problem.prompt}</p>
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {problem.tags.map((t) => (
-                <span key={t} className="rounded-full border border-line bg-surface px-2.5 py-0.5 text-[11.5px] text-muted">{t}</span>
-              ))}
-            </div>
-            <div className="mt-4 space-y-2">
-              {problem.examples.map((ex, i) => (
-                <div key={i} className="rounded-lg bg-surface p-3 font-mono text-[12px] text-soft">
-                  <p><span className="text-faint">Input:</span> {ex.input}</p>
-                  <p><span className="text-faint">Output:</span> {ex.output}</p>
-                  {ex.explanation ? <p className="text-faint">{`// ${ex.explanation}`}</p> : null}
-                </div>
-              ))}
-            </div>
+  const promptPane = (
+    <div className="h-full overflow-y-auto p-5">
+      <p className="text-[13.5px] leading-relaxed text-soft">{problem.prompt}</p>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {problem.tags.map((t) => (
+          <span key={t} className="rounded-full border border-line bg-surface px-2.5 py-0.5 text-[11.5px] text-muted">{t}</span>
+        ))}
+      </div>
+      <div className="mt-4 space-y-2">
+        {problem.examples.map((ex, i) => (
+          <div key={i} className="rounded-lg bg-surface p-3 font-mono text-[12px] text-soft">
+            <p><span className="text-faint">Input:</span> {ex.input}</p>
+            <p><span className="text-faint">Output:</span> {ex.output}</p>
+            {ex.explanation ? <p className="text-faint">{`// ${ex.explanation}`}</p> : null}
           </div>
-        </Panel>
-
-        <ResizeHandle direction="horizontal" />
-
-        <Panel minSize={30}>
-          <PanelGroup direction="vertical">
-            <Panel defaultSize={65} minSize={25}>
-              <SolveEditor
-                slug={slug}
-                language={language}
-                code={code}
-                onLanguageChange={onLanguageChange}
-                onCodeChange={setCode}
-                supported={supported}
-              />
-            </Panel>
-
-            <ResizeHandle direction="vertical" />
-
-            <Panel defaultSize={35} minSize={15}>
-              <div className="flex h-full flex-col border-t border-line">
-                <RunConsole
-                  onRun={doRun}
-                  running={running}
-                  runResult={runResult}
-                  runDisabled={samples.length === 0}
-                  submitState={submitState}
-                  submitPending={submitPending}
-                />
-                <form action={submitAction} className="border-t border-line p-3">
-                  <input type="hidden" name="slug" value={slug} />
-                  <input type="hidden" name="code" value={code} />
-                  <input type="hidden" name="language" value={language} />
-                  <button
-                    type="submit"
-                    disabled={submitPending || code.trim().length < 10}
-                    className="w-full rounded-xl bg-accent-gradient py-2.5 text-[13.5px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(246,146,30,0.3)] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
-                  >
-                    {submitPending ? "Submitting…" : "Submit →"}
-                  </button>
-                </form>
-              </div>
-            </Panel>
-          </PanelGroup>
-        </Panel>
-      </PanelGroup>
+        ))}
+      </div>
     </div>
+  );
+
+  const editorPane = (
+    <SolveEditor
+      slug={slug}
+      language={language}
+      code={code}
+      onLanguageChange={onLanguageChange}
+      onCodeChange={setCode}
+      supported={supported}
+    />
+  );
+
+  const consolePane = (
+    <div className="flex h-full flex-col border-t border-line">
+      <RunConsole
+        onRun={doRun}
+        running={running}
+        runResult={runResult}
+        runDisabled={samples.length === 0}
+        submitState={submitState}
+        submitPending={submitPending}
+      />
+      <form action={submitAction} className="border-t border-line p-3">
+        <input type="hidden" name="slug" value={slug} />
+        <input type="hidden" name="code" value={code} />
+        <input type="hidden" name="language" value={language} />
+        <button
+          type="submit"
+          disabled={submitPending || code.trim().length < 10}
+          className="w-full rounded-xl bg-accent-gradient py-2.5 text-[13.5px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(246,146,30,0.3)] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
+        >
+          {submitPending ? "Submitting…" : "Submit →"}
+        </button>
+      </form>
+    </div>
+  );
+
+  return (
+    <>
+      {/* Mobile / tablet: stacked, non-resizable sections. */}
+      <div className="flex flex-col gap-3 lg:hidden">
+        <div className="max-h-[45vh] overflow-y-auto rounded-2xl border border-line bg-card">{promptPane}</div>
+        <div className="h-[420px] overflow-hidden rounded-2xl border border-line bg-card">{editorPane}</div>
+        <div className="min-h-[260px] overflow-hidden rounded-2xl border border-line bg-card">{consolePane}</div>
+      </div>
+
+      {/* Desktop: resizable split panes. */}
+      <div className="hidden h-[calc(100vh-190px)] min-h-[560px] flex-col rounded-2xl border border-line bg-card lg:flex">
+        <PanelGroup direction="horizontal" className="flex-1">
+          <Panel defaultSize={35} minSize={20} className="min-w-0">
+            {promptPane}
+          </Panel>
+
+          <ResizeHandle direction="horizontal" />
+
+          <Panel minSize={30}>
+            <PanelGroup direction="vertical">
+              <Panel defaultSize={65} minSize={25}>
+                {editorPane}
+              </Panel>
+
+              <ResizeHandle direction="vertical" />
+
+              <Panel defaultSize={35} minSize={15}>
+                {consolePane}
+              </Panel>
+            </PanelGroup>
+          </Panel>
+        </PanelGroup>
+      </div>
+    </>
   );
 }

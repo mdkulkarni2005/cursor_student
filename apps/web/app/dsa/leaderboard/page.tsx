@@ -66,7 +66,7 @@ export default async function DsaLeaderboardPage() {
         </div>
 
         {/* Your stats */}
-        <div className="mb-6 grid grid-cols-3 gap-4">
+        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
           {[
             { label: "Your Global Rank", value: board.me ? `#${board.me.rank}` : "—", sub: `of ${board.totalRanked || 0}` },
             { label: "Your V-Score", value: (board.me?.vScore ?? 0).toLocaleString("en-IN"), sub: `${board.me?.solved ?? 0} solved` },

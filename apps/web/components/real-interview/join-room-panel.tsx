@@ -400,7 +400,7 @@ export function JoinRoomPanel({ scheduleId }: { scheduleId: string }) {
       {/* Same two <video> nodes render across every phase — only visibility/layout changes — so
           the local preview's srcObject (set once in handleChecklistContinue) never gets dropped by
           a remount. */}
-      <div className={`mb-3 grid gap-3 ${connected ? "grid-cols-2" : "grid-cols-1"} ${showLocalVideo ? "" : "hidden"}`}>
+      <div className={`mb-3 grid gap-3 ${connected ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"} ${showLocalVideo ? "" : "hidden"}`}>
         <div className="relative">
           <video ref={localVideoRef} autoPlay muted playsInline className="aspect-video w-full rounded-xl bg-black object-cover" />
           {connected && (

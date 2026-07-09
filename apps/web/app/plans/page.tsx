@@ -120,8 +120,8 @@ export default async function PlansPage() {
         {/* Compare table */}
         <div className="mt-12">
           <h2 className="mb-6 text-center font-display text-[22px] font-bold text-ink">Compare Features</h2>
-          <div className="overflow-hidden rounded-2xl border border-line bg-card">
-            <table className="w-full text-[13.5px]">
+          <div className="overflow-x-auto rounded-2xl border border-line bg-card">
+            <table className="w-full min-w-[560px] text-[13.5px]">
               <thead className="border-b border-line bg-surface/50">
                 <tr>
                   <th className="p-5 text-left font-semibold text-ink">Features</th>
