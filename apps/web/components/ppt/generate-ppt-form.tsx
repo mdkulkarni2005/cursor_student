@@ -6,6 +6,7 @@ import { generatePptAction, type PptFormState } from "@/lib/actions/ppt";
 import { ClarifyQuestions } from "@/components/clarify-questions";
 import { Button } from "@/components/ui/button";
 import { GeneratingOverlay } from "@/components/generating-overlay";
+import { useErrorToast } from "@/lib/use-error-toast";
 
 const label = "mb-1.5 block text-[12.5px] font-semibold text-muted";
 const box =
@@ -13,6 +14,7 @@ const box =
 
 export function GeneratePptForm() {
   const [state, action, pending] = useActionState<PptFormState, FormData>(generatePptAction, {});
+  useErrorToast(state.error);
   const questions = state.questions ?? [];
 
   return (

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { generateDrawingVivaAction, type DrawingVivaFormState } from "@/lib/actions/drawing-viva";
 import { GeneratingOverlay } from "@/components/generating-overlay";
+import { useErrorToast } from "@/lib/use-error-toast";
 
 const label = "mb-1.5 block text-[12.5px] font-semibold text-muted";
 
@@ -12,6 +13,7 @@ export function GenerateDrawingVivaForm() {
     generateDrawingVivaAction,
     {},
   );
+  useErrorToast(state.error);
 
   return (
     <form action={action} className="rounded-2xl border border-line bg-card p-5">

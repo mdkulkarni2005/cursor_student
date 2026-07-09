@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { startInterviewAction, type InterviewFormState } from "@/lib/actions/interview";
+import { useErrorToast } from "@/lib/use-error-toast";
 
 const label = "mb-1.5 block text-[12.5px] font-semibold text-muted";
 const box =
@@ -23,6 +24,7 @@ const DIFFICULTY_OPTIONS = [
 
 export function StartInterviewForm({ resumes, codingEnabled = true }: { resumes: { id: string; title: string }[]; codingEnabled?: boolean }) {
   const [state, action, pending] = useActionState<InterviewFormState, FormData>(startInterviewAction, {});
+  useErrorToast(state.error);
   // Non-coding tracks get a normal interview (technical + behavioral) without the coding round.
   const rounds = ROUND_OPTIONS.filter((r) => codingEnabled || r.value !== "coding");
 

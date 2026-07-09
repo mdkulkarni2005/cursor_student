@@ -7,6 +7,7 @@ import { ClarifyQuestions } from "@/components/clarify-questions";
 import { REPORT_TYPES } from "@/lib/constants";
 import { Button } from "@/components/ui/button";
 import { GeneratingOverlay } from "@/components/generating-overlay";
+import { useErrorToast } from "@/lib/use-error-toast";
 
 const label = "mb-1.5 block text-[12.5px] font-semibold text-muted";
 const box =
@@ -17,6 +18,7 @@ export function GenerateReportForm() {
     generateReportAction,
     {},
   );
+  useErrorToast(state.error);
 
   return (
     <form action={action} className="rounded-2xl border border-line bg-card p-5">

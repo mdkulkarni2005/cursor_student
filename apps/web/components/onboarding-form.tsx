@@ -9,6 +9,7 @@ import { DEPARTMENTS, SEMESTERS } from "@/lib/constants";
 import { CODING_DEPARTMENTS } from "@/lib/capabilities";
 import { Sparkle } from "@/components/icons";
 import { SignOutButtonPlain } from "@/components/sign-out-button";
+import { useErrorToast } from "@/lib/use-error-toast";
 
 // Target roles for career-goal mapping (mockup: "What's your vision?").
 const CAREER_GOALS = [
@@ -48,6 +49,7 @@ const ROLE_COPY: Record<"STUDENT" | "PROFESSIONAL", { title: string; body: strin
 
 export function OnboardingForm({ firstName }: { firstName: string | null }) {
   const [state, action, pending] = useActionState<OnboardingState, FormData>(completeOnboarding, {});
+  useErrorToast(state.error);
 
   const [userType, setUserType] = useState<"STUDENT" | "PROFESSIONAL">("STUDENT");
   const [dept, setDept] = useState("");

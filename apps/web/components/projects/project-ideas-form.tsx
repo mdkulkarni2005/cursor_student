@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { suggestIdeasAction, type IdeasFormState } from "@/lib/actions/projects";
 import { ClarifyQuestions } from "@/components/clarify-questions";
 import { IdeaCard, DIFFICULTY_LABELS } from "@/components/projects/idea-card";
+import { useErrorToast } from "@/lib/use-error-toast";
 
 const label = "mb-1.5 block text-[12.5px] font-semibold text-muted";
 const box =
@@ -13,6 +14,7 @@ const PROJECT_DIFFICULTIES = Object.keys(DIFFICULTY_LABELS);
 
 export function ProjectIdeasForm() {
   const [state, action, pending] = useActionState<IdeasFormState, FormData>(suggestIdeasAction, {});
+  useErrorToast(state.error);
   const questions = state.questions ?? [];
   const ideas = state.ideas ?? [];
 

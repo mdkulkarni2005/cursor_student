@@ -3,9 +3,11 @@
 import { useActionState } from "react";
 import { importResumeAction, type ImportResumeState } from "@/lib/actions/resume";
 import { GeneratingOverlay } from "@/components/generating-overlay";
+import { useErrorToast } from "@/lib/use-error-toast";
 
 export function ImportResumeForm() {
   const [state, action, pending] = useActionState<ImportResumeState, FormData>(importResumeAction, {});
+  useErrorToast(state.error);
 
   return (
     <form action={action} className="rounded-2xl border border-dashed border-line-strong bg-card p-4">

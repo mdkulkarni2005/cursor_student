@@ -8,6 +8,9 @@ import { getOrGeneratePregeneratedIdeas } from "@/lib/projects/generate";
 import { refreshPregeneratedIdeasAction } from "@/lib/actions/projects";
 import { NavSpinner, SubmitButton } from "@/components/ui/button";
 import { DeleteDocButton } from "@/components/delete-doc-button";
+import { ToastFromQuery } from "@/components/toast-from-query";
+
+const ERROR_MESSAGES = { "refresh-failed": "Couldn't refresh suggestions — please try again in a moment." };
 
 export default async function ProjectsPage() {
   const user = await requireStudentRoute();
@@ -17,11 +20,16 @@ export default async function ProjectsPage() {
       orderBy: { createdAt: "desc" },
       take: 20,
     }),
-    getOrGeneratePregeneratedIdeas(user),
+    // Suggestions are a nice-to-have — never let an AI hiccup take down the whole page.
+    getOrGeneratePregeneratedIdeas(user).catch((err) => {
+      console.error("[projects] pregenerated ideas failed", err);
+      return [];
+    }),
   ]);
 
   return (
     <AppShell user={await shellUserFrom(user)}>
+      <ToastFromQuery messages={ERROR_MESSAGES} />
       <div className="mx-auto max-w-[1100px]">
         <div className="mb-6">
           <h1 className="font-display text-[30px] font-semibold tracking-tight text-ink">Project Idea Catalyst</h1>

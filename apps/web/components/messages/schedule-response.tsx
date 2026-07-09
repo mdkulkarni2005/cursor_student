@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState, useState, useTransition } from "react";
 import { acceptSchedule, declineSchedule, proposeReschedule, type ProposeReschedulState } from "@/lib/actions/interview-schedule";
+import { useErrorToast } from "@/lib/use-error-toast";
 
 export function ScheduleResponse({
   id,
@@ -18,6 +19,7 @@ export function ScheduleResponse({
   const [pending, start] = useTransition();
   const [showReschedule, setShowReschedule] = useState(false);
   const [state, action, actionPending] = useActionState<ProposeReschedulState, FormData>(proposeReschedule.bind(null, id), {});
+  useErrorToast(state.error);
 
   if (status === "ACCEPTED") return <LaunchPanel proposedAt={proposedAt} joinWindow={joinWindow} />;
   if (status !== "PROPOSED") return null;

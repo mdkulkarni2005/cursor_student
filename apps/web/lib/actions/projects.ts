@@ -124,10 +124,10 @@ export async function refreshPregeneratedIdeasAction(): Promise<void> {
   try {
     await rateLimit(user.id, "project-pregenerated-refresh", 5);
     await assertWithinCostBudget(user.id);
+    await getOrGeneratePregeneratedIdeas(user, true);
   } catch {
-    redirect("/projects");
+    redirect("/projects?error=refresh-failed");
   }
-  await getOrGeneratePregeneratedIdeas(user, true);
   redirect("/projects");
 }
 

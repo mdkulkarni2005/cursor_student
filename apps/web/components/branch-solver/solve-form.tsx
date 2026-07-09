@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { solveBranchAction, type BranchSolverFormState } from "@/lib/actions/branch-solver";
 import { GeneratingOverlay } from "@/components/generating-overlay";
 import type { BranchSolverFeature } from "@/lib/branch-solver/features";
+import { useErrorToast } from "@/lib/use-error-toast";
 
 const label = "mb-1.5 block text-[12.5px] font-semibold text-muted";
 const box =
@@ -15,6 +16,7 @@ export function SolveBranchForm({ feature }: { feature: BranchSolverFeature }) {
     solveBranchAction,
     {},
   );
+  useErrorToast(state.error);
 
   return (
     <form action={action} className="rounded-2xl border border-line bg-card p-5">

@@ -10,6 +10,7 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import type { Extension } from "@codemirror/state";
 import { reviewProjectCodeAction, type CodeReviewState } from "@/lib/actions/projects";
 import { MessageMarkdown } from "@/components/assistant/message-markdown";
+import { useErrorToast } from "@/lib/use-error-toast";
 
 const CodeMirror = dynamic(() => import("@uiw/react-codemirror"), { ssr: false });
 
@@ -29,6 +30,7 @@ const LANG_EXT: Record<string, () => Extension> = {
  */
 export function CodeHelp({ docId }: { docId: string }) {
   const [state, action, pending] = useActionState<CodeReviewState, FormData>(reviewProjectCodeAction, {});
+  useErrorToast(state.error);
   const [language, setLanguage] = useState<string>("Python");
   const [code, setCode] = useState("");
   const ext = (LANG_EXT[language] ?? LANG_EXT.Python)();

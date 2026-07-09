@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { solveAssignmentAction, type AssignmentFormState } from "@/lib/actions/assignments";
 import { GeneratingOverlay } from "@/components/generating-overlay";
+import { useErrorToast } from "@/lib/use-error-toast";
 
 const label = "mb-1.5 block text-[12.5px] font-semibold text-muted";
 const box =
@@ -14,6 +15,7 @@ export function SolveAssignmentForm() {
     solveAssignmentAction,
     {},
   );
+  useErrorToast(state.error);
 
   return (
     <form action={action} className="rounded-2xl border border-line bg-card p-5">
