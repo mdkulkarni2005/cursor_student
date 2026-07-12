@@ -34,3 +34,11 @@ jobs:
       - run: pnpm lint
       - run: pnpm check-types
       - run: pnpm build
+        env:
+          # NEXT_PUBLIC_* are inlined at build time — Clerk needs a valid-shaped key even to
+          # prerender static pages like /_not-found, so this must be set here too (separately
+          # from deploy-prod.yml's Docker --build-arg, since this is a plain `next build`).
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: ${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}
+          NEXT_PUBLIC_VAPI_PUBLIC_KEY: ${{ secrets.NEXT_PUBLIC_VAPI_PUBLIC_KEY }}
+          NEXT_PUBLIC_APP_URL: https://app.krackit.in
+          NEXT_PUBLIC_RECRUITER_APP_URL: https://recruiter.krackit.in
