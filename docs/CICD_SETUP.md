@@ -66,6 +66,10 @@ the service account email) — they go into GitHub Secrets below.
 **Variables** (Settings → Secrets and variables → Actions → *Variables*, not secret, just config):
 none required yet — everything above is treated as secret for simplicity.
 
+All 8 secrets above, plus `GCP_PROJECT_NUMBER` (used by preview.yml to build predictable
+`*.run.app` preview URLs), are set as of 2026-07-12. This PR exists to confirm preview.yml
+actually deploys and comments successfully end to end.
+
 **Environment** (Settings → Environments → New environment → name it `production`):
 - Add yourself (or whoever owns deploys) under **Required reviewers**. This is what makes
   `deploy-prod.yml` stop and wait for a manual click before touching production — your
