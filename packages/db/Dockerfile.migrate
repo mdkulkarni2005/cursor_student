@@ -1,0 +1,9 @@
+# syntax=docker/dockerfile:1
+# Standalone migration runner for the run-migrations Cloud Run Job — deliberately not part of
+# the pnpm workspace build (avoids dragging in the whole monorepo for one `prisma migrate deploy`
+# call). Reads DATABASE_URL/DIRECT_URL from the job's --set-secrets at runtime.
+FROM node:20-alpine
+WORKDIR /app
+COPY prisma ./prisma
+RUN npm install --no-save prisma@6.19.3 @prisma/client@6.19.3
+CMD ["npx", "prisma", "migrate", "deploy"]

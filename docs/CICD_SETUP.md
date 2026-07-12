@@ -103,12 +103,26 @@ Rotating a `NEXT_PUBLIC_*` value requires a rebuild (documented already in
 [[docker-containerization]]); rotating anything in Secret Manager only requires a new Cloud Run
 revision, no rebuild.
 
-## 6. One manual step this workflow assumes but doesn't create
+## 6. The `run-migrations` Cloud Run Job
 
-`deploy-prod.yml` tries to run a Cloud Run Job called `run-migrations` for Prisma migrations, and
-falls back to running `migrate:deploy` directly from the Actions runner if that job doesn't exist
-yet. Either is fine to start with — creating the dedicated Cloud Run Job is a nice-to-have, not a
-blocker.
+`deploy-prod.yml` runs this job (region `asia-southeast1`) before deploying `web` on every push
+to `main`. It's a small standalone image — `packages/db/Dockerfile.migrate` — that runs
+`prisma migrate deploy` in isolation from the pnpm workspace (no monorepo install needed, just
+`prisma/schema.prisma` + `prisma/migrations` and a fresh `npm install prisma @prisma/client`).
+
+**When `prisma/schema.prisma` or `prisma/migrations` changes**, rebuild and update the job:
+```bash
+cd packages/db
+docker build --platform=linux/amd64 -f Dockerfile.migrate \
+  -t asia-southeast1-docker.pkg.dev/YOUR_PROJECT_ID/krackit/run-migrations:vN .
+docker push asia-southeast1-docker.pkg.dev/YOUR_PROJECT_ID/krackit/run-migrations:vN
+gcloud run jobs update run-migrations \
+  --image=asia-southeast1-docker.pkg.dev/YOUR_PROJECT_ID/krackit/run-migrations:vN \
+  --region=asia-southeast1
+```
+The workflow step is `continue-on-error: true` — a migration hiccup never blocks the actual app
+deploy, but check the job's logs (Cloud Run → Jobs → run-migrations → Executions) after any
+schema change to confirm it actually applied.
 
 ## 7. Third-party Actions used (verify versions before first run)
 

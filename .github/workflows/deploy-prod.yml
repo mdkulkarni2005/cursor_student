@@ -81,11 +81,11 @@ jobs:
 
       - uses: google-github-actions/setup-gcloud@v2
 
-      # Tries the dedicated `run-migrations` Cloud Run Job first (doesn't exist yet — a
-      # nice-to-have documented in CICD_SETUP.md, not a blocker). This runner has no Node/pnpm
-      # set up, so there's no local fallback here; run `pnpm --filter @studentos/db run
-      # migrate:deploy` manually against production when the schema changes, until the job
-      # exists. Never blocks the actual app deploy below.
+      # Runs the dedicated `run-migrations` Cloud Run Job (packages/db/Dockerfile.migrate —
+      # a standalone `prisma migrate deploy`, isolated from the pnpm workspace). Rebuild/push a
+      # new image tag and update the job (`gcloud run jobs update run-migrations --image=...`)
+      # whenever prisma/schema.prisma or prisma/migrations changes. continue-on-error so a
+      # migration hiccup never blocks the actual app deploy below — check the job's logs.
       - name: Run pending Neon migrations (web only, once)
         if: matrix.app == 'web'
         continue-on-error: true
