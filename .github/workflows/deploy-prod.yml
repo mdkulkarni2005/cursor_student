@@ -1,0 +1,116 @@
+name: Deploy Production
+
+# Runs only on push to main (i.e. after a PR has been reviewed and merged).
+# The `production` environment below is a GitHub Environment with a REQUIRED REVIEWER
+# configured in repo Settings → Environments — the job pauses and waits for that
+# named person to click Approve before anything touches production. This is your
+# second gate ("owner decides to merge or not" already happened at PR review;
+# this is "owner decides to actually ship it").
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false # never cancel a prod deploy partway through
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  GCP_REGION: asia-southeast1
+  ARTIFACT_REPO: krackit
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [web, admin, recruiter]
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+      - run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      - name: Build & push production image
+        run: |
+          IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ matrix.app }}:${{ github.sha }}"
+          docker build -f apps/${{ matrix.app }}/Dockerfile \
+            --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}" \
+            --build-arg NEXT_PUBLIC_VAPI_PUBLIC_KEY="${{ secrets.NEXT_PUBLIC_VAPI_PUBLIC_KEY }}" \
+            --build-arg NEXT_PUBLIC_APP_URL="https://app.krackit.in" \
+            --build-arg NEXT_PUBLIC_RECRUITER_APP_URL="https://recruiter.krackit.in" \
+            -t "$IMAGE" .
+          docker push "$IMAGE"
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    # This is the required-reviewer gate. Configure in GitHub:
+    # Settings → Environments → "production" → Required reviewers → add the owner.
+    environment: production
+    strategy:
+      matrix:
+        include:
+          - app: web
+            min: 1
+            max: 10
+          - app: admin
+            min: 0
+            max: 1
+          - app: recruiter
+            min: 0
+            max: 3
+    steps:
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Run pending Neon migrations (web only, once)
+        if: matrix.app == 'web'
+        run: |
+          gcloud run jobs execute run-migrations \
+            --region ${{ env.GCP_REGION }} \
+            --wait || pnpm --filter @studentos/db run migrate:deploy
+
+      - name: Deploy ${{ matrix.app }} to production Cloud Run
+        run: |
+          IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ matrix.app }}:${{ github.sha }}"
+
+          # Plain (non-secret) config vars, scoped per app — matches what each app's
+          # .env.local actually reads. Not sensitive, so no need for GitHub Secrets.
+          case "${{ matrix.app }}" in
+            web)
+              ENV_VARS="R2_ACCOUNT_ID=cab8ab758af6f6f04ed4ba51cedda957,R2_BUCKET=studentos,R2_PUBLIC_URL=https://pub-d1e5a9d581c24887be936dd64526036c.r2.dev,GOTENBERG_URL=https://gotenberg-1052102458537.asia-southeast1.run.app,IMAGE_MODEL=openai/gpt-image-1,LIVEKIT_URL=wss://student-os-bgwf640t.livekit.cloud,EMAIL_DRIVER=resend,EMAIL_FROM=StudentOS <notifications@krackit.in>,PISTON_URL=http://10.148.0.2:2000/api/v2"
+              ;;
+            admin)
+              ENV_VARS="R2_ACCOUNT_ID=cab8ab758af6f6f04ed4ba51cedda957,R2_BUCKET=studentos,R2_PUBLIC_URL=https://pub-d1e5a9d581c24887be936dd64526036c.r2.dev,GOTENBERG_URL=https://gotenberg-1052102458537.asia-southeast1.run.app,IMAGE_MODEL=openai/gpt-image-1"
+              ;;
+            recruiter)
+              ENV_VARS="LIVEKIT_URL=wss://student-os-bgwf640t.livekit.cloud"
+              ;;
+          esac
+
+          gcloud run deploy ${{ matrix.app }} \
+            --image "$IMAGE" \
+            --region ${{ env.GCP_REGION }} \
+            --allow-unauthenticated \
+            --min-instances=${{ matrix.min }} \
+            --max-instances=${{ matrix.max }} \
+            --timeout=900 \
+            --vpc-connector=studentos-connector \
+            --vpc-egress=private-ranges-only \
+            --set-env-vars="$ENV_VARS" \
+            --set-secrets="DATABASE_URL=DATABASE_URL:latest,DIRECT_URL=DIRECT_URL:latest,CLERK_SECRET_KEY=CLERK_SECRET_KEY:latest,R2_ACCESS_KEY_ID=R2_ACCESS_KEY_ID:latest,R2_SECRET_ACCESS_KEY=R2_SECRET_ACCESS_KEY:latest,AI_GATEWAY_API_KEY=AI_GATEWAY_API_KEY:latest,RESEND_API_KEY=RESEND_API_KEY:latest,VAPI_PRIVATE_KEY=VAPI_PRIVATE_KEY:latest,LIVEKIT_API_SECRET=LIVEKIT_API_SECRET:latest,LIVEKIT_API_KEY=LIVEKIT_API_KEY:latest,UPSTASH_REDIS_REST_URL=UPSTASH_REDIS_REST_URL:latest,UPSTASH_REDIS_REST_TOKEN=UPSTASH_REDIS_REST_TOKEN:latest,RAZORPAY_KEY_SECRET=RAZORPAY_KEY_SECRET:latest,RAZORPAY_WEBHOOK_SECRET=RAZORPAY_WEBHOOK_SECRET:latest"

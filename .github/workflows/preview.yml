@@ -1,0 +1,118 @@
+name: Preview Deploy
+
+# On every PR: build the 3 app images and deploy each as its OWN throwaway Cloud Run service
+# (e.g. "web-pr-42"), pointed at a Neon branch database so it never touches production data.
+# This is the "test on test, not prod" environment — the PR gets a comment with live URLs.
+# Requires CI to have already passed (see ci.yml) before this runs.
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  id-token: write # required for GCP Workload Identity Federation (no JSON key)
+  pull-requests: write # required to post the preview-URL comment
+
+env:
+  GCP_REGION: asia-southeast1
+  ARTIFACT_REPO: krackit
+  PR: ${{ github.event.pull_request.number }}
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: [web, admin, recruiter]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev --quiet
+
+      # Isolated staging data: a fresh Neon branch per PR, auto-deleted on PR close (see cleanup job).
+      - name: Create Neon branch for this PR
+        if: matrix.app == 'web'
+        id: neon
+        uses: neondatabase/create-branch-action@v5
+        with:
+          project_id: ${{ secrets.NEON_PROJECT_ID }}
+          branch_name: pr-${{ env.PR }}
+          api_key: ${{ secrets.NEON_API_KEY }}
+
+      - name: Build & push image
+        run: |
+          IMAGE="${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.ARTIFACT_REPO }}/${{ matrix.app }}:pr-${{ env.PR }}"
+          docker build -f apps/${{ matrix.app }}/Dockerfile \
+            --build-arg NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="${{ secrets.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY }}" \
+            --build-arg NEXT_PUBLIC_VAPI_PUBLIC_KEY="${{ secrets.NEXT_PUBLIC_VAPI_PUBLIC_KEY }}" \
+            --build-arg NEXT_PUBLIC_APP_URL="https://web-pr-${{ env.PR }}-${{ secrets.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app" \
+            --build-arg NEXT_PUBLIC_RECRUITER_APP_URL="https://recruiter-pr-${{ env.PR }}-${{ secrets.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app" \
+            -t "$IMAGE" .
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+
+      # Note: preview services intentionally skip the VPC connector (keeps them
+      # simpler/cheaper) — DSA/Piston code execution won't work in preview PRs,
+      # only in production. Everything else (auth, reports, R2, email) does.
+      - name: Deploy preview Cloud Run service
+        id: deploy
+        run: |
+          gcloud run deploy ${{ matrix.app }}-pr-${{ env.PR }} \
+            --image "$IMAGE" \
+            --region ${{ env.GCP_REGION }} \
+            --allow-unauthenticated \
+            --min-instances=0 --max-instances=2 \
+            --timeout=900 \
+            --set-secrets="CLERK_SECRET_KEY=CLERK_SECRET_KEY:latest" \
+            --set-env-vars="DATABASE_URL=${{ steps.neon.outputs.db_url_pooled || '' }},DIRECT_URL=${{ steps.neon.outputs.db_url || '' }}"
+          echo "url=$(gcloud run services describe ${{ matrix.app }}-pr-${{ env.PR }} --region ${{ env.GCP_REGION }} --format='value(status.url)')" >> "$GITHUB_OUTPUT"
+
+      - name: Save URL for the summary comment
+        run: echo "${{ matrix.app }}=${{ steps.deploy.outputs.url }}" >> preview-urls-${{ matrix.app }}.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: preview-url-${{ matrix.app }}
+          path: preview-urls-${{ matrix.app }}.txt
+
+  comment:
+    needs: preview
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: preview-url-*
+          merge-multiple: true
+
+      - name: Build the comment body from the downloaded URL files
+        id: body
+        run: |
+          {
+            echo "### 🚀 Preview deployed — test here, not production"
+            echo
+            for f in preview-urls-*.txt; do
+              [ -f "$f" ] && cat "$f" | sed 's/^\(.*\)=\(.*\)$/- **\1:** \2/'
+            done
+            echo
+            echo "Data is isolated on Neon branch \`pr-${{ github.event.pull_request.number }}\` — safe to test freely."
+          } > comment.md
+
+      - name: Post preview URLs on the PR
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: preview-urls
+          path: comment.md
