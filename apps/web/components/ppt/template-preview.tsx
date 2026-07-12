@@ -16,6 +16,9 @@ export function TemplatePreview({ docId, version = 0, children }: { docId: strin
   useEffect(() => {
     let done = false;
     let objectUrl: string | null = null;
+    // Reset visible state before the new docId/version's fetch starts, so stale content never
+    // lingers on screen while the new PDF loads.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setState("loading");
     setPdfUrl(null);
     setNote("");

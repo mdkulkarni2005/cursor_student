@@ -19,6 +19,11 @@ const REMINDERS = [
   { title: "Mock Test Countdown", note: "24h before each scheduled mock", on: false },
 ];
 
+function daysUntil(examDate: Date | null | undefined): number | null {
+  if (!examDate) return null;
+  return Math.max(0, Math.ceil((examDate.getTime() - Date.now()) / 86_400_000));
+}
+
 export default async function PlannerPage() {
   const user = await requireStudentRoute();
   const plan = await prisma.studyPlan.findFirst({
@@ -27,9 +32,7 @@ export default async function PlannerPage() {
   });
 
   const roadmap = (plan?.roadmap as RoadmapDay[] | null) ?? [];
-  const daysLeft = plan?.examDate
-    ? Math.max(0, Math.ceil((plan.examDate.getTime() - Date.now()) / 86_400_000))
-    : null;
+  const daysLeft = daysUntil(plan?.examDate);
 
   return (
     <AppShell user={await shellUserFrom(user)}>

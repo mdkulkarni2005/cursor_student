@@ -124,7 +124,14 @@ export function InterviewLiveSession({
     }
   }
   // Ask as soon as the lobby mounts (Google-Meet style preview).
-  useEffect(() => { if (permission === "idle") void requestMedia(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, []);
+  useEffect(() => {
+    if (permission === "idle") {
+      // requestMedia syncs external camera/mic permission state; must fire once on mount only.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      void requestMedia();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally mount-only.
+  }, []);
 
   async function startSession() {
     setError(null);

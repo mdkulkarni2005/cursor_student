@@ -15,7 +15,9 @@ export function SuggestionsPanel({ scheduleId, active }: { scheduleId: string; a
   const [collapsed, setCollapsed] = useState(false);
   const [dismissed, setDismissed] = useState(false);
   const suggestionsRef = useRef<string[]>([]);
-  suggestionsRef.current = suggestions;
+  useEffect(() => {
+    suggestionsRef.current = suggestions;
+  }, [suggestions]);
 
   useEffect(() => {
     if (!active || dismissed) return;

@@ -28,7 +28,7 @@ async function main() {
     rounds: ["technical", "behavioral", "coding"],
     jobDescription: "Node.js backend engineer with PostgreSQL and Redis experience.",
   });
-  let loaded = await getInterview(user.id, docId);
+  const loaded = await getInterview(user.id, docId);
   const budget = loaded!.state.questionPlan.length;
   const jdStored = (loaded!.state.jobDescription ?? "").includes("Redis");
   console.log(`  start → budget ${budget} questions; first kind=${loaded!.state.transcript[0]?.kind}; jdStored=${jdStored}`);

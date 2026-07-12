@@ -26,6 +26,10 @@ export function InterviewAnswerPanel({ docId, question, isCoding, isLast }: { do
   }, []);
 
   useEffect(() => {
+    // Arms the idle-nudge countdown (an external setTimeout, not React state) whenever the
+    // question changes — resetTimer's setStuck(false) call is syncing with that timer, not a
+    // stale re-render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     resetTimer();
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);

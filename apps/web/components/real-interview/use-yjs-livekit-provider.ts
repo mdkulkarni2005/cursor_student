@@ -24,6 +24,9 @@ export function useYjsLiveKitProvider(room: Room | null): Y.Doc | null {
   useEffect(() => {
     if (!room) {
       docRef.current = null;
+      // Synchronizing local state with the external `room` prop, not a stale re-render — the
+      // Y.Doc must be torn down/nulled whenever the LiveKit room changes or disconnects.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setDoc(null);
       return;
     }

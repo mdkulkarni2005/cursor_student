@@ -52,6 +52,10 @@ export function InstallPrompt() {
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
+    // Starts dismissed=true (hidden) so SSR/first paint never flashes the prompt, then reveals
+    // once we can safely read localStorage (unavailable during SSR) — a legitimate one-time
+    // external read on mount, not a stale-render bug.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDismissed(localStorage.getItem(DISMISS_KEY) === "1");
   }, []);
 

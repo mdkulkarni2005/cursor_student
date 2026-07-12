@@ -22,13 +22,10 @@ function fmtDateTime(d: Date | null): string {
   });
 }
 
-export default async function JobsPage() {
-  const guard = await requireAdmin();
-  if (!guard.ok) return <NotAuthorized reason={guard.reason} />;
-
+function getStuckJobs() {
   const stuckCutoff = new Date(Date.now() - STUCK_AFTER_MS);
 
-  const jobs = await prisma.generationJob.findMany({
+  return prisma.generationJob.findMany({
     where: {
       OR: [
         { status: "FAILED" },
@@ -39,6 +36,13 @@ export default async function JobsPage() {
     take: 100,
     include: { document: { include: { owner: { select: { id: true, name: true, email: true } } } } },
   });
+}
+
+export default async function JobsPage() {
+  const guard = await requireAdmin();
+  if (!guard.ok) return <NotAuthorized reason={guard.reason} />;
+
+  const jobs = await getStuckJobs();
 
   return (
     <AdminShell>

@@ -185,6 +185,8 @@ export function JoinRoomPanel({ scheduleId }: { scheduleId: string }) {
   // where tracks aren't published yet at all).
   useEffect(() => {
     if (state.phase !== "connected" || !room) return;
+    // Clear any stale block reason from a previous room before subscribing to this one's events.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setBlockedReason(null);
 
     function onTrackMuted(publication: { source?: Track.Source }, participant: { identity?: string }) {

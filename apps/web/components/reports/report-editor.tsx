@@ -128,6 +128,8 @@ function WordPreview({ docId, refreshKey }: { docId: string; refreshKey: number 
     let done = false;
     const cancelled = () => done;
     let objectUrl: string | null = null;
+    // Reset visible state before this docId's fetch starts, so stale content never lingers.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPdfUrl(null);
     setNote("");
     (async () => {

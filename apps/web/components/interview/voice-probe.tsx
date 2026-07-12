@@ -58,7 +58,6 @@ export function InterviewVoiceProbe({ question, onUseTranscript }: { question: s
       vapi.on("error", (e: unknown) => {
         setError("Couldn't start the voice call — check mic permission, or just type your answer.");
         setStatus("error");
-        // eslint-disable-next-line no-console
         console.warn("[vapi] error", e);
       });
       vapi.on("message", (msg: VapiMsg) => {
@@ -69,7 +68,6 @@ export function InterviewVoiceProbe({ question, onUseTranscript }: { question: s
       });
 
       // Inline (transient) assistant — speak the question, then stay silent (Option A).
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await vapi.start({
         firstMessage: question,
         model: {
@@ -80,11 +78,12 @@ export function InterviewVoiceProbe({ question, onUseTranscript }: { question: s
             content: "You are the voice of an interview app. Speak ONLY the first message (the interview question) aloud, then stay COMPLETELY silent and just listen. Never ask follow-ups, never comment, never speak again.",
           }],
         },
+        // Vapi's SDK types don't cover this transient-assistant shape.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any);
     } catch (e) {
       setError("Voice is unavailable right now — you can still type your answer.");
       setStatus("error");
-      // eslint-disable-next-line no-console
       console.warn("[vapi] start failed", e);
     }
   }
