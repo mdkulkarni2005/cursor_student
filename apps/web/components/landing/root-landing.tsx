@@ -49,6 +49,14 @@ export function RootLanding() {
             <a href="#contact" className="hidden rounded-xl px-4 py-2 text-[13px] font-semibold text-soft transition-colors hover:bg-surface sm:block">
               Contact
             </a>
+            {/* One login for both audiences — an already-signed-in recruiter lands straight
+                back on recruiter.krackit.in with no second sign-in (route-after-login). */}
+            <a
+              href={`${APP_URL}/sign-in`}
+              className="rounded-xl px-4 py-2 text-[13px] font-semibold text-soft transition-colors hover:bg-surface"
+            >
+              Login
+            </a>
             <a
               href={`${APP_URL}/sign-up`}
               className="rounded-xl bg-accent-gradient px-4 py-2 text-[13px] font-semibold text-on-accent transition-transform hover:-translate-y-0.5"

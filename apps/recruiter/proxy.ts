@@ -11,12 +11,11 @@ const isPublicRoute = createRouteMatcher(["/", "/sign-in(.*)"]);
 export default clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
     try {
-      const { userId } = await auth();
-      if (!userId) {
-        const signInUrl = new URL("/sign-in", req.url);
-        signInUrl.searchParams.set("redirect_url", req.nextUrl.pathname);
-        return NextResponse.redirect(signInUrl);
-      }
+      const { userId, redirectToSignIn } = await auth();
+      // redirectToSignIn() (not a hardcoded local URL) — this app is a Clerk satellite domain
+      // in production, and only Clerk's own helper knows how to route through the primary
+      // domain's sign-in and back for the cross-domain session sync to work.
+      if (!userId) return redirectToSignIn({ returnBackUrl: req.url });
     } catch {
       return NextResponse.redirect(new URL("/sign-in", req.url));
     }
