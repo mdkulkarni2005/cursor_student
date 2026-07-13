@@ -11,7 +11,7 @@ export function LegalShell({ title, updated, children }: { title: string; update
             <span className="flex size-[28px] items-center justify-center rounded-lg bg-accent-gradient shadow-[0_0_16px_rgba(246,146,30,0.4)]">
               <Sparkle size={15} className="text-on-accent" />
             </span>
-            <span className="font-display text-[16px] font-bold text-ink">Vidyas OS</span>
+            <span className="font-display text-[16px] font-bold text-ink">krackit</span>
           </Link>
           <div className="flex gap-4 text-[12.5px] text-muted">
             <Link href="/privacy" className="hover:text-soft">Privacy</Link>

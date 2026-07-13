@@ -69,7 +69,7 @@ export function InstallPrompt() {
 
   return (
     <div className="fixed bottom-24 left-1/2 z-50 w-[calc(100%-2rem)] max-w-[380px] -translate-x-1/2 rounded-2xl border border-line-strong bg-card p-4 shadow-[0_12px_28px_rgba(15,23,42,0.12)] lg:bottom-6">
-      <p className="text-[13.5px] font-semibold text-ink">Install Vidyas OS</p>
+      <p className="text-[13.5px] font-semibold text-ink">Install krackit</p>
       <p className="mt-1 text-[12.5px] text-muted">Add it to your home screen for quick access, just like a native app.</p>
       <div className="mt-3 flex gap-2">
         <button

@@ -21,7 +21,7 @@ export default async function InstitutionsPage() {
       <div className="mb-5">
         <h1 className="font-display text-[24px] font-bold text-ink">Institutions</h1>
         <p className="mt-1 text-[13px] text-muted">
-          {institutions.length} total — colleges whose students use Vidyas OS and can have locked report/PPT/resume
+          {institutions.length} total — colleges whose students use krackit and can have locked report/PPT/resume
           templates.
         </p>
       </div>

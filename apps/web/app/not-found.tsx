@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export const metadata = { title: "Not found — Vidyas OS" };
+export const metadata = { title: "Not found — krackit" };
 
 export default function NotFound() {
   return (

@@ -4,7 +4,7 @@ import { getPublicProfile } from "@/lib/public-profile";
 import { CopyLinkButton } from "@/components/profile/copy-link-button";
 import { CodeIcon, ResumeIcon } from "@/components/icons";
 
-export const metadata = { title: "Academic Identity — Vidyas OS" };
+export const metadata = { title: "Academic Identity — krackit" };
 
 export default async function PublicIdentityPage({ params }: { params: Promise<{ handle: string }> }) {
   const { handle } = await params;
@@ -18,7 +18,7 @@ export default async function PublicIdentityPage({ params }: { params: Promise<{
     <div className="min-h-screen bg-canvas">
       {/* Public top bar — student side: SHARE only, no recruiter/hire action */}
       <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-line bg-base/90 px-5 backdrop-blur sm:px-8">
-        <Link href="/" className="font-display text-[18px] font-bold text-cyan">Vidyas OS</Link>
+        <Link href="/" className="font-display text-[18px] font-bold text-cyan">krackit</Link>
         <div className="flex items-center gap-3">
           <span className="hidden text-[13px] text-muted sm:block">@{handle}</span>
           <CopyLinkButton className="flex items-center gap-2 rounded-lg border border-line bg-card px-4 py-2 text-[13px] font-medium text-soft hover:bg-surface" />
@@ -125,7 +125,7 @@ export default async function PublicIdentityPage({ params }: { params: Promise<{
         </div>
 
         <footer className="mt-12 border-t border-line py-6 text-center text-[12px] text-muted">
-          Verified academic identity issued by <span className="font-semibold text-cyan">Vidyas OS</span>
+          Verified academic identity issued by <span className="font-semibold text-cyan">krackit</span>
         </footer>
       </main>
     </div>

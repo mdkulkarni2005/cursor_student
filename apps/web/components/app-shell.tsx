@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { UserButton } from "@clerk/nextjs";
 import { WORKSPACE_NAV, YOU_NAV, ALL_NAV, type NavItem } from "@/lib/nav";
 import { SearchIcon, PlusIcon } from "@/components/icons";
+import { Logo } from "@/components/logo";
 import { AssistantPanel } from "@/components/assistant/assistant-panel";
 import { InstallPrompt } from "@/components/install-prompt";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -62,8 +63,8 @@ function Sidebar({ pathname, user }: { pathname: string; user: ShellUser }) {
   return (
     <aside className="hidden h-screen w-[256px] shrink-0 flex-col overflow-y-auto border-r border-line bg-base px-4 py-6 lg:flex">
       <Link href="/dashboard" className="mb-7 block px-2">
-        <span className="font-display text-[19px] font-bold text-cyan">Vidyas OS</span>
-        <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-[0.18em] text-faint">
+        <Logo size={28} />
+        <span className="mt-1.5 block text-[10px] font-bold uppercase tracking-[0.18em] text-faint">
           Academic Intelligence
         </span>
       </Link>
@@ -107,7 +108,7 @@ function Topbar() {
     <header className="flex h-[66px] shrink-0 items-center gap-4 border-b border-line px-5 lg:px-7">
       {/* Mobile brand */}
       <Link href="/dashboard" className="flex items-center gap-2 lg:hidden">
-        <span className="font-display text-[16px] font-bold text-cyan">Vidyas OS</span>
+        <Logo size={24} />
       </Link>
 
       {/* Global search across the workspace. */}

@@ -4,7 +4,7 @@ import { DocumentRow } from "@/components/document-row";
 import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
 import { SearchIcon } from "@/components/icons";
 
-export const metadata = { title: "Search — Vidyas OS" };
+export const metadata = { title: "Search — krackit" };
 
 export default async function SearchPage({
   searchParams,

@@ -4,7 +4,7 @@ import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
 import { SupportForm } from "@/components/support/support-form";
 import { HelpIcon } from "@/components/icons";
 
-export const metadata = { title: "Support — Vidyas OS" };
+export const metadata = { title: "Support — krackit" };
 
 const STATUS_LABEL: Record<string, string> = {
   OPEN: "Open",

@@ -1,12 +1,12 @@
 import { LegalShell, LegalSection } from "@/components/legal-shell";
 
-export const metadata = { title: "Privacy Policy — Vidyas OS" };
+export const metadata = { title: "Privacy Policy — krackit" };
 
 export default function PrivacyPage() {
   return (
     <LegalShell title="Privacy Policy" updated="June 2026">
       <p>
-        Vidyas OS (&ldquo;we&rdquo;, &ldquo;the app&rdquo;) helps students generate academic work and prepare for
+        krackit (&ldquo;we&rdquo;, &ldquo;the app&rdquo;) helps students generate academic work and prepare for
         interviews. This policy explains what we collect, why, and your choices. By creating an account you agree to
         this policy and our <a href="/terms" className="text-cyan hover:underline">Terms</a>.
       </p>

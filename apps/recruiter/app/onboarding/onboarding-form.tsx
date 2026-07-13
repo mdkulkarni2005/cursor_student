@@ -50,7 +50,7 @@ export function OnboardingForm({ initial }: { initial: Initial }) {
       <div className="w-full max-w-[480px]">
         <div className="mb-6 flex items-start justify-between gap-2.5">
           <div className="text-center">
-            <span className="font-display text-[19px] font-bold text-cyan">Vidyas OS</span>
+            <span className="font-display text-[19px] font-bold text-cyan">krackit</span>
             <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-[0.18em] text-faint">
               Recruiter Application
             </span>

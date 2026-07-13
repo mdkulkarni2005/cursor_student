@@ -11,7 +11,7 @@ export function AuthAside() {
           The Future of <span className="italic">Academic</span> Intelligence.
         </h2>
         <p className="mt-4 text-[14.5px] leading-relaxed text-white/85">
-          Join thousands of students who use Vidyas OS to automate their workflow, build resumes, and crack
+          Join thousands of students who use krackit to automate their workflow, build resumes, and crack
           high-stakes interviews with AI-driven prep.
         </p>
         <div className="mt-8 grid grid-cols-2 gap-4">

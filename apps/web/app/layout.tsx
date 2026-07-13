@@ -18,7 +18,7 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vidyas OS — your academic operating system",
+  title: "krackit — your academic operating system",
   description:
     "Assignments, reports, PPTs, projects and viva prep — generated in your college's format. The Cursor for students.",
 };

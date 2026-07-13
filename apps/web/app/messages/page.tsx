@@ -6,7 +6,7 @@ import { MarkMessageRead } from "@/components/messages/mark-read";
 import { ScheduleResponse } from "@/components/messages/schedule-response";
 import { joinWindowState } from "@/lib/real-interview";
 
-export const metadata = { title: "Messages — Vidyas OS" };
+export const metadata = { title: "Messages — krackit" };
 
 const SCHEDULE_STATUS_LABEL: Record<string, string> = {
   PROPOSED: "Awaiting your response",

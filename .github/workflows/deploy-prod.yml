@@ -100,7 +100,7 @@ jobs:
           # .env.local actually reads. Not sensitive, so no need for GitHub Secrets.
           case "${{ matrix.app }}" in
             web)
-              ENV_VARS="R2_ACCOUNT_ID=cab8ab758af6f6f04ed4ba51cedda957,R2_BUCKET=studentos,R2_PUBLIC_URL=https://pub-d1e5a9d581c24887be936dd64526036c.r2.dev,GOTENBERG_URL=https://gotenberg-1052102458537.asia-southeast1.run.app,IMAGE_MODEL=openai/gpt-image-1,LIVEKIT_URL=wss://student-os-bgwf640t.livekit.cloud,EMAIL_DRIVER=resend,EMAIL_FROM=StudentOS <notifications@krackit.in>,PISTON_URL=http://10.148.0.2:2000/api/v2"
+              ENV_VARS="R2_ACCOUNT_ID=cab8ab758af6f6f04ed4ba51cedda957,R2_BUCKET=studentos,R2_PUBLIC_URL=https://pub-d1e5a9d581c24887be936dd64526036c.r2.dev,GOTENBERG_URL=https://gotenberg-1052102458537.asia-southeast1.run.app,IMAGE_MODEL=openai/gpt-image-1,LIVEKIT_URL=wss://student-os-bgwf640t.livekit.cloud,EMAIL_DRIVER=resend,EMAIL_FROM=krackit <notifications@krackit.in>,PISTON_URL=http://10.148.0.2:2000/api/v2"
               ;;
             admin)
               ENV_VARS="R2_ACCOUNT_ID=cab8ab758af6f6f04ed4ba51cedda957,R2_BUCKET=studentos,R2_PUBLIC_URL=https://pub-d1e5a9d581c24887be936dd64526036c.r2.dev,GOTENBERG_URL=https://gotenberg-1052102458537.asia-southeast1.run.app,IMAGE_MODEL=openai/gpt-image-1"

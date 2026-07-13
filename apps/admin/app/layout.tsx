@@ -12,7 +12,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Vidyas OS — Admin",
+  title: "krackit — Admin",
   description: "Internal admin console — users, plans, and usage.",
   robots: { index: false, follow: false },
 };

@@ -3,7 +3,7 @@ import { AppShell } from "@/components/app-shell";
 import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
 import { StarIcon } from "@/components/icons";
 
-export const metadata = { title: "Plans — Vidyas OS" };
+export const metadata = { title: "Plans — krackit" };
 
 const TIERS = [
   {

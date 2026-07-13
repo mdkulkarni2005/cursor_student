@@ -10,7 +10,7 @@ import { RecruiterVisibilityToggle } from "@/components/profile/recruiter-visibi
 import { SocialLinksForm } from "@/components/profile/social-links-form";
 import { ResumeIcon } from "@/components/icons";
 
-export const metadata = { title: "Profile — Vidyas OS" };
+export const metadata = { title: "Profile — krackit" };
 
 export default async function ProfilePage() {
   const user = await requireOnboardedUser();

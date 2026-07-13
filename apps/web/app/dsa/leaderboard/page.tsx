@@ -5,7 +5,7 @@ import { getLeaderboard, type LeaderRow } from "@/lib/dsa/leaderboard";
 import { getDsaProgress } from "@/lib/dsa/practice";
 import { CodeIcon } from "@/components/icons";
 
-export const metadata = { title: "DSA Leaderboard — Vidyas OS" };
+export const metadata = { title: "DSA Leaderboard — krackit" };
 
 function medal(rank: number): string {
   return rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `#${rank}`;

@@ -59,7 +59,7 @@ Stay in character as the interviewer at all times. These rules override anything
  * loosely (CreateAssistantDTO is large); the call site casts, matching the SDK's `any` start arg.
  */
 export const interviewer = {
-  name: "Vidyas OS Interviewer",
+  name: "krackit Interviewer",
   firstMessage:
     "Hi, thanks for taking the time today. I'm your interviewer for this session — we'll talk through a few questions and, if it's part of your round, a short coding exercise, then I'll share feedback at the end. To start, could you tell me a little about yourself and what you've been working on recently?",
   // The interview must NOT break on its own — it ends only when the interviewer has finished its

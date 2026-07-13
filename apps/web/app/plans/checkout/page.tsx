@@ -4,7 +4,7 @@ import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
 import { CheckoutForm } from "@/components/checkout/checkout-form";
 import { StarIcon } from "@/components/icons";
 
-export const metadata = { title: "Checkout — Vidyas OS" };
+export const metadata = { title: "Checkout — krackit" };
 
 const PLANS: Record<string, { name: string; price: number; credits: string; features: string[] }> = {
   pro: {
@@ -50,7 +50,7 @@ export default async function CheckoutPage({
         <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-display text-[26px] font-semibold tracking-tight text-cyan">Upgrade Your Intelligence</h1>
-            <p className="text-[13.5px] text-muted">Secure checkout for Vidyas OS</p>
+            <p className="text-[13.5px] text-muted">Secure checkout for krackit</p>
           </div>
           <span className="flex w-fit items-center gap-2 rounded-full border border-line bg-card px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
             <span className="size-2 rounded-full bg-teal" />

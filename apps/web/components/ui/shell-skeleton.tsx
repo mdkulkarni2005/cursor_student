@@ -15,7 +15,7 @@ function SidebarSkeleton() {
   return (
     <aside className="hidden h-screen w-[256px] shrink-0 flex-col overflow-y-auto border-r border-line bg-base px-4 py-6 lg:flex">
       <Link href="/dashboard" className="mb-7 block px-2">
-        <span className="font-display text-[19px] font-bold text-cyan">Vidyas OS</span>
+        <span className="font-display text-[19px] font-bold text-cyan">krackit</span>
         <span className="mt-0.5 block text-[10px] font-bold uppercase tracking-[0.18em] text-faint">
           Academic Intelligence
         </span>
@@ -55,7 +55,7 @@ function TopbarSkeleton() {
   return (
     <header className="flex h-[66px] shrink-0 items-center gap-4 border-b border-line px-5 lg:px-7">
       <Link href="/dashboard" className="flex items-center gap-2 lg:hidden">
-        <span className="font-display text-[16px] font-bold text-cyan">Vidyas OS</span>
+        <span className="font-display text-[16px] font-bold text-cyan">krackit</span>
       </Link>
       <div className="hidden max-w-[460px] flex-1 lg:block">
         <Skeleton className="h-[42px] w-full rounded-xl" />

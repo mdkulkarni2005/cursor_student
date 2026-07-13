@@ -1,12 +1,12 @@
 import { LegalShell, LegalSection } from "@/components/legal-shell";
 
-export const metadata = { title: "Terms of Service — Vidyas OS" };
+export const metadata = { title: "Terms of Service — krackit" };
 
 export default function TermsPage() {
   return (
     <LegalShell title="Terms of Service" updated="June 2026">
       <p>
-        These terms govern your use of Vidyas OS. By creating an account you agree to them and to our{" "}
+        These terms govern your use of krackit. By creating an account you agree to them and to our{" "}
         <a href="/privacy" className="text-cyan hover:underline">Privacy Policy</a>.
       </p>
 
@@ -16,7 +16,7 @@ export default function TermsPage() {
       </LegalSection>
 
       <LegalSection heading="2. Acceptable use — academic integrity">
-        <p>Vidyas OS is a study and productivity aid. You are responsible for how you use its output and for
+        <p>krackit is a study and productivity aid. You are responsible for how you use its output and for
           following your institution&apos;s academic-integrity rules. Do not use the app to cheat where prohibited,
           to break the law, to abuse or overload the service, or to attempt to manipulate or jailbreak the AI
           (including the interview evaluator).</p>

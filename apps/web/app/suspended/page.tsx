@@ -1,6 +1,6 @@
 import { SignOutButton } from "@clerk/nextjs";
 
-export const metadata = { title: "Account suspended — Vidyas OS" };
+export const metadata = { title: "Account suspended — krackit" };
 
 export default function SuspendedPage() {
   return (

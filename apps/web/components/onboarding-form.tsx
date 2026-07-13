@@ -72,7 +72,7 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
             <span className="flex size-9 items-center justify-center rounded-xl bg-accent-gradient shadow-[0_0_18px_rgba(246,146,30,0.4)]">
               <Sparkle size={18} className="text-on-accent" />
             </span>
-            <span className="font-display text-lg font-bold text-ink">Vidyas OS</span>
+            <span className="font-display text-lg font-bold text-ink">krackit</span>
           </div>
           <SignOutButtonPlain className="text-[12.5px] font-medium text-faint hover:text-muted hover:underline">
             Not you? Sign out
@@ -219,7 +219,7 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
             disabled={pending || !accepted}
             className="w-full rounded-xl bg-accent-gradient py-3 text-[14px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(246,146,30,0.3)] transition-transform hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
           >
-            {pending ? "Setting up your workspace…" : "Enter Vidyas OS →"}
+            {pending ? "Setting up your workspace…" : "Enter krackit →"}
           </button>
         </form>
       </div>

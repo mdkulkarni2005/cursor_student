@@ -4,7 +4,7 @@ import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
 import { quotaStatus } from "@/lib/entitlements";
 import { SettingsView } from "@/components/settings/settings-view";
 
-export const metadata = { title: "Settings — Vidyas OS" };
+export const metadata = { title: "Settings — krackit" };
 
 const PLAN_LABEL: Record<string, string> = { FREE: "Free", PRO: "Pro", PREMIUM: "Premium" };
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Logo } from "@/components/logo";
 import { isSuperAdmin } from "@/lib/admin";
 
 export async function AdminShell({ children }: { children: React.ReactNode }) {
@@ -10,9 +11,8 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-10 border-b border-line bg-base/90 backdrop-blur">
         <div className="mx-auto flex max-w-[1200px] items-center justify-between px-5 py-3">
           <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-baseline gap-2">
-              <span className="font-display text-[16px] font-bold text-cyan">Vidyas OS</span>
-              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-faint">Admin</span>
+            <Link href="/">
+              <Logo size={24} suffix="Admin" />
             </Link>
             <nav className="flex flex-wrap items-center gap-4 text-[13px] font-medium text-muted">
               <Link href="/" className="hover:text-ink">

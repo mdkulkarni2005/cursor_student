@@ -2,6 +2,7 @@ import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import { InstallPrompt } from "@/components/install-prompt";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { Logo } from "@/components/logo";
 
 export function RecruiterShell({ children }: { children: React.ReactNode }) {
   return (
@@ -9,9 +10,8 @@ export function RecruiterShell({ children }: { children: React.ReactNode }) {
       <header className="sticky top-0 z-10 border-b border-line bg-base/90 backdrop-blur">
         <div className="mx-auto flex max-w-[1200px] items-center justify-between px-5 py-3">
           <div className="flex items-center gap-6">
-            <Link href="/" className="flex items-baseline gap-2">
-              <span className="font-display text-[16px] font-bold text-cyan">Vidyas OS</span>
-              <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-faint">Recruiter</span>
+            <Link href="/">
+              <Logo size={24} suffix="Recruiter" />
             </Link>
             <nav className="flex flex-wrap items-center gap-4 text-[13px] font-medium text-muted">
               <Link href="/students" className="hover:text-ink">

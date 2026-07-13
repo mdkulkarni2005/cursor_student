@@ -123,7 +123,7 @@ export function AssistantPanel({ name }: { name?: string }) {
       {!open ? (
         <div className="fixed bottom-20 right-4 z-50 flex items-center gap-3 lg:bottom-6 lg:right-6">
           <div className="hidden animate-floaty rounded-xl border border-line-strong bg-card px-3.5 py-2.5 text-[12.5px] text-muted shadow-[0_10px_30px_rgba(15,23,42,0.12)] sm:block">
-            Ask Vidyas OS anything →
+            Ask krackit anything →
           </div>
           <button
             onClick={() => setOpen(true)}
@@ -145,7 +145,7 @@ export function AssistantPanel({ name }: { name?: string }) {
                 <ChatIcon size={16} className="text-on-accent" />
               </span>
               <div>
-                <p className="text-[13.5px] font-semibold text-ink">Vidyas OS Assistant</p>
+                <p className="text-[13.5px] font-semibold text-ink">krackit Assistant</p>
                 <p className="text-[11px] text-faint">Grounded in your work</p>
               </div>
             </div>

@@ -12,7 +12,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Vidyas OS — Recruiter",
+  title: "krackit — Recruiter",
   description: "Discover verified student talent — browse profiles, message candidates.",
   robots: { index: false, follow: false },
 };

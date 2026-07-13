@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Vidyas OS — your academic operating system",
-    short_name: "Vidyas OS",
+    name: "krackit — your academic operating system",
+    short_name: "krackit",
     description: "Assignments, reports, PPTs, projects and viva prep — generated in your college's format.",
     start_url: "/dashboard",
     display: "standalone",

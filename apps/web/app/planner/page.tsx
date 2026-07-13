@@ -5,7 +5,7 @@ import { generateStudyPlan, type RoadmapDay } from "@/lib/actions/planner";
 import { Sparkle, BellIcon } from "@/components/icons";
 import { SubmitButton } from "@/components/ui/button";
 
-export const metadata = { title: "Exam Planner — Vidyas OS" };
+export const metadata = { title: "Exam Planner — krackit" };
 
 const CHIP: Record<string, string> = {
   core: "bg-cyan/10 text-cyan",

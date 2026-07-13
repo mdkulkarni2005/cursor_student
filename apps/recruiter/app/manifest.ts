@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Vidyas OS — Recruiter",
+    name: "krackit — Recruiter",
     short_name: "Vidyas Recruiter",
     description: "Discover verified student talent — browse profiles, message candidates.",
     start_url: "/students",

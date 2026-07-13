@@ -216,7 +216,7 @@ export default async function DashboardPage() {
 
         {/* Footer */}
         <footer className="mt-12 flex flex-col items-center justify-between gap-3 border-t border-line py-6 text-[12px] text-muted sm:flex-row">
-          <span>© {new Date().getFullYear()} Vidyas OS. Built for intellectual focus.</span>
+          <span>© {new Date().getFullYear()} krackit. Built for intellectual focus.</span>
           <div className="flex gap-5">
             <Link href="/terms" className="hover:text-cyan">Terms</Link>
             <Link href="/privacy" className="hover:text-cyan">Privacy</Link>
