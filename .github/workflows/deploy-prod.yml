@@ -9,6 +9,9 @@ name: Deploy Production
 on:
   push:
     branches: [main]
+  # Lets you force a fresh build+deploy without a code change — e.g. after rotating a
+  # NEXT_PUBLIC_* GitHub secret, which only takes effect on the next actual image build.
+  workflow_dispatch:
 
 concurrency:
   group: deploy-prod

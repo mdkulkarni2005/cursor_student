@@ -24,18 +24,17 @@ export const viewport: Viewport = {
 };
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-// Satellite domain: shares its Clerk session with app.krackit.in (the primary domain) so an
-// approved recruiter who logs in once via the unified krackit.in "Login" button lands here
-// already signed in — see apps/web/app/route-after-login/page.tsx. Only enabled in production;
-// local dev keeps recruiter as a standalone Clerk instance so it's testable without app.krackit.in.
-const isSatellite = process.env.NODE_ENV === "production";
+const isProd = process.env.NODE_ENV === "production";
+// No isSatellite here — Clerk's primary domain is krackit.in (the shared root), so its session
+// cookie is already scoped to *.krackit.in and shared with app.krackit.in automatically. The
+// Satellites feature (isSatellite/domain) is for sharing sessions across UNRELATED root domains
+// and needs a paid Clerk plan we don't have — not needed for same-root subdomains like this.
+// Still point sign-in at the unified app.krackit.in login in production, for one entry point.
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <ClerkProvider
-      isSatellite={isSatellite}
-      domain="recruiter.krackit.in"
-      signInUrl={isSatellite ? `${APP_URL}/sign-in` : "/sign-in"}
+      signInUrl={isProd ? `${APP_URL}/sign-in` : "/sign-in"}
       signInFallbackRedirectUrl="/"
       afterSignOutUrl="/sign-in"
       appearance={{
