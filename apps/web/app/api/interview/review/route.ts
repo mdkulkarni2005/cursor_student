@@ -32,8 +32,8 @@ export async function POST(req: Request) {
   const docId = String(body.docId ?? "");
   const language = String(body.language ?? "code");
   const code = String(body.code ?? "");
-  const question = String(body.question ?? "the coding task");
-  const role = body.role ? String(body.role) : undefined;
+  const question = String(body.question ?? "the coding task").slice(0, 2000);
+  const role = body.role ? String(body.role).slice(0, 200) : undefined;
 
   if (code.trim().length < 1) return NextResponse.json({ error: "Write some code first." }, { status: 400 });
   if (code.length > 50_000) return NextResponse.json({ error: "That's a lot of code — trim it down." }, { status: 400 });

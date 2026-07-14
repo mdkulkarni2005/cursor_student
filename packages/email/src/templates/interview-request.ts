@@ -1,3 +1,5 @@
+import { escapeHtml } from "../escape";
+
 /** Pure string builder — no I/O. Sent when a recruiter first proposes an interview slot. */
 export function interviewRequestEmail(opts: {
   studentName: string;
@@ -22,9 +24,10 @@ ${opts.note ? `\nNote: ${opts.note}\n` : ""}
 Accept, decline, or suggest another time here:
 ${opts.messagesLink}`;
 
-  const html = `<p>Hi ${opts.studentName},</p>
-<p>You have a new interview request${who} for <strong>${when}</strong>.</p>
-${opts.note ? `<p>Note: ${opts.note}</p>` : ""}
+  const whoHtml = opts.recruiterCompany ? ` from ${escapeHtml(opts.recruiterCompany)}` : "";
+  const html = `<p>Hi ${escapeHtml(opts.studentName)},</p>
+<p>You have a new interview request${whoHtml} for <strong>${when}</strong>.</p>
+${opts.note ? `<p>Note: ${escapeHtml(opts.note)}</p>` : ""}
 <p>Accept, decline, or suggest another time here:</p>
 <p><a href="${opts.messagesLink}">${opts.messagesLink}</a></p>`;
 

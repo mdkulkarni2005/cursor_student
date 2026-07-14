@@ -83,7 +83,7 @@ export type ProposeReschedulState = { error?: string; sent?: boolean };
 /** Student proposes a different time — the recruiter reviews it from apps/recruiter's /interviews list. */
 export async function proposeReschedule(id: string, _prev: ProposeReschedulState, formData: FormData): Promise<ProposeReschedulState> {
   const user = await requireOnboardedUser();
-  const studentNote = String(formData.get("studentNote") ?? "").trim();
+  const studentNote = String(formData.get("studentNote") ?? "").trim().slice(0, 1000);
   if (!studentNote) return { error: "Let the recruiter know what time works instead." };
 
   await ownedSchedule(id, user.id);

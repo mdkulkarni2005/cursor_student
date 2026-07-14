@@ -313,6 +313,7 @@ export async function resizeSlideImageAction(
   if (!parsed.success) return { error: "Please save your edits before resizing the image." };
   const slide = parsed.data.slides[slideIndex];
   if (!slide?.image) return { error: "This slide has no image to resize." };
+  if (!Number.isFinite(scale)) return { error: "Invalid size." };
 
   slide.imageScale = Math.min(1.5, Math.max(0.5, scale));
   try {
@@ -376,7 +377,7 @@ export async function resumePptAction(formData: FormData): Promise<void> {
     }
   }
 
-  await markPptGenerating(docId);
+  await markPptGenerating(docId, user.id);
   after(() => resumePptGeneration(user.id, docId, answers));
   redirect(`/ppt/${docId}`);
 }

@@ -38,12 +38,13 @@ export async function POST(req: Request) {
 
   const scheduleId = String(body.scheduleId ?? "");
   const kind = String(body.kind ?? "") as InterviewFlagKind;
+  const detail = typeof body.detail === "string" ? body.detail.slice(0, 500) : undefined;
   if (!scheduleId) return NextResponse.json({ error: "Missing scheduleId." }, { status: 400 });
   if (!VALID_KINDS.has(kind)) return NextResponse.json({ error: "Invalid flag kind." }, { status: 400 });
 
   try {
     await ownedAcceptedSchedule(scheduleId, user.id);
-    await recordFlag(scheduleId, kind, body.detail);
+    await recordFlag(scheduleId, kind, detail);
     return NextResponse.json({ recorded: true });
   } catch (err) {
     return NextResponse.json({ error: friendlyError(err) }, { status: 404 });

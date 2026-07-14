@@ -152,8 +152,12 @@ export async function getInterview(userId: string, docId: string): Promise<{ tit
  * DB lock by flipping status READY→GENERATING atomically, so a double-click can't append
  * two turns or fire two generations. Rejects once the interview is complete.
  */
+const MAX_ANSWER_LENGTH = 4000;
+const MAX_TRANSCRIPT_TURNS = 200;
+const MAX_TURN_CONTENT_LENGTH = 4000;
+
 export async function submitAnswer(userId: string, docId: string, answer: string, meta: AnswerMeta = {}): Promise<InterviewState> {
-  const text = answer.trim();
+  const text = answer.trim().slice(0, MAX_ANSWER_LENGTH);
   if (!text) throw new Error("Please type an answer.");
 
   // Acquire the per-document lock (count 0 = busy or not found/owned).
@@ -275,9 +279,10 @@ export async function finalizeFromTranscript(userId: string, docId: string, turn
 
     const mapped: InterviewTurn[] = turns
       .filter((t) => t.content?.trim())
+      .slice(0, MAX_TRANSCRIPT_TURNS)
       .map((t) => (t.role === "user"
-        ? { speaker: "candidate" as const, content: t.content.trim(), kind: "answer" as const }
-        : { speaker: "interviewer" as const, content: t.content.trim(), kind: "question" as const }));
+        ? { speaker: "candidate" as const, content: t.content.trim().slice(0, MAX_TURN_CONTENT_LENGTH), kind: "answer" as const }
+        : { speaker: "interviewer" as const, content: t.content.trim().slice(0, MAX_TURN_CONTENT_LENGTH), kind: "question" as const }));
     if (mapped.length) state.transcript = mapped;
 
     const { evaluation } = await withAiRetry(() => evaluateInterview({

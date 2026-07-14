@@ -284,9 +284,13 @@ export async function runReportGeneration(docId: string, input: GenerateReportIn
   }
 }
 
-/** Flip an existing report to GENERATING (used by the resume action before backgrounding). */
-export async function markReportGenerating(docId: string): Promise<void> {
-  await prisma.document.update({ where: { id: docId }, data: { status: "GENERATING" } }).catch(() => {});
+/** Flip an existing report to GENERATING (used by the resume action before backgrounding). Ownership-scoped — a no-op for a docId the caller doesn't own. */
+export async function markReportGenerating(docId: string, userId: string): Promise<void> {
+  const { count } = await prisma.document.updateMany({
+    where: { id: docId, ownerId: userId },
+    data: { status: "GENERATING" },
+  });
+  if (count === 0) return;
   await prisma.generationJob.update({ where: { documentId: docId }, data: { status: "RUNNING" } }).catch(() => {});
   await setReportStage(docId, "draft");
 }

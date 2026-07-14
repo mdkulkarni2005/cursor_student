@@ -46,6 +46,7 @@ export default async function SettingsPage() {
             jobTitle: user.jobTitle,
             yearsOfExperience: user.yearsOfExperience,
             github: user.githubUrl,
+            codingEnabled: user.codingEnabled,
             linkedin: user.linkedin,
             gpa: user.gpa,
             plan,

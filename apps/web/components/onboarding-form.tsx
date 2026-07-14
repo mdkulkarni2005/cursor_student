@@ -53,10 +53,19 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
 
   const [userType, setUserType] = useState<"STUDENT" | "PROFESSIONAL">("STUDENT");
   const [dept, setDept] = useState("");
+  const [customDept, setCustomDept] = useState("");
   const [coding, setCoding] = useState(false);
   const [codingTouched, setCodingTouched] = useState(false);
   const [accepted, setAccepted] = useState(false);
   const [goal, setGoal] = useState("");
+
+  const isCustomDept = dept === "Other";
+  // The department value actually submitted — the picked branch, or (for "Other") whatever the
+  // student typed. Downstream (dashboard, generation prompts) sees the real branch name either way.
+  const departmentToSubmit = isCustomDept ? customDept.trim() : dept;
+  // GitHub only matters for the coding track — professionals always have it, students only if
+  // CS/IT (or any branch that opted in via the checkbox below).
+  const githubRequired = userType === "PROFESSIONAL" || coding;
 
   function onDept(value: string) {
     setDept(value);
@@ -84,7 +93,7 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
         </h1>
         <p className="mb-6 mt-1.5 text-[14px] text-muted">{ROLE_COPY[userType].body}</p>
 
-        <form action={action} className="rounded-2xl border border-line bg-card p-5">
+        <form action={action} encType="multipart/form-data" className="rounded-2xl border border-line bg-card p-5">
           <input type="hidden" name="userType" value={userType} />
 
           {/* Role toggle — determines which fields below apply. */}
@@ -108,10 +117,28 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
             <>
               <div className="mb-4">
                 <label htmlFor="department" className={fieldLabel}>Department</label>
-                <select id="department" name="department" value={dept} onChange={(e) => onDept(e.target.value)} required className={fieldBox}>
+                <select id="department" value={dept} onChange={(e) => onDept(e.target.value)} required className={fieldBox}>
                   <option value="" disabled>Select your department…</option>
                   {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
                 </select>
+                {isCustomDept ? (
+                  <>
+                    <input
+                      type="text"
+                      value={customDept}
+                      onChange={(e) => setCustomDept(e.target.value)}
+                      required
+                      placeholder="Type your branch — e.g. Aerospace Engineering"
+                      className={`${fieldBox} mt-2 placeholder:text-faint`}
+                    />
+                    <p className="mt-1 text-[11px] text-faint">
+                      We don&apos;t have branch-specific tools for this yet — you&apos;ll see a &quot;coming soon&quot; note
+                      on your dashboard, but reports, assignments, resume &amp; interview prep all work today.
+                    </p>
+                  </>
+                ) : null}
+                <input type="hidden" name="department" value={departmentToSubmit} />
+                {isCustomDept ? <input type="hidden" name="isCustomDepartment" value="on" /> : null}
               </div>
 
               <div className="mb-4">
@@ -125,6 +152,19 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
                   <option value="" disabled>Select…</option>
                   {SEMESTERS.map((s) => <option key={s} value={s}>Semester {s}</option>)}
                 </select>
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="idCard" className={fieldLabel}>College ID card photo</label>
+                <input
+                  id="idCard"
+                  name="idCard"
+                  type="file"
+                  accept="image/*,application/pdf"
+                  required
+                  className="w-full cursor-pointer rounded-xl border border-dashed border-line-strong bg-surface px-3.5 py-2.5 text-[13px] text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-raised file:px-3 file:py-1.5 file:text-[12.5px] file:font-semibold file:text-soft hover:border-cyan/40"
+                />
+                <p className="mt-1 text-[11px] text-faint">Required to verify you&apos;re a student — kept private, never shown publicly.</p>
               </div>
             </>
           ) : (
@@ -153,8 +193,13 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
           </div>
 
           <div className="mb-4">
-            <label htmlFor="github" className={fieldLabel}>GitHub link</label>
-            <input id="github" name="github" type="text" required placeholder="e.g. github.com/yourname" className={`${fieldBox} placeholder:text-faint`} />
+            <label htmlFor="github" className={fieldLabel}>
+              GitHub link{githubRequired ? "" : <span className="font-normal text-faint"> (optional)</span>}
+            </label>
+            <input id="github" name="github" type="text" required={githubRequired} placeholder="e.g. github.com/yourname" className={`${fieldBox} placeholder:text-faint`} />
+            {!githubRequired ? (
+              <p className="mt-1 text-[11px] text-faint">Only needed for the coding track — add it anytime later from Settings.</p>
+            ) : null}
           </div>
 
           <div className="mb-4">

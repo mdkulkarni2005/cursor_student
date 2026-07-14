@@ -28,7 +28,7 @@ function buildRoadmap(exam: string, days: number): RoadmapDay[] {
 
 export async function generateStudyPlan(formData: FormData): Promise<void> {
   const user = await requireOnboardedUser();
-  const targetExam = String(formData.get("targetExam") ?? "").trim() || "Final Exam";
+  const targetExam = String(formData.get("targetExam") ?? "").trim().slice(0, 200) || "Final Exam";
   const dateRaw = String(formData.get("examDate") ?? "").trim();
   const examDate = dateRaw ? new Date(dateRaw) : null;
 

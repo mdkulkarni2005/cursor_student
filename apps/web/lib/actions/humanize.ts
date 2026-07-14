@@ -6,6 +6,7 @@ import { getObjectBuffer, putObject, keys } from "@studentos/storage";
 import { renderReportDocx, type ReportContent } from "@studentos/documents";
 import { getOrCreateUser } from "@/lib/user";
 import { humanizeReport } from "@/lib/quality";
+import { rateLimit } from "@/lib/reliability";
 
 const DOCX_MIME =
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -15,6 +16,11 @@ export async function humanizeReportAction(formData: FormData): Promise<void> {
   const docId = String(formData.get("docId") ?? "");
   const user = await getOrCreateUser();
   if (!user) return;
+  try {
+    await rateLimit(user.id, "humanize", 10);
+  } catch {
+    return;
+  }
 
   const doc = await prisma.document.findFirst({
     where: { id: docId, ownerId: user.id, type: "REPORT" },

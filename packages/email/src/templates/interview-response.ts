@@ -1,3 +1,5 @@
+import { escapeHtml } from "../escape";
+
 /**
  * Pure string builder — no I/O. Sent to the recruiter whenever the student takes an action on a
  * proposed interview (accept / decline / propose a different time) — the recruiter has no other
@@ -33,9 +35,9 @@ ${opts.studentNote ? `\nTheir note: ${opts.studentNote}\n` : ""}
 View the interview:
 ${opts.interviewLink}`;
 
-  const html = `<p>Hi ${opts.recruiterName},</p>
-<p><strong>${opts.studentName}</strong> has ${label} the interview you proposed for <strong>${when}</strong>.</p>
-${opts.studentNote ? `<p>Their note: ${opts.studentNote}</p>` : ""}
+  const html = `<p>Hi ${escapeHtml(opts.recruiterName)},</p>
+<p><strong>${escapeHtml(opts.studentName)}</strong> has ${label} the interview you proposed for <strong>${when}</strong>.</p>
+${opts.studentNote ? `<p>Their note: ${escapeHtml(opts.studentNote)}</p>` : ""}
 <p><a href="${opts.interviewLink}">${opts.interviewLink}</a></p>`;
 
   return { subject, html, text };

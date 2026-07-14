@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, useClerk } from "@clerk/nextjs";
 import { WORKSPACE_NAV, YOU_NAV, ALL_NAV, type NavItem } from "@/lib/nav";
-import { SearchIcon, PlusIcon } from "@/components/icons";
+import { SearchIcon } from "@/components/icons";
 import { Logo } from "@/components/logo";
 import { AssistantPanel } from "@/components/assistant/assistant-panel";
 import { InstallPrompt } from "@/components/install-prompt";
@@ -60,8 +60,9 @@ function userMeta(user: ShellUser): string {
 }
 
 function Sidebar({ pathname, user }: { pathname: string; user: ShellUser }) {
+  const { openUserProfile } = useClerk();
   return (
-    <aside className="hidden h-screen w-[256px] shrink-0 flex-col overflow-y-auto border-r border-line bg-base px-4 py-6 lg:flex">
+    <aside className="hidden h-screen w-[256px] shrink-0 flex-col border-r border-line bg-base px-4 py-6 lg:flex">
       <Link href="/dashboard" className="mb-7 block px-2">
         <Logo size={28} />
         <span className="mt-1.5 block text-[10px] font-bold uppercase tracking-[0.18em] text-faint">
@@ -69,17 +70,7 @@ function Sidebar({ pathname, user }: { pathname: string; user: ShellUser }) {
         </span>
       </Link>
 
-      {user.userType === "PROFESSIONAL" ? null : (
-        <Link
-          href="/workspace"
-          className="mb-6 flex items-center justify-center gap-2 rounded-xl bg-cyan px-4 py-3 text-[13.5px] font-semibold text-on-accent transition-transform active:scale-[0.97]"
-        >
-          <PlusIcon size={17} />
-          New Project
-        </Link>
-      )}
-
-      <nav className="flex-1">
+      <nav className="flex-1 overflow-y-auto">
         {visibleNav(WORKSPACE_NAV, user).map((item) => (
           <NavRow key={item.href} item={item} active={pathname === item.href} />
         ))}
@@ -92,13 +83,19 @@ function Sidebar({ pathname, user }: { pathname: string; user: ShellUser }) {
 
       <ThemeToggle className="mt-3 w-full justify-center border border-line" />
 
-      <div className="mt-3 flex items-center gap-2.5 rounded-xl border border-line bg-surface p-2.5">
-        <UserButton appearance={{ elements: { avatarBox: "width:34px;height:34px" } }} />
+      <button
+        type="button"
+        onClick={() => openUserProfile()}
+        className="mt-3 flex items-center gap-2.5 rounded-xl border border-line bg-surface p-2.5 text-left transition-colors hover:border-line-strong"
+      >
+        <div className="pointer-events-none">
+          <UserButton appearance={{ elements: { avatarBox: "width:34px;height:34px" } }} />
+        </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13px] font-semibold text-ink">{user.name}</p>
           <p className="truncate text-[11px] text-faint">{userMeta(user)}</p>
         </div>
-      </div>
+      </button>
     </aside>
   );
 }

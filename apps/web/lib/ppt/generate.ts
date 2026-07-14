@@ -416,9 +416,13 @@ export async function runPptGeneration(docId: string, input: GeneratePptInput): 
   }
 }
 
-/** Mark an existing deck as GENERATING (resume action, before backgrounding). */
-export async function markPptGenerating(docId: string): Promise<void> {
-  await prisma.document.update({ where: { id: docId }, data: { status: "GENERATING" } }).catch(() => {});
+/** Mark an existing deck as GENERATING (resume action, before backgrounding). Ownership-scoped — a no-op for a docId the caller doesn't own. */
+export async function markPptGenerating(docId: string, userId: string): Promise<void> {
+  const { count } = await prisma.document.updateMany({
+    where: { id: docId, ownerId: userId },
+    data: { status: "GENERATING" },
+  });
+  if (count === 0) return;
   await prisma.generationJob.update({ where: { documentId: docId }, data: { status: "RUNNING" } }).catch(() => {});
   await setJobStage(docId, "draft");
 }

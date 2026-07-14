@@ -9,6 +9,7 @@ import {
   cropReportFigure,
   resizeReportFigure,
 } from "@/lib/reports/generate";
+import { rateLimit, friendlyError } from "@/lib/reliability";
 import type { FigureSuggestion } from "@studentos/ai";
 
 /** Propose figures for a report (text only — no image generated, no credits spent). */
@@ -25,6 +26,11 @@ export async function suggestFiguresAction(docId: string): Promise<{ figures: Fi
 /** Approve a figure → generate the image (credits spent here) → embed + re-render the report. */
 export async function approveFigureAction(docId: string, sectionIndex: number, imagePrompt: string, caption: string): Promise<{ ok: boolean; error?: string }> {
   const user = await requireOnboardedUser();
+  try {
+    await rateLimit(user.id, "figure-approve", 10);
+  } catch (e) {
+    return { ok: false, error: friendlyError(e) };
+  }
   const res = await approveReportFigure(user.id, docId, sectionIndex, imagePrompt, caption);
   if (res.ok) revalidatePath(`/reports/${docId}`);
   return res;

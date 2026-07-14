@@ -23,6 +23,8 @@ export type SettingsData = {
   jobTitle: string | null;
   yearsOfExperience: number | null;
   github: string | null;
+  /** Only PROFESSIONAL and coding-track STUDENTs are required to have a GitHub link. */
+  codingEnabled: boolean;
   linkedin: string | null;
   gpa: number | null;
   plan: string;
@@ -69,6 +71,7 @@ function EditProfileForm({ data }: { data: SettingsData }) {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [pending, start] = useTransition();
+  const githubRequired = data.userType === "PROFESSIONAL" || data.codingEnabled;
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -153,8 +156,17 @@ function EditProfileForm({ data }: { data: SettingsData }) {
           <input value={careerGoal} onChange={(e) => setCareerGoal(e.target.value)} className={fieldBox} />
         </div>
         <div className="space-y-2">
-          <label className={fieldLabel}>GitHub</label>
-          <input value={github} onChange={(e) => setGithub(e.target.value)} placeholder="github.com/yourname" className={fieldBox} />
+          <label className={fieldLabel}>
+            GitHub{githubRequired ? "" : <span className="font-normal text-faint"> (optional)</span>}
+          </label>
+          <input
+            value={github}
+            onChange={(e) => setGithub(e.target.value)}
+            required={githubRequired}
+            placeholder="github.com/yourname"
+            className={fieldBox}
+          />
+          {!githubRequired ? <p className="text-[11.5px] text-faint">Only needed for the coding track.</p> : null}
         </div>
         <div className="space-y-2">
           <label className={fieldLabel}>LinkedIn</label>

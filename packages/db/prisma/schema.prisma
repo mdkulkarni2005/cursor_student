@@ -187,6 +187,11 @@ model User {
   institutionId String?
   institution   Institution? @relation(fields: [institutionId], references: [id])
 
+  // College ID card photo, required at onboarding for STUDENT — proof gating student-only
+  // features from non-students. R2 object key (see @studentos/storage keys.idCard). Null for
+  // PROFESSIONAL users, and for STUDENT accounts that predate this requirement.
+  idCardKey String?
+
   // Unique contact number — cross-checked against Recruiter.phone too (see
   // packages/db/src/phone.ts) so the same person can't register twice across student/recruiter.
   // Not used for SMS/notifications yet, only identity de-duplication at onboarding.

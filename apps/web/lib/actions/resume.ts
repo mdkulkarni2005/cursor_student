@@ -200,10 +200,14 @@ export async function suggestResumeOptimizationsAction(
   }
 }
 
+const MAX_KEYWORDS = 50;
+const MAX_EDITS = 50;
+
 /** Self-attested: the student ticked "I have this skill" — add it for real, re-render + re-score. */
 export async function claimKeywordsAction(docId: string, keywords: string[]): Promise<{ ok: boolean; score?: number; error?: string }> {
   const user = await getOrCreateUser();
   if (!user) return { ok: false, error: "You must be signed in." };
+  if (keywords.length > MAX_KEYWORDS) return { ok: false, error: "Too many keywords at once." };
   const res = await claimKeywords(user.id, docId, keywords);
   if (res.ok) revalidatePath(`/resume/${docId}`);
   return res;
@@ -216,6 +220,7 @@ export async function applyResumeOptimizationAction(
 ): Promise<{ ok: boolean; score?: number; error?: string }> {
   const user = await getOrCreateUser();
   if (!user) return { ok: false, error: "You must be signed in." };
+  if (edits.length > MAX_EDITS) return { ok: false, error: "Too many edits at once." };
   const res = await applyResumeOptimization(user.id, docId, edits);
   if (res.ok) revalidatePath(`/resume/${docId}`);
   return res;

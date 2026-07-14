@@ -96,7 +96,7 @@ export async function resumeReportAction(formData: FormData): Promise<void> {
   }
 
   // Flip to GENERATING now (so the page shows progress on redirect), then finish in the background.
-  await markReportGenerating(docId);
+  await markReportGenerating(docId, user.id);
   after(() => resumeReportGeneration(user.id, docId, answers));
   redirect(`/reports/${docId}`);
 }
@@ -108,21 +108,34 @@ export async function updateReportAction(formData: FormData): Promise<void> {
   if (!user || !docId) return;
 
   const raw = String(formData.get("report") ?? "");
+  if (raw.length > 500_000) return; // a real report's JSON never gets close to this
   let parsed: ReportLike;
   try {
     parsed = JSON.parse(raw) as ReportLike;
   } catch {
     return;
   }
-  // Light normalization — keep only the fields we render/store.
+  // Light normalization — keep only the fields we render/store, bounded so a crafted payload
+  // can't write an arbitrarily huge document (persisted, then re-rendered to DOCX).
+  const MAX_SECTIONS = 50;
+  const MAX_HEADING_LENGTH = 300;
+  const MAX_CONTENT_LENGTH = 20_000;
+  const MAX_REFERENCES = 200;
+  const MAX_REFERENCE_LENGTH = 500;
   const data: ReportLike = {
-    abstract: typeof parsed.abstract === "string" ? parsed.abstract : undefined,
+    abstract: typeof parsed.abstract === "string" ? parsed.abstract.slice(0, 5000) : undefined,
     sections: Array.isArray(parsed.sections)
       ? parsed.sections
           .filter((s) => s && typeof s.heading === "string")
-          .map((s) => ({ heading: s.heading, content: String(s.content ?? "") }))
+          .slice(0, MAX_SECTIONS)
+          .map((s) => ({
+            heading: s.heading.slice(0, MAX_HEADING_LENGTH),
+            content: String(s.content ?? "").slice(0, MAX_CONTENT_LENGTH),
+          }))
       : [],
-    references: Array.isArray(parsed.references) ? parsed.references.map(String) : undefined,
+    references: Array.isArray(parsed.references)
+      ? parsed.references.map(String).slice(0, MAX_REFERENCES).map((r) => r.slice(0, MAX_REFERENCE_LENGTH))
+      : undefined,
   };
 
   await updateReportContent(user.id, docId, data);

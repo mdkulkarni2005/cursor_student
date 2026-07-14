@@ -32,7 +32,6 @@ export async function updateProfile(input: ProfileEditInput): Promise<ProfileEdi
   const careerGoal = input.careerGoal.trim();
 
   if (!name) return { ok: false, error: "Please enter your name." };
-  if (!github) return { ok: false, error: "Please add your GitHub link." };
   if (!linkedin) return { ok: false, error: "Please add your LinkedIn link." };
   if (input.gpa !== null && (!Number.isFinite(input.gpa) || input.gpa < 0 || input.gpa > 10)) {
     return { ok: false, error: "Please enter a valid GPA between 0 and 10." };
@@ -43,6 +42,13 @@ export async function updateProfile(input: ProfileEditInput): Promise<ProfileEdi
     const jobTitle = (input.jobTitle ?? "").trim();
     if (!companyName) return { ok: false, error: "Please enter your company name." };
     if (!jobTitle) return { ok: false, error: "Please enter your job title." };
+    if (!github) return { ok: false, error: "Please add your GitHub link." };
+    if (
+      input.yearsOfExperience != null &&
+      (!Number.isFinite(input.yearsOfExperience) || input.yearsOfExperience < 0 || input.yearsOfExperience > 60)
+    ) {
+      return { ok: false, error: "Please enter a valid number of years (0–60)." };
+    }
 
     await prisma.user.update({
       where: { id: user.id },
@@ -68,6 +74,8 @@ export async function updateProfile(input: ProfileEditInput): Promise<ProfileEdi
     return { ok: false, error: "Please choose your department." };
   if (!SEMESTERS.includes(semester as (typeof SEMESTERS)[number])) return { ok: false, error: "Please choose your semester." };
   if (college.length < 2) return { ok: false, error: "Please enter your college name." };
+  // Same rule as onboarding — GitHub only matters for the coding track.
+  if (user.codingEnabled && !github) return { ok: false, error: "Please add your GitHub link — it's required for the coding track." };
 
   let institution = await prisma.institution.findFirst({ where: { name: college } });
   institution ??= await prisma.institution.create({ data: { name: college } });
@@ -80,7 +88,7 @@ export async function updateProfile(input: ProfileEditInput): Promise<ProfileEdi
       semester,
       institutionId: institution.id,
       careerGoal: careerGoal || null,
-      githubUrl: github,
+      githubUrl: github || null,
       linkedin,
       gpa: input.gpa,
     },

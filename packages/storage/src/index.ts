@@ -101,12 +101,21 @@ export function signedUploadUrl(
   );
 }
 
+/** Callers derive `ext` from a client-supplied MIME type — strip it to a safe charset so a
+ *  crafted content-type can't inject path separators or otherwise malformed key segments. */
+function safeExt(ext: string): string {
+  const cleaned = ext.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 10);
+  return cleaned || "bin";
+}
+
 export const keys = {
-  upload: (userId: string, id: string, ext: string) => `uploads/${userId}/${id}.${ext}`,
-  template: (templateId: string, ext: string) => `templates/${templateId}.${ext}`,
+  upload: (userId: string, id: string, ext: string) => `uploads/${userId}/${id}.${safeExt(ext)}`,
+  template: (templateId: string, ext: string) => `templates/${templateId}.${safeExt(ext)}`,
   exportFile: (documentId: string, format: string) => `exports/${documentId}.${format.toLowerCase()}`,
   /** A generated slide image (per deck, per slide index). PNG bytes live in storage, not the DB. */
   slideImage: (documentId: string, slideIndex: number) => `slides/${documentId}/${slideIndex}.png`,
   /** A generated illustrative image for a project's build plan (per project, per image index). */
   projectImage: (documentId: string, idx: number) => `projects/${documentId}/${idx}.png`,
+  /** A student's college ID card photo, uploaded at onboarding as proof of student status. */
+  idCard: (userId: string, ext: string) => `id-cards/${userId}.${safeExt(ext)}`,
 };

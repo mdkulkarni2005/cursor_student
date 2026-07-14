@@ -24,58 +24,66 @@ import { z } from "zod";
  * and lean on Projects; an empty section is omitted entirely (no dangling heading).
  */
 
+// Bounds are generous for any real resume (never hit by legitimate AI-generated or hand-edited
+// content) but stop a crafted payload (e.g. via the in-browser editor's save action) from writing
+// an arbitrarily huge document that then gets persisted and re-rendered to DOCX.
+const shortText = z.string().max(300);
+const mediumText = z.string().max(600); // resume bullets / skill items — can run a full sentence
+const longText = z.string().max(2000);
+const bulletsField = z.array(mediumText.min(1)).max(30).default([]);
+
 const dateRange = z.object({
-  start: z.string().optional(), // free text, e.g. "Jan 2026" / "Nov 2022"
-  end: z.string().optional(), // e.g. "Present" / "Jul 2026"
+  start: shortText.optional(), // free text, e.g. "Jan 2026" / "Nov 2022"
+  end: shortText.optional(), // e.g. "Present" / "Jul 2026"
 });
 
 export const ResumeContactSchema = z.object({
-  name: z.string().min(1),
-  phone: z.string().optional(),
-  email: z.string().optional(),
-  location: z.string().optional(),
-  linkedin: z.string().optional(),
-  github: z.string().optional(),
-  portfolio: z.string().optional(),
+  name: shortText.min(1),
+  phone: shortText.optional(),
+  email: shortText.optional(),
+  location: shortText.optional(),
+  linkedin: shortText.optional(),
+  github: shortText.optional(),
+  portfolio: shortText.optional(),
 });
 
 /** "Languages: TypeScript, JavaScript" — a labeled skills line. */
 export const ResumeSkillGroupSchema = z.object({
-  category: z.string().min(1),
-  items: z.array(z.string().min(1)).min(1),
+  category: shortText.min(1),
+  items: z.array(mediumText.min(1)).min(1).max(30),
 });
 
 export const ResumeExperienceSchema = z.object({
-  organization: z.string().min(1),
-  role: z.string().optional(),
-  location: z.string().optional(),
+  organization: shortText.min(1),
+  role: shortText.optional(),
+  location: shortText.optional(),
   dates: dateRange.optional(),
-  bullets: z.array(z.string().min(1)).default([]),
+  bullets: bulletsField,
 });
 
 export const ResumeProjectSchema = z.object({
-  name: z.string().min(1),
-  role: z.string().optional(),
-  location: z.string().optional(),
+  name: shortText.min(1),
+  role: shortText.optional(),
+  location: shortText.optional(),
   dates: dateRange.optional(),
-  bullets: z.array(z.string().min(1)).default([]),
-  link: z.string().optional(),
+  bullets: bulletsField,
+  link: shortText.optional(),
 });
 
 export const ResumeEducationSchema = z.object({
-  institution: z.string().min(1),
-  degree: z.string().optional(),
-  location: z.string().optional(),
+  institution: shortText.min(1),
+  degree: shortText.optional(),
+  location: shortText.optional(),
   dates: dateRange.optional(),
 });
 
 export const ResumeSchema = z.object({
   contact: ResumeContactSchema,
-  summary: z.string().optional(),
-  skills: z.array(ResumeSkillGroupSchema).default([]),
-  experience: z.array(ResumeExperienceSchema).default([]),
-  projects: z.array(ResumeProjectSchema).default([]),
-  education: z.array(ResumeEducationSchema).default([]),
+  summary: longText.optional(),
+  skills: z.array(ResumeSkillGroupSchema).max(30).default([]),
+  experience: z.array(ResumeExperienceSchema).max(30).default([]),
+  projects: z.array(ResumeProjectSchema).max(30).default([]),
+  education: z.array(ResumeEducationSchema).max(20).default([]),
 });
 
 export type ResumeContact = z.infer<typeof ResumeContactSchema>;

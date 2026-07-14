@@ -1,3 +1,5 @@
+import { escapeHtml } from "../escape";
+
 /** Pure string builder — no I/O. Sent when a recruiter's proposed interview slot is accepted. */
 export function interviewInviteEmail(opts: {
   studentName: string;
@@ -23,8 +25,9 @@ ${opts.joinLink}
 
 Good luck!`;
 
-  const html = `<p>Hi ${opts.studentName},</p>
-<p>Your real interview${who} is confirmed for <strong>${when}</strong>.</p>
+  const whoHtml = opts.recruiterCompany ? ` with ${escapeHtml(opts.recruiterCompany)}` : "";
+  const html = `<p>Hi ${escapeHtml(opts.studentName)},</p>
+<p>Your real interview${whoHtml} is confirmed for <strong>${when}</strong>.</p>
 <p>Join right from your browser — camera and microphone required.</p>
 <p><a href="${opts.joinLink}">${opts.joinLink}</a></p>
 <p>Good luck!</p>`;

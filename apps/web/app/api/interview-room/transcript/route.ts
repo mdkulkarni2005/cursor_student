@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   }
 
   const scheduleId = String(body.scheduleId ?? "");
-  const text = String(body.text ?? "").trim();
+  const text = String(body.text ?? "").trim().slice(0, 4000);
   if (!scheduleId) return NextResponse.json({ error: "Missing scheduleId." }, { status: 400 });
   if (!text) return NextResponse.json({ error: "Missing text." }, { status: 400 });
 
