@@ -1,10 +1,11 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { prisma, type User } from "@studentos/db";
+import { Prisma, prisma, type User } from "@studentos/db";
 import type { ShellUser } from "@/components/app-shell";
 import { hasJoinableRealInterview } from "@/lib/real-interview";
 import { enforceConcurrentSessionLimit } from "@/lib/sessions";
+import { getGlobalTrialDays } from "@/lib/entitlements";
 
 const PLAN_LABEL: Record<string, string> = {  FREE: "Free", PRO: "Pro", PREMIUM: "Premium" };
 const ACTIVITY_STALE_MS = 30 * 60 * 1000; // bump "last seen" / opens at most twice an hour per user
@@ -70,12 +71,31 @@ export async function getOrCreateUser(existingLookup?: User | null): Promise<Use
     return updated;
   }
 
-  // Truly new user — create the row.
-  return prisma.user.upsert({
-    where: { clerkId: userId },
-    create: { clerkId: userId, email, name },
-    update: {},
-  });
+  // Truly new user — create the row. `upsert` only de-dupes against the `clerkId` conflict
+  // target; `email` is ALSO unique, so a genuine race (double-click, retried redirect, two
+  // near-simultaneous first-login requests) can have both sides see "no existing row" and both
+  // attempt an INSERT — the loser hits a P2002 unique-violation on `email`, not `clerkId`. Treat
+  // that specific case as "someone else just created it" and read back the winner's row instead
+  // of crashing the page.
+  // Admin-controlled promo trial (apps/admin/app/platform) — null while the trial is off, so this
+  // never overrides an existing user and costs nothing once admin ends the promo.
+  const trialDays = await getGlobalTrialDays();
+  const trialEndsAt = trialDays ? new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000) : null;
+
+  try {
+    return await prisma.user.upsert({
+      where: { clerkId: userId },
+      create: { clerkId: userId, email, name, trialEndsAt },
+      update: {},
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      const winner = await prisma.user.findUnique({ where: { clerkId: userId } })
+        ?? await prisma.user.findUnique({ where: { email } });
+      if (winner) return winner;
+    }
+    throw err;
+  }
 }
 
 /** For protected pages: returns the onboarded user, or redirects to sign-in / onboarding. */

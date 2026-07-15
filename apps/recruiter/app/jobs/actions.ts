@@ -6,6 +6,7 @@ import { after } from "next/server";
 import { prisma } from "@studentos/db";
 import { requireRecruiter } from "@/lib/recruiter";
 import { startFindCandidates, runFindCandidates, getJobPosting } from "@/lib/job-postings";
+import { assertRecruiterWithinQuota, recordRecruiterUsage, RecruiterQuotaExceededError } from "@/lib/entitlements";
 
 export type CreatePostingState = { error?: string };
 
@@ -19,9 +20,17 @@ export async function createJobPosting(_prev: CreatePostingState, formData: Form
   if (!title) return { error: "Please give the posting a title." };
   if (!description) return { error: "Please paste the job description." };
 
+  try {
+    await assertRecruiterWithinQuota(guard.recruiter, "JOB_POSTING");
+  } catch (err) {
+    if (err instanceof RecruiterQuotaExceededError) return { error: err.message };
+    throw err;
+  }
+
   const posting = await prisma.jobPosting.create({
     data: { recruiterId: guard.recruiter.id, title, description, department: department || null },
   });
+  await recordRecruiterUsage(guard.recruiter.id, "JOB_POSTING");
 
   revalidatePath("/jobs");
   redirect(`/jobs/${posting.id}`);
@@ -59,6 +68,8 @@ export async function selectCandidateForJob(jobPostingId: string, studentId: str
   const student = await prisma.user.findUnique({ where: { id: studentId }, select: { visibleToRecruiters: true } });
   if (!student?.visibleToRecruiters) throw new Error("This student is no longer visible to recruiters.");
 
+  await assertRecruiterWithinQuota(guard.recruiter, "CANDIDATE_CONTACT");
+
   await prisma.recruiterMessage.create({
     data: {
       recruiterId: guard.recruiter.id,
@@ -72,6 +83,7 @@ export async function selectCandidateForJob(jobPostingId: string, studentId: str
       ].join("\n"),
     },
   });
+  await recordRecruiterUsage(guard.recruiter.id, "CANDIDATE_CONTACT");
 
   redirect(`/students/${studentId}?jobPostingId=${jobPostingId}`);
 }

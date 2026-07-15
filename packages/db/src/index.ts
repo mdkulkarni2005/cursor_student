@@ -38,3 +38,4 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 // Re-export generated types and enums so app code imports everything from `@studentos/db`.
 export * from "@prisma/client";
 export * from "./phone";
+export * from "./plan-limits";

@@ -1,20 +1,75 @@
-import { prisma } from "@studentos/db";
-import type { Plan, UsageKind, User } from "@studentos/db";
+import { prisma, parsePlanLimits, emptyPlanLimits } from "@studentos/db";
+import type { UsageKind, User, PlanLimits } from "@studentos/db";
 
 /**
  * Plan-gating (PLAN.md §8). The ONE server-side chokepoint that decides whether a
  * generation is allowed. Never trust the client — every generation calls assertWithinQuota
  * before it starts, and recordUsage after it succeeds.
  *
- * `null` = unlimited.
+ * Limits are DB-driven (see apps/admin/app/plans) — `PlanTier.limits`, admin-editable without a
+ * deploy. `null` (or a key missing entirely) = unlimited.
  */
-const QUOTAS: Record<Plan, Record<UsageKind, number | null>> = {
-  // Limits removed while we're in global testing — everything is unlimited for now.
-  // Revisit and set real FREE-tier numbers once the app is finalized.
-  FREE: { ASSIGNMENT: null, REPORT: null, PPT: null, LAB_REPORT: null, BRANCH_SOLVER: null },
-  PRO: { ASSIGNMENT: null, REPORT: null, PPT: null, LAB_REPORT: null, BRANCH_SOLVER: null },
-  PREMIUM: { ASSIGNMENT: null, REPORT: null, PPT: null, LAB_REPORT: null, BRANCH_SOLVER: null },
-};
+
+const GLOBAL_TRIAL_ENABLED_KEY = "GLOBAL_TRIAL_ENABLED";
+const GLOBAL_TRIAL_PLAN_TIER_ID_KEY = "GLOBAL_TRIAL_PLAN_TIER_ID";
+const GLOBAL_TRIAL_DAYS_KEY = "GLOBAL_TRIAL_DAYS";
+
+/** Admin-controlled promo trial (see apps/admin/app/platform's "Trial & Promo" card) — days a
+ *  brand-new signup gets the trial PlanTier for, or null if the trial is currently switched off.
+ *  Called once at account creation (see getOrCreateUser); does not affect existing users. */
+export async function getGlobalTrialDays(): Promise<number | null> {
+  const [enabledRow, daysRow] = await Promise.all([
+    prisma.platformSetting.findUnique({ where: { key: GLOBAL_TRIAL_ENABLED_KEY } }),
+    prisma.platformSetting.findUnique({ where: { key: GLOBAL_TRIAL_DAYS_KEY } }),
+  ]);
+  if (enabledRow?.value !== "true") return null;
+  const days = Number(daysRow?.value);
+  return Number.isFinite(days) && days > 0 ? days : null;
+}
+
+export type ResolvedPlanTier = { id: string; limits: PlanLimits };
+
+/** Used only if apps/admin hasn't created any PlanTier rows yet — matches the historical
+ *  "everything unlimited" behavior so a fresh deploy never breaks generation. */
+const FALLBACK_TIER: ResolvedPlanTier = { id: "fallback-unlimited", limits: emptyPlanLimits() };
+
+async function defaultFreeStudentTier(): Promise<ResolvedPlanTier | null> {
+  const tier = await prisma.planTier.findFirst({
+    where: { audience: "STUDENT", active: true, isFree: true },
+    orderBy: { sortOrder: "asc" },
+  });
+  return tier ? { id: tier.id, limits: parsePlanLimits(tier.limits) } : null;
+}
+
+/**
+ * Resolves the PlanTier that governs this user right now: their active Subscription's tier, else
+ * a manually admin-assigned tier on the User row, else the global admin-controlled trial tier
+ * (while User.trialEndsAt hasn't passed), else the audience's default free tier.
+ */
+export async function getActivePlanTier(user: User): Promise<ResolvedPlanTier> {
+  const sub = await prisma.subscription.findUnique({
+    where: { userId: user.id },
+    select: { planTierId: true, status: true },
+  });
+  const tierId = (sub?.status === "ACTIVE" ? sub.planTierId : null) ?? user.planTierId ?? null;
+  if (tierId) {
+    const tier = await prisma.planTier.findUnique({ where: { id: tierId } });
+    if (tier && tier.active) return { id: tier.id, limits: parsePlanLimits(tier.limits) };
+  }
+
+  if (user.trialEndsAt && user.trialEndsAt.getTime() > Date.now()) {
+    const [enabledRow, trialTierRow] = await Promise.all([
+      prisma.platformSetting.findUnique({ where: { key: GLOBAL_TRIAL_ENABLED_KEY } }),
+      prisma.platformSetting.findUnique({ where: { key: GLOBAL_TRIAL_PLAN_TIER_ID_KEY } }),
+    ]);
+    if (enabledRow?.value === "true" && trialTierRow?.value) {
+      const trialTier = await prisma.planTier.findUnique({ where: { id: trialTierRow.value } });
+      if (trialTier && trialTier.active) return { id: trialTier.id, limits: parsePlanLimits(trialTier.limits) };
+    }
+  }
+
+  return (await defaultFreeStudentTier()) ?? FALLBACK_TIER;
+}
 
 export class QuotaExceededError extends Error {
   constructor(
@@ -81,8 +136,13 @@ export async function assertWithinCostBudget(userId: string): Promise<void> {
   if (used >= cap) throw new CostBudgetExceededError(cap);
 }
 
-export function quotaFor(plan: Plan, kind: UsageKind): number | null {
-  return QUOTAS[plan][kind];
+export function quotaFor(tier: ResolvedPlanTier, kind: UsageKind): number | null {
+  return tier.limits.usage[kind] ?? null;
+}
+
+/** Binary feature gate (e.g. "priorityQueue", "mentorReview") — see packages/db plan-limits.ts. */
+export function hasFeature(tier: ResolvedPlanTier, key: string): boolean {
+  return tier.limits.features[key] ?? false;
 }
 
 export function usageThisPeriod(userId: string, kind: UsageKind): Promise<number> {
@@ -95,7 +155,8 @@ export function usageThisPeriod(userId: string, kind: UsageKind): Promise<number
  *  CostBudgetExceededError if they've hit the $ backstop regardless of feature quota. */
 export async function assertWithinQuota(user: User, kind: UsageKind): Promise<void> {
   await assertWithinCostBudget(user.id);
-  const limit = quotaFor(user.plan, kind);
+  const tier = await getActivePlanTier(user);
+  const limit = quotaFor(tier, kind);
   if (limit === null) return; // unlimited
   const used = await usageThisPeriod(user.id, kind);
   if (used >= limit) throw new QuotaExceededError(kind, limit);
@@ -112,7 +173,8 @@ export async function recordUsage(
 export type QuotaStatus = { used: number; limit: number | null; remaining: number | null };
 
 export async function quotaStatus(user: User, kind: UsageKind): Promise<QuotaStatus> {
-  const limit = quotaFor(user.plan, kind);
+  const tier = await getActivePlanTier(user);
+  const limit = quotaFor(tier, kind);
   const used = await usageThisPeriod(user.id, kind);
   return { used, limit, remaining: limit === null ? null : Math.max(0, limit - used) };
 }

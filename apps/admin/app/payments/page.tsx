@@ -24,7 +24,10 @@ export default async function PaymentsPage() {
     prisma.payment.findMany({
       orderBy: { createdAt: "desc" },
       take: 200,
-      include: { user: { select: { id: true, name: true, email: true } } },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        recruiter: { select: { id: true, name: true, email: true } },
+      },
     }),
     prisma.payment.groupBy({ by: ["status"], _sum: { amountCents: true }, _count: { _all: true } }),
   ]);
@@ -73,9 +76,17 @@ export default async function PaymentsPage() {
               {payments.map((p) => (
                 <tr key={p.id} className="border-b border-line/60 last:border-0">
                   <td className="px-4 py-3">
-                    <Link href={`/users/${p.user.id}`} className="text-cyan hover:underline">
-                      {p.user.name ?? p.user.email}
-                    </Link>
+                    {p.user ? (
+                      <Link href={`/users/${p.user.id}`} className="text-cyan hover:underline">
+                        {p.user.name ?? p.user.email}
+                      </Link>
+                    ) : p.recruiter ? (
+                      <Link href={`/recruiters/${p.recruiter.id}`} className="text-indigo hover:underline">
+                        {p.recruiter.name ?? p.recruiter.email} <span className="text-faint">(recruiter)</span>
+                      </Link>
+                    ) : (
+                      <span className="text-faint">—</span>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-ink">{p.currency} {(p.amountCents / 100).toFixed(2)}</td>
                   <td className="px-4 py-3 text-muted">{p.method ?? "—"}</td>

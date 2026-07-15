@@ -21,6 +21,12 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
               <Link href="/platform" className="hover:text-ink">
                 Platform
               </Link>
+              <Link href="/plans" className="hover:text-ink">
+                Plans
+              </Link>
+              <Link href="/promo-codes" className="hover:text-ink">
+                Promo Codes
+              </Link>
               <Link href="/users" className="hover:text-ink">
                 Users
               </Link>
@@ -41,6 +47,9 @@ export async function AdminShell({ children }: { children: React.ReactNode }) {
               </Link>
               <Link href="/support" className="hover:text-ink">
                 Support
+              </Link>
+              <Link href="/feedback" className="hover:text-ink">
+                Feedback
               </Link>
               <Link href="/dsa-problems" className="hover:text-ink">
                 DSA

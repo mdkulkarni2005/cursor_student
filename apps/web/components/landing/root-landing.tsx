@@ -1,5 +1,6 @@
 import { Logo, LogoMark } from "@/components/logo";
 import { Reveal } from "@/components/reveal";
+import { ReportMockup } from "./mockups";
 
 /**
  * The brand home at krackit.in — not a student pitch (that lives on app.krackit.in) but the
@@ -23,13 +24,6 @@ const RECRUITER_POINTS = [
   "Real DSA scores and interview performance",
   "Live coding interview rooms, built in",
   "Direct messaging — no middlemen, no spam",
-];
-
-const STATS = [
-  { value: "10k+", label: "Students" },
-  { value: "50k+", label: "Documents generated" },
-  { value: "99.9%", label: "Uptime" },
-  { value: "4.9★", label: "Student rating" },
 ];
 
 export function RootLanding() {
@@ -70,7 +64,6 @@ export function RootLanding() {
       {/* HERO */}
       <section className="relative mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center px-5 pb-16 pt-28 text-center">
         <div className="pointer-events-none absolute -top-40 left-1/2 size-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(246,146,30,0.08),transparent_70%)] animate-float-drift" />
-        <div className="pointer-events-none absolute -bottom-20 right-10 size-[300px] animate-float-drift rounded-full bg-[radial-gradient(circle,rgba(129,140,248,0.06),transparent_70%)]" style={{ animationDelay: "-5s" }} />
 
         <div className="relative w-full">
           <div className="animate-fade-in-up mb-6 inline-block rounded-full border border-cyan/20 bg-cyan/8 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-cyan">
@@ -78,7 +71,7 @@ export function RootLanding() {
             The career operating system for students
           </div>
 
-          <h1 className="font-display text-[40px] font-bold leading-[1.08] tracking-tight text-ink sm:text-[54px] lg:text-[64px]">
+          <h1 className="font-display text-[40px] font-bold leading-[1.08] tracking-tight text-ink sm:text-[54px] lg:text-[62px]">
             <span className="animate-fade-in-up stagger-1 block">Crack college. Crack interviews.</span>
             <span className="animate-fade-in-up stagger-2 mt-2 block">
               <span className="animate-gradient-shift bg-gradient-to-r from-cyan via-indigo to-cyan bg-clip-text text-transparent">
@@ -87,13 +80,17 @@ export function RootLanding() {
             </span>
           </h1>
 
-          <p className="animate-fade-in-up stagger-3 mx-auto mt-5 max-w-[620px] text-[16px] leading-relaxed text-muted">
+          <p className="animate-fade-in-up stagger-3 mx-auto mt-5 max-w-[600px] text-[16px] leading-relaxed text-muted">
             One platform where students create, practice, and prove their work — and recruiters hire
             on evidence, not buzzwords. Whichever side you&apos;re on, krackit gets you there faster.
           </p>
 
+          <div className="animate-fade-in-up stagger-4 mx-auto mt-10 max-w-3xl">
+            <ReportMockup />
+          </div>
+
           {/* THE CHOICE — the whole point of this page */}
-          <div className="animate-fade-in-up stagger-4 mx-auto mt-12 grid w-full max-w-4xl gap-5 text-left md:grid-cols-2">
+          <div className="animate-fade-in-up stagger-5 mx-auto mt-10 grid w-full max-w-4xl gap-5 text-left md:grid-cols-2">
             <a
               href={APP_URL}
               className="group relative overflow-hidden rounded-3xl border border-line bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-cyan/40 hover:shadow-[0_18px_50px_rgba(246,146,30,0.18)]"
@@ -141,24 +138,6 @@ export function RootLanding() {
             </a>
           </div>
         </div>
-      </section>
-
-      {/* STATS */}
-      <section className="border-t border-line">
-        <Reveal>
-          <div className="mx-auto max-w-5xl px-5 py-16">
-            <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {STATS.map((stat, i) => (
-                <Reveal key={stat.label} delay={i * 100}>
-                  <div className="rounded-2xl border border-line bg-card p-6 text-center transition-all hover:border-cyan/20">
-                    <p className="font-display text-[28px] font-bold text-ink">{stat.value}</p>
-                    <p className="mt-1 text-[13px] text-faint">{stat.label}</p>
-                  </div>
-                </Reveal>
-              ))}
-            </div>
-          </div>
-        </Reveal>
       </section>
 
       {/* COMPANY + CONTACT */}

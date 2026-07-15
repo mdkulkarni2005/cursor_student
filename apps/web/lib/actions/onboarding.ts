@@ -4,8 +4,8 @@ import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { prisma, assertPhoneAvailable } from "@studentos/db";
 import { putObject, keys } from "@studentos/storage";
-import { DEPARTMENTS } from "@/lib/constants";
 import { SESSION_EXPIRED_ERROR } from "@/lib/actions/onboarding-constants";
+import { completeStudentOnboarding } from "@/lib/onboarding";
 
 export type OnboardingState = { error?: string };
 
@@ -92,16 +92,6 @@ export async function completeOnboarding(
   const idCard = formData.get("idCard");
   const isCustomDepartment = formData.get("isCustomDepartment") === "on";
 
-  if (isCustomDepartment) {
-    if (department.length < 2) return { error: "Please type your branch/department." };
-  } else if (!DEPARTMENTS.includes(department as (typeof DEPARTMENTS)[number])) {
-    return { error: "Please choose your department." };
-  }
-  if (college.length < 2) return { error: "Please enter your college name." };
-  if (!semester) return { error: "Please choose your semester." };
-  // GitHub is only meaningful for the coding track (CS/IT by default, or any branch that opts
-  // in) — a non-coding-track student can add it later from Settings if they pick one up.
-  if (codingEnabled && !github) return { error: "Please add your GitHub link — it's required for the coding track." };
   if (!(idCard instanceof File) || idCard.size === 0)
     return { error: "Please upload a photo of your college ID card." };
   if (idCard.size > MAX_ID_CARD_UPLOAD) return { error: "ID card file is too large (max 10 MB)." };
@@ -110,29 +100,20 @@ export async function completeOnboarding(
   const idCardKey = keys.idCard(me.id, idCardExt);
   await putObject(idCardKey, Buffer.from(await idCard.arrayBuffer()), idCard.type);
 
-  // Find-or-create the institution (college), then attach to the user.
-  let institution = await prisma.institution.findFirst({ where: { name: college } });
-  institution ??= await prisma.institution.create({ data: { name: college } });
-
-  // One submit sets academic context, coding track, AND legal acceptance — no separate gate.
-  await prisma.user.update({
-    where: { clerkId: userId },
-    data: {
-      userType: "STUDENT",
-      department,
-      semester,
-      careerGoal: careerGoal || null,
-      phone,
-      githubUrl: github || null,
-      linkedin,
-      gpa,
-      institutionId: institution.id,
-      codingEnabled,
-      idCardKey,
-      acceptedLegalAt: new Date(),
-      onboardedAt: new Date(),
-    },
+  const result = await completeStudentOnboarding(userId, {
+    department,
+    isCustomDepartment,
+    college,
+    semester,
+    codingEnabled,
+    github,
+    linkedin,
+    phone,
+    gpa,
+    careerGoal: careerGoal || null,
+    idCardKey,
   });
+  if (!result.ok) return { error: result.error };
 
   redirect("/dashboard");
 }

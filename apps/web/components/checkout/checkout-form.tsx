@@ -1,94 +1,111 @@
 "use client";
 
 import { useState } from "react";
+import Script from "next/script";
+import { useRouter } from "next/navigation";
+import { createCheckoutOrder } from "@/lib/actions/checkout";
 
-type Method = "upi" | "card" | "netbanking";
+declare global {
+  interface Window {
+    Razorpay: new (options: Record<string, unknown>) => { open: () => void };
+  }
+}
 
-const METHODS: { id: Method; label: string; note: string }[] = [
-  { id: "upi", label: "UPI", note: "GPay, PhonePe" },
-  { id: "card", label: "Card", note: "Visa, Mastercard" },
-  { id: "netbanking", label: "Net Banking", note: "All banks" },
-];
+type RazorpayHandlerResponse = {
+  razorpay_payment_id: string;
+  razorpay_order_id?: string;
+  razorpay_subscription_id?: string;
+  razorpay_signature: string;
+};
 
-export function CheckoutForm({ amountLabel }: { amountLabel: string }) {
-  const [method, setMethod] = useState<Method>("card");
+/** Real Razorpay Checkout — UPI/card/netbanking are the widget's own built-in method tabs, so no
+ *  raw card-number inputs live on our page (keeps us out of PCI scope for card data). */
+export function CheckoutForm({
+  planTierId,
+  amountLabel,
+  userEmail,
+  userName,
+}: {
+  planTierId: string;
+  amountLabel: string;
+  userEmail?: string;
+  userName?: string;
+}) {
+  const router = useRouter();
+  const [scriptReady, setScriptReady] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function onPay() {
+    setError(null);
+    setIsPaying(true);
+    try {
+      const order = await createCheckoutOrder(planTierId);
+
+      const rzp = new window.Razorpay({
+        key: order.keyId,
+        name: "krackit",
+        prefill: { email: userEmail, name: userName },
+        theme: { color: "#06b6d4" },
+        ...(order.mode === "order"
+          ? { order_id: order.orderId, amount: order.amountCents, currency: order.currency }
+          : { subscription_id: order.subscriptionId }),
+        handler: async (response: RazorpayHandlerResponse) => {
+          const verifyBody =
+            order.mode === "order"
+              ? {
+                  mode: "order" as const,
+                  razorpay_order_id: response.razorpay_order_id!,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  planTierId,
+                }
+              : {
+                  mode: "subscription" as const,
+                  razorpay_subscription_id: response.razorpay_subscription_id!,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  planTierId,
+                };
+          const res = await fetch("/api/checkout/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(verifyBody),
+          });
+          if (res.ok) {
+            router.push("/plans?upgraded=1");
+            router.refresh();
+          } else {
+            setError("Payment verification failed — contact support if you were charged.");
+            setIsPaying(false);
+          }
+        },
+        modal: { ondismiss: () => setIsPaying(false) },
+      });
+      rzp.open();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not start checkout.");
+      setIsPaying(false);
+    }
+  }
 
   return (
     <div>
-      <h4 className="mb-4 text-[12px] font-bold uppercase tracking-widest text-muted">Select Payment Method</h4>
-      <div className="mb-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {METHODS.map((m) => (
-          <button
-            key={m.id}
-            onClick={() => setMethod(m.id)}
-            className={`flex flex-col items-center justify-center rounded-xl border-2 p-4 transition-all ${
-              method === m.id ? "border-cyan bg-cyan/5" : "border-line hover:border-cyan/40"
-            }`}
-          >
-            <span className="text-[13.5px] font-semibold text-ink">{m.label}</span>
-            <span className="mt-0.5 text-[10px] text-muted">{m.note}</span>
-          </button>
-        ))}
-      </div>
-
-      {method === "card" && (
-        <div className="space-y-4">
-          <div>
-            <label className="mb-2 block text-[13px] font-medium text-ink">Card Number</label>
-            <input
-              placeholder="XXXX XXXX XXXX XXXX"
-              className="h-12 w-full rounded-lg border border-line bg-card px-4 text-[14px] text-ink outline-none focus:border-cyan focus:ring-2 focus:ring-cyan/20"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="mb-2 block text-[13px] font-medium text-ink">Expiry</label>
-              <input
-                placeholder="MM/YY"
-                className="h-12 w-full rounded-lg border border-line bg-card px-4 text-[14px] text-ink outline-none focus:border-cyan focus:ring-2 focus:ring-cyan/20"
-              />
-            </div>
-            <div>
-              <label className="mb-2 block text-[13px] font-medium text-ink">CVV</label>
-              <input
-                type="password"
-                placeholder="***"
-                className="h-12 w-full rounded-lg border border-line bg-card px-4 text-[14px] text-ink outline-none focus:border-cyan focus:ring-2 focus:ring-cyan/20"
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {method === "upi" && (
-        <div>
-          <label className="mb-2 block text-[13px] font-medium text-ink">UPI ID</label>
-          <input
-            placeholder="yourname@bank"
-            className="h-12 w-full rounded-lg border border-line bg-card px-4 text-[14px] text-ink outline-none focus:border-cyan focus:ring-2 focus:ring-cyan/20"
-          />
-        </div>
-      )}
-
-      {method === "netbanking" && (
-        <div>
-          <label className="mb-2 block text-[13px] font-medium text-ink">Select Bank</label>
-          <select className="h-12 w-full rounded-lg border border-line bg-card px-4 text-[14px] text-ink outline-none focus:border-cyan focus:ring-2 focus:ring-cyan/20">
-            <option>HDFC Bank</option>
-            <option>ICICI Bank</option>
-            <option>State Bank of India</option>
-            <option>Axis Bank</option>
-          </select>
-        </div>
-      )}
-
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" onReady={() => setScriptReady(true)} />
+      <h4 className="mb-4 text-[12px] font-bold uppercase tracking-widest text-muted">Secure payment</h4>
+      <p className="mb-6 text-[13px] text-soft">
+        UPI, cards, and net banking are all handled inside Razorpay&apos;s secure checkout — we never see or store
+        your card details.
+      </p>
       <button
         type="button"
-        title="Razorpay integration is not wired yet"
-        className="mt-6 w-full rounded-xl bg-cyan py-3.5 text-[15px] font-bold text-on-accent transition-transform active:scale-[0.99]"
+        disabled={!scriptReady || isPaying}
+        onClick={onPay}
+        className="w-full rounded-xl bg-cyan py-3.5 text-[15px] font-bold text-on-accent transition-transform active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
       >
-        Proceed to Pay {amountLabel}
+        {isPaying ? "Opening secure checkout…" : `Proceed to Pay ${amountLabel}`}
       </button>
+      {error && <p className="mt-3 text-center text-[12.5px] text-danger">{error}</p>}
       <p className="mt-3 text-center text-[11.5px] leading-relaxed text-muted">
         By clicking &apos;Proceed to Pay&apos;, you agree to our Terms of Service and Privacy Policy. You will be
         redirected to a secure Razorpay gateway.

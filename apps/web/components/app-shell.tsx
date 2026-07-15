@@ -7,6 +7,7 @@ import { WORKSPACE_NAV, YOU_NAV, ALL_NAV, type NavItem } from "@/lib/nav";
 import { SearchIcon } from "@/components/icons";
 import { Logo } from "@/components/logo";
 import { AssistantPanel } from "@/components/assistant/assistant-panel";
+import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import { InstallPrompt } from "@/components/install-prompt";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { hasBranchFeature } from "@/lib/capabilities";
@@ -160,6 +161,7 @@ export function AppShell({ children, user }: { children: React.ReactNode; user: 
         <main className="flex-1 overflow-y-auto px-4 pb-28 pt-6 sm:px-6 lg:px-7 lg:pb-10">{children}</main>
       </div>
       <AssistantPanel name={user.name} />
+      <FeedbackWidget />
       <MobileNav pathname={pathname} user={user} />
       <InstallPrompt />
     </div>

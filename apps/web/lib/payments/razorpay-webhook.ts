@@ -31,6 +31,7 @@ type RazorpaySubscriptionEntity = {
   status?: string;
   current_end?: number; // unix seconds
   customer_id?: string;
+  notes?: Record<string, string>;
 };
 
 export type RazorpayWebhookPayload = {
@@ -41,22 +42,43 @@ export type RazorpayWebhookPayload = {
   };
 };
 
-/** Resolve which of our users a webhook event belongs to — via the Razorpay subscription id we
- *  stored at checkout time, falling back to a `userId` note if the payment carries one directly. */
-async function resolveUserId(payment?: RazorpayPaymentEntity, subscription?: RazorpaySubscriptionEntity): Promise<string | null> {
-  if (payment?.notes?.userId) return payment.notes.userId;
+type Owner = { userId: string } | { recruiterId: string } | null;
+
+/**
+ * Resolve which account (student User or Recruiter — one Payment table serves both, see
+ * packages/db/prisma/schema.prisma) a webhook event belongs to. Prefers the `notes` on the
+ * payment/subscription (set at checkout time, see lib/actions/checkout.ts and
+ * apps/recruiter/lib/actions/checkout.ts) since that's available even on the very first payment,
+ * before any Subscription row has this razorpaySubId recorded.
+ */
+async function resolveOwner(payment?: RazorpayPaymentEntity, subscription?: RazorpaySubscriptionEntity): Promise<Owner> {
+  const notes = payment?.notes ?? subscription?.notes;
+  if (notes?.userId) return { userId: notes.userId };
+  if (notes?.recruiterId) return { recruiterId: notes.recruiterId };
+
   const subId = subscription?.id;
   if (subId) {
     const sub = await prisma.subscription.findUnique({ where: { razorpaySubId: subId }, select: { userId: true } });
-    if (sub) return sub.userId;
+    if (sub) return { userId: sub.userId };
+    const recruiterSub = await prisma.recruiterSubscription.findUnique({
+      where: { razorpaySubId: subId },
+      select: { recruiterId: true },
+    });
+    if (recruiterSub) return { recruiterId: recruiterSub.recruiterId };
   }
   return null;
 }
 
+function planTierIdFromNotes(payment?: RazorpayPaymentEntity, subscription?: RazorpaySubscriptionEntity): string | undefined {
+  return payment?.notes?.planTierId ?? subscription?.notes?.planTierId;
+}
+
 /**
  * Apply a verified Razorpay webhook event: record the Payment row (for history/receipts) and
- * update the Subscription's cycle/status so "next payment date" and "autopay" stay accurate.
- * Idempotent on razorpayPaymentId (upsert) since Razorpay retries webhook delivery.
+ * update the Subscription/RecruiterSubscription's cycle/status so "next payment date" and
+ * "autopay" stay accurate. Idempotent on razorpayPaymentId (upsert) since Razorpay retries webhook
+ * delivery. This is the source of truth for billing state — /api/checkout/verify is only a fast
+ * optimistic UI path on top of it.
  */
 export async function applyRazorpayEvent(body: RazorpayWebhookPayload): Promise<void> {
   const payment = body.payload.payment?.entity;
@@ -66,12 +88,14 @@ export async function applyRazorpayEvent(body: RazorpayWebhookPayload): Promise<
     case "payment.captured":
     case "subscription.charged": {
       if (!payment) return;
-      const userId = await resolveUserId(payment, subscription);
-      if (!userId) return; // can't attribute — nothing safe to write
+      const owner = await resolveOwner(payment, subscription);
+      if (!owner) return; // can't attribute — nothing safe to write
+      const planTierId = planTierIdFromNotes(payment, subscription);
+
       await prisma.payment.upsert({
         where: { razorpayPaymentId: payment.id },
         create: {
-          userId,
+          ...owner,
           razorpayPaymentId: payment.id,
           razorpayOrderId: payment.order_id ?? null,
           amountCents: payment.amount, // Razorpay amounts are already in the smallest unit (paise)
@@ -81,22 +105,44 @@ export async function applyRazorpayEvent(body: RazorpayWebhookPayload): Promise<
         },
         update: { status: "CAPTURED" },
       });
-      if (subscription?.current_end) {
+
+      if ("userId" in owner) {
         await prisma.subscription.updateMany({
-          where: { userId },
-          data: { status: "ACTIVE", currentPeriodEnd: new Date(subscription.current_end * 1000) },
+          where: { userId: owner.userId },
+          data: {
+            status: "ACTIVE",
+            ...(subscription?.current_end ? { currentPeriodEnd: new Date(subscription.current_end * 1000) } : {}),
+            ...(planTierId ? { planTierId } : {}),
+          },
+        });
+        if (planTierId) await prisma.user.update({ where: { id: owner.userId }, data: { planTierId } }).catch(() => {});
+      } else {
+        await prisma.recruiterSubscription.upsert({
+          where: { recruiterId: owner.recruiterId },
+          create: {
+            recruiterId: owner.recruiterId,
+            planTierId: planTierId ?? null,
+            status: "ACTIVE",
+            razorpaySubId: subscription?.id,
+            currentPeriodEnd: subscription?.current_end ? new Date(subscription.current_end * 1000) : null,
+          },
+          update: {
+            status: "ACTIVE",
+            ...(planTierId ? { planTierId } : {}),
+            ...(subscription?.current_end ? { currentPeriodEnd: new Date(subscription.current_end * 1000) } : {}),
+          },
         });
       }
       return;
     }
     case "payment.failed": {
       if (!payment) return;
-      const userId = await resolveUserId(payment, subscription);
-      if (!userId) return;
+      const owner = await resolveOwner(payment, subscription);
+      if (!owner) return;
       await prisma.payment.upsert({
         where: { razorpayPaymentId: payment.id },
         create: {
-          userId,
+          ...owner,
           razorpayPaymentId: payment.id,
           razorpayOrderId: payment.order_id ?? null,
           amountCents: payment.amount,
@@ -106,7 +152,11 @@ export async function applyRazorpayEvent(body: RazorpayWebhookPayload): Promise<
         },
         update: { status: "FAILED" },
       });
-      await prisma.subscription.updateMany({ where: { userId }, data: { status: "PAST_DUE" } });
+      if ("userId" in owner) {
+        await prisma.subscription.updateMany({ where: { userId: owner.userId }, data: { status: "PAST_DUE" } });
+      } else {
+        await prisma.recruiterSubscription.updateMany({ where: { recruiterId: owner.recruiterId }, data: { status: "PAST_DUE" } });
+      }
       return;
     }
     case "subscription.cancelled":
@@ -116,14 +166,16 @@ export async function applyRazorpayEvent(body: RazorpayWebhookPayload): Promise<
         where: { razorpaySubId: subscription.id },
         data: { status: "CANCELED", cancelAtPeriodEnd: false },
       });
+      await prisma.recruiterSubscription.updateMany({
+        where: { razorpaySubId: subscription.id },
+        data: { status: "CANCELED", cancelAtPeriodEnd: false },
+      });
       return;
     }
     case "subscription.halted": {
       if (!subscription) return;
-      await prisma.subscription.updateMany({
-        where: { razorpaySubId: subscription.id },
-        data: { status: "PAST_DUE" },
-      });
+      await prisma.subscription.updateMany({ where: { razorpaySubId: subscription.id }, data: { status: "PAST_DUE" } });
+      await prisma.recruiterSubscription.updateMany({ where: { razorpaySubId: subscription.id }, data: { status: "PAST_DUE" } });
       return;
     }
     case "refund.processed": {

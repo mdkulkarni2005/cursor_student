@@ -37,6 +37,19 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
+// Which side of the marketplace a PlanTier applies to — student plans and recruiter plans are
+// fully independent (different limit dimensions, different pricing), never mixed in one row.
+enum PlanAudience {
+  STUDENT
+  RECRUITER
+}
+
+// Seat/contact-style quota dimensions for recruiters (mirrors UsageKind for students).
+enum RecruiterUsageKind {
+  JOB_POSTING
+  CANDIDATE_CONTACT
+}
+
 enum DocumentType {
   ASSIGNMENT
   REPORT
@@ -148,6 +161,15 @@ model User {
   plan         Plan      @default(FREE)
   userType     UserType  @default(STUDENT)
 
+  // DB-driven plan (packages/db PlanTier) — the authoritative entitlement source once set;
+  // `plan` enum above is kept only as a coarse legacy label. Null = fall back to the audience's
+  // default free tier. Set directly by admin (manual grant) or by checkout/webhook on payment.
+  planTierId String?
+  planTier   PlanTier? @relation(fields: [planTierId], references: [id])
+  // Admin-controlled global trial window (see PlatformSetting GLOBAL_TRIAL_*) — set at signup
+  // when a trial is active; entitlements.ts grants the trial plan tier's limits until this passes.
+  trialEndsAt DateTime?
+
   // Required contact/identity links — collected at onboarding for both STUDENT and PROFESSIONAL
   // users. Gate the "Share Profile" action (see apps/web/lib/actions/profile.ts): a student can't
   // generate a /u/[handle] link until both are set. Nullable here only because existing users
@@ -216,6 +238,7 @@ model User {
   recruiterMessages  RecruiterMessage[]
   interviewSchedules InterviewSchedule[]
   supportTickets     SupportTicket[]
+  feedback           Feedback[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -385,11 +408,120 @@ model VivaSet {
 
 // ----------------------------- Billing ------------------------------------
 
+// Admin-defined pricing/limits tier, DB-driven so the number of plans and every limit is editable
+// from apps/admin without a deploy (see apps/admin/app/plans). `limits` is validated against
+// packages/db/src/plan-limits.ts's planLimitsSchema before every write.
+model PlanTier {
+  id             String       @id @default(cuid())
+  audience       PlanAudience
+  // Admin-chosen, stable identifier — unique per audience, e.g. "free" / "pro" / "team".
+  slug           String
+  name           String
+  description    String?
+  priceCents     Int          @default(0)
+  currency       String       @default("INR")
+  // "monthly" | "yearly" | "one-time" — plain string, not an enum, so admin can add a new billing
+  // cadence without a migration.
+  billingPeriod  String       @default("monthly")
+  isFree         Boolean      @default(false)
+  // 0 = no trial attached to this tier specifically (see PlatformSetting GLOBAL_TRIAL_* for the
+  // platform-wide promo trial, which is separate from a tier's own trial).
+  trialDays      Int          @default(0)
+  // Soft-disable only — never hard-delete a tier with active subscribers, archive it instead.
+  active         Boolean      @default(true)
+  sortOrder      Int          @default(0)
+  // { usage: Record<UsageKind, number|null>, features: Record<string, boolean>,
+  //   recruiterUsage: Record<RecruiterUsageKind, number|null> } — null = unlimited.
+  limits         Json
+  // Razorpay's own "plan_xxx" id for recurring subscriptions, created lazily on first checkout
+  // and cached here so we don't recreate a Razorpay plan on every purchase.
+  razorpayPlanId String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  users                  User[]
+  subscriptions          Subscription[]
+  recruiterSubscriptions RecruiterSubscription[]
+  promoCodes             PromoCode[]
+
+  @@unique([audience, slug])
+  @@index([audience, active])
+}
+
+// A recruiter's paid plan — the Recruiter-side mirror of Subscription (recruiters previously had
+// no billing model at all).
+model RecruiterSubscription {
+  id                 String             @id @default(cuid())
+  recruiterId        String             @unique
+  recruiter          Recruiter          @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  planTierId         String?
+  planTier           PlanTier?          @relation(fields: [planTierId], references: [id])
+  status             SubscriptionStatus @default(ACTIVE)
+  razorpaySubId      String?            @unique
+  razorpayCustomerId String?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean            @default(false)
+  trialEndsAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+// One row per recruiter seat/contact quota-consuming action — the recruiter-side mirror of
+// UsageEvent, counted per billing period for plan-gating (see apps/recruiter/lib/entitlements.ts).
+model RecruiterUsageEvent {
+  id          String             @id @default(cuid())
+  recruiterId String
+  recruiter   Recruiter          @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  kind        RecruiterUsageKind
+  createdAt   DateTime           @default(now())
+
+  @@index([recruiterId, kind, createdAt])
+}
+
+// Admin-issued discount/trial-extension code, redeemable once per account (see PromoRedemption).
+model PromoCode {
+  id             String    @id @default(cuid())
+  code           String    @unique
+  description    String?
+  // "FREE_TRIAL_EXTENSION" | "PERCENT_OFF" | "AMOUNT_OFF"
+  discountType   String
+  // Meaning depends on discountType: days | percent (0-100) | amountCents.
+  value          Int
+  planTierId     String?
+  planTier       PlanTier? @relation(fields: [planTierId], references: [id])
+  maxRedemptions Int?
+  redemptions    Int       @default(0)
+  active         Boolean   @default(true)
+  expiresAt      DateTime?
+  createdAt      DateTime  @default(now())
+
+  redeemedBy PromoRedemption[]
+
+  @@index([active])
+}
+
+// Enforces one redemption per account per code — exactly one of userId/recruiterId is set.
+model PromoRedemption {
+  id          String    @id @default(cuid())
+  promoCodeId String
+  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  userId      String?
+  recruiterId String?
+  redeemedAt  DateTime  @default(now())
+
+  @@unique([promoCodeId, userId])
+  @@unique([promoCodeId, recruiterId])
+  @@index([promoCodeId])
+}
+
 model Subscription {
   id                 String             @id @default(cuid())
   userId             String             @unique
   user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan               Plan               @default(FREE)
+  // DB-driven tier — authoritative for limits once set; see User.planTierId.
+  planTierId         String?
+  planTier           PlanTier?          @relation(fields: [planTierId], references: [id])
   status             SubscriptionStatus @default(ACTIVE)
   razorpaySubId      String?            @unique
   razorpayCustomerId String?
@@ -413,8 +545,12 @@ enum PaymentStatus {
 // directly from the app, so this only reflects what Razorpay actually processed.
 model Payment {
   id                String        @id @default(cuid())
-  userId            String
-  user              User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Exactly one of userId/recruiterId is set — one Payment table for both sides of the
+  // marketplace so receipt history/webhook handling doesn't need to be duplicated.
+  userId            String?
+  user              User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recruiterId       String?
+  recruiter         Recruiter?    @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
   razorpayPaymentId String        @unique
   razorpayOrderId   String?
   amountCents       Int
@@ -426,6 +562,7 @@ model Payment {
   createdAt         DateTime      @default(now())
 
   @@index([userId, createdAt])
+  @@index([recruiterId, createdAt])
 }
 
 // One row per quota-consuming generation; counted per billing period for plan-gating.
@@ -562,6 +699,10 @@ model Recruiter {
   messages       RecruiterMessage[]
   schedules      InterviewSchedule[]
   supportTickets SupportTicket[]
+  feedback       Feedback[]
+  subscription   RecruiterSubscription?
+  usageEvents    RecruiterUsageEvent[]
+  payments       Payment[]
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
 
@@ -626,6 +767,45 @@ enum SupportTicketStatus {
   IN_PROGRESS
   RESOLVED
   CLOSED
+}
+
+// Free-form product feedback (bug reports, feature requests, general comments) raised from the
+// always-on feedback widget in every authenticated app shell. Deliberately separate from
+// SupportTicket: support is "I need help with something specific to my account", feedback is
+// "here's what you should build/fix next" — different triage owner, no corrective-action link.
+model Feedback {
+  id            String               @id @default(cuid())
+  requesterType SupportRequesterType
+  studentId     String?
+  student       User?                @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  recruiterId   String?
+  recruiter     Recruiter?           @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  type          FeedbackType
+  message       String
+  page          String?
+  status        FeedbackStatus       @default(NEW)
+  adminNote     String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@index([status, createdAt])
+  @@index([studentId])
+  @@index([recruiterId])
+}
+
+enum FeedbackType {
+  BUG
+  FEATURE_REQUEST
+  IMPROVEMENT
+  OTHER
+}
+
+enum FeedbackStatus {
+  NEW
+  REVIEWED
+  PLANNED
+  DONE
+  DISMISSED
 }
 
 // A recruiter-proposed REAL interview slot with a student — separate from the student's own

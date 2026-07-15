@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
 import { Reveal } from "@/components/reveal";
+import { ReportMockup, InterviewMockup, DsaMockup } from "./mockups";
 
 /**
  * The student-facing pitch, served on app.krackit.in for logged-out visitors (the root domain
@@ -16,49 +17,17 @@ const PRICING = [
   { name: "Premium", price: 999, tagline: "Everything, unlimited.", features: ["Unlimited AI Credits", "Everything in Pro", "1:1 mentor reviews"], highlight: false },
 ];
 
-const FEATURES = [
-  {
-    title: "Assignments",
-    desc: "Snap a photo or paste your question. Get a formatted answer in your college's template.",
-    accent: "from-rose/20 to-rose/5 border-rose/10",
-    icon: "📝",
-    delay: 0,
-  },
-  {
-    title: "Reports & PPTs",
-    desc: "Generate well-structured reports and presentations that match your department's format.",
-    accent: "from-cyan/20 to-cyan/5 border-cyan/10",
-    icon: "📊",
-    delay: 100,
-  },
-  {
-    title: "Resume Builder",
-    desc: "Build ATS-ready resumes tailored to your branch, skills, and experience level.",
-    accent: "from-indigo/20 to-indigo/5 border-indigo/10",
-    icon: "📄",
-    delay: 200,
-  },
-  {
-    title: "Interview Prep",
-    desc: "Practice with AI mock interviews. Get real-time feedback on your answers and confidence.",
-    accent: "from-violet/20 to-violet/5 border-violet/10",
-    icon: "🎙️",
-    delay: 0,
-  },
-  {
-    title: "DSA Practice",
-    desc: "Solve curated problems, get AI-powered code reviews, and build your streak.",
-    accent: "from-emerald/20 to-emerald/5 border-emerald/10",
-    icon: "💻",
-    delay: 100,
-  },
-  {
-    title: "Project Ideas",
-    desc: "Get personalized project ideas with step-by-step builders for your domain.",
-    accent: "from-amber/20 to-amber/5 border-amber/10",
-    icon: "⚡",
-    delay: 200,
-  },
+const SUPPORTING_FEATURES = [
+  { title: "Resume Builder", desc: "ATS-ready resumes tailored to your branch, skills, and experience level.", icon: "📄" },
+  { title: "Reports & PPTs", desc: "Structured reports and slide decks that match your department's format.", icon: "📊" },
+  { title: "Project Ideas", desc: "Personalized project ideas with step-by-step builders for your domain.", icon: "⚡" },
+];
+
+const CAPABILITIES = [
+  { value: "6", label: "generation tools in one workspace" },
+  { value: "1:1", label: "college-format matching, not generic templates" },
+  { value: "Real", label: "code execution on every DSA submission" },
+  { value: "Live", label: "AI voice interviews, not scripted quizzes" },
 ];
 
 const STEPS = [
@@ -106,18 +75,16 @@ export function StudentLanding() {
       </header>
 
       {/* HERO */}
-      <section className="relative mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center px-5 pt-20 text-center">
-        <div className="pointer-events-none absolute -top-40 left-1/2 size-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(246,146,30,0.08),transparent_70%)] animate-float-drift" />
-        <div className="pointer-events-none absolute -bottom-20 right-10 size-[300px] animate-float-drift rounded-full bg-[radial-gradient(circle,rgba(129,140,248,0.06),transparent_70%)]" style={{ animationDelay: "-5s" }} />
-        <div className="pointer-events-none absolute -left-20 top-1/3 size-[250px] animate-float-drift rounded-full bg-[radial-gradient(circle,rgba(251,191,36,0.04),transparent_70%)]" style={{ animationDelay: "-9s" }} />
+      <section className="relative mx-auto grid min-h-screen max-w-7xl items-center gap-10 px-5 pt-28 pb-16 lg:grid-cols-[1.05fr_1fr] lg:gap-6 lg:pt-24">
+        <div className="pointer-events-none absolute -top-40 left-1/4 size-[600px] rounded-full bg-[radial-gradient(circle,rgba(246,146,30,0.07),transparent_70%)] animate-float-drift" />
 
-        <div className="relative">
+        <div className="relative text-center lg:text-left">
           <div className="animate-fade-in-up mb-6 inline-block rounded-full border border-cyan/20 bg-cyan/8 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-cyan">
             <span className="mr-2 inline-block animate-pulse-ring size-1.5 rounded-full bg-cyan" />
             Your AI Academic Operating System
           </div>
 
-          <h1 className="font-display text-[42px] font-bold leading-[1.1] tracking-tight text-ink sm:text-[54px] lg:text-[64px]">
+          <h1 className="font-display text-[42px] font-bold leading-[1.1] tracking-tight text-ink sm:text-[54px] lg:text-[60px]">
             <span className="animate-fade-in-up block stagger-1">College work,</span>
             <span className="animate-fade-in-up block stagger-2 mt-2">
               <span className="animate-gradient-shift bg-gradient-to-r from-cyan via-indigo to-cyan bg-clip-text text-transparent">
@@ -126,12 +93,12 @@ export function StudentLanding() {
             </span>
           </h1>
 
-          <p className="animate-fade-in-up stagger-3 mx-auto mt-5 max-w-[580px] text-[16px] leading-relaxed text-muted">
+          <p className="animate-fade-in-up stagger-3 mx-auto mt-5 max-w-[520px] text-[16px] leading-relaxed text-muted lg:mx-0">
             krackit generates assignments, reports, presentations, resumes, and more — all formatted to
             your college&apos;s standards. So you can focus on learning, not formatting.
           </p>
 
-          <div className="animate-fade-in-up stagger-4 mt-8 flex flex-wrap items-center justify-center gap-4">
+          <div className="animate-fade-in-up stagger-4 mt-8 flex flex-wrap items-center justify-center gap-4 lg:justify-start">
             <Link
               href="/sign-up"
               className="group relative rounded-xl bg-accent-gradient px-[26px] py-3 text-[15px] font-semibold text-on-accent shadow-[0_8px_28px_rgba(246,146,30,0.3)] transition-all hover:-translate-y-0.5"
@@ -146,19 +113,18 @@ export function StudentLanding() {
               Sign in
             </Link>
           </div>
+        </div>
 
-          <div className="animate-fade-in-up stagger-5 mt-16 flex flex-col items-center gap-2">
-            <span className="size-1 rounded-full bg-cyan/40" />
-            <span className="size-1 rounded-full bg-cyan/30" />
-            <span className="size-1 rounded-full bg-cyan/20" />
-          </div>
+        <div className="animate-fade-in-up stagger-3 relative">
+          <div className="pointer-events-none absolute -inset-6 -z-10 rounded-[32px] bg-[radial-gradient(circle,rgba(246,146,30,0.1),transparent_70%)]" />
+          <ReportMockup />
         </div>
       </section>
 
-      {/* FEATURES */}
-      <Reveal>
-        <section className="mx-auto max-w-7xl px-5 py-24">
-          <div className="mb-14 text-center">
+      {/* FEATURES — alternating, each backed by a real screen */}
+      <section className="mx-auto max-w-7xl px-5 py-24">
+        <Reveal>
+          <div className="mb-16 text-center">
             <h2 className="font-display text-[30px] font-bold text-ink sm:text-[36px]">
               Everything a student needs
             </h2>
@@ -166,28 +132,67 @@ export function StudentLanding() {
               Six tools, one workspace. No more jumping between tabs.
             </p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((f) => (
-              <Reveal key={f.title} delay={f.delay}>
-                <div
-                  className={`group relative overflow-hidden rounded-2xl border border-line bg-card p-6 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_14px_40px_rgba(15,23,42,0.12)] ${f.accent.replace("from-", "hover:border-").split(" ")[2] || "hover:border-cyan/20"}`}
-                >
-                  <div className="pointer-events-none absolute -right-10 -top-10 size-24 rounded-full bg-gradient-to-br from-white/3 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-                  <span
-                    className={`mb-4 flex size-11 items-center justify-center rounded-xl bg-gradient-to-br ${f.accent.split(" ").slice(0, 2).join(" ")} text-xl transition-transform duration-300 group-hover:scale-110 group-hover:animate-icon-bounce`}
-                  >
-                    {f.icon}
-                  </span>
-                  <h3 className="mb-1.5 font-display text-[17px] font-semibold text-ink transition-colors duration-300 group-hover:text-cyan">
-                    {f.title}
-                  </h3>
-                  <p className="text-[13.5px] leading-relaxed text-muted">{f.desc}</p>
-                </div>
-              </Reveal>
+        </Reveal>
+
+        <Reveal>
+          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+            <div>
+              <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-cyan/20 to-cyan/5 text-xl">📝</span>
+              <h3 className="font-display text-[22px] font-semibold text-ink">Assignments &amp; reports, in your college&apos;s format</h3>
+              <p className="mt-2.5 max-w-[420px] text-[14px] leading-relaxed text-muted">
+                Snap a photo or paste your question. Get back a fully formatted, correctly numbered
+                document — headings, citations, and structure matching your department&apos;s exact style.
+              </p>
+            </div>
+            <ReportMockup />
+          </div>
+        </Reveal>
+
+        <Reveal>
+          <div className="mt-20 grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+            <div className="lg:order-2">
+              <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald/20 to-emerald/5 text-xl">💻</span>
+              <h3 className="font-display text-[22px] font-semibold text-ink">DSA practice with real code execution</h3>
+              <p className="mt-2.5 max-w-[420px] text-[14px] leading-relaxed text-muted">
+                Solve curated problems in a real editor. Your code actually runs against test cases —
+                no guessing, no fake progress bars. Build a streak you can prove.
+              </p>
+            </div>
+            <div className="lg:order-1">
+              <DsaMockup />
+            </div>
+          </div>
+        </Reveal>
+
+        <Reveal>
+          <div className="mt-20 grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+            <div>
+              <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-violet/20 to-violet/5 text-xl">🎙️</span>
+              <h3 className="font-display text-[22px] font-semibold text-ink">AI mock interviews that actually push back</h3>
+              <p className="mt-2.5 max-w-[420px] text-[14px] leading-relaxed text-muted">
+                Practice live, voice-to-voice, with follow-up questions based on what you just said —
+                then get a breakdown of what to fix before the real thing.
+              </p>
+            </div>
+            <InterviewMockup />
+          </div>
+        </Reveal>
+
+        <Reveal>
+          <div className="mt-20 grid gap-4 sm:grid-cols-3">
+            {SUPPORTING_FEATURES.map((f) => (
+              <div
+                key={f.title}
+                className="group rounded-2xl border border-line bg-card p-6 transition-all duration-300 hover:-translate-y-1 hover:border-cyan/20 hover:shadow-[0_14px_40px_rgba(15,23,42,0.1)]"
+              >
+                <span className="mb-3 flex size-10 items-center justify-center rounded-lg bg-surface text-lg">{f.icon}</span>
+                <h4 className="font-display text-[15.5px] font-semibold text-ink">{f.title}</h4>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{f.desc}</p>
+              </div>
             ))}
           </div>
-        </section>
-      </Reveal>
+        </Reveal>
+      </section>
 
       {/* FOR RECRUITERS */}
       <section className="border-t border-line bg-surface/40">
@@ -229,7 +234,7 @@ export function StudentLanding() {
               {STEPS.map((step, i) => (
                 <Reveal key={step.num} delay={i * 150}>
                   <div className="relative text-center">
-                    <span className="animate-glow-pulse mb-4 inline-flex size-12 items-center justify-center rounded-xl bg-accent-gradient text-[16px] font-bold text-on-accent shadow-lg">
+                    <span className="mb-4 inline-flex size-12 items-center justify-center rounded-xl bg-accent-gradient text-[16px] font-bold text-on-accent shadow-lg">
                       {step.num}
                     </span>
                     <h3 className="mb-1.5 font-display text-[18px] font-semibold text-ink">{step.title}</h3>
@@ -297,21 +302,19 @@ export function StudentLanding() {
         </Reveal>
       </section>
 
-      {/* STATS BANNER */}
+      {/* CAPABILITIES — honest, no invented numbers */}
       <section className="border-t border-line">
         <Reveal>
           <div className="mx-auto max-w-5xl px-5 py-20">
+            <p className="mb-8 text-center text-[12px] font-semibold uppercase tracking-[0.14em] text-faint">
+              What&apos;s actually live today
+            </p>
             <div className="grid grid-cols-2 gap-6 md:grid-cols-4">
-              {[
-                { value: "10k+", label: "Students" },
-                { value: "50k+", label: "Documents generated" },
-                { value: "99.9%", label: "Uptime" },
-                { value: "4.9★", label: "Student rating" },
-              ].map((stat, i) => (
+              {CAPABILITIES.map((stat, i) => (
                 <Reveal key={stat.label} delay={i * 100}>
                   <div className="rounded-2xl border border-line bg-card p-6 text-center transition-all hover:border-cyan/20">
-                    <p className="font-display text-[28px] font-bold text-ink">{stat.value}</p>
-                    <p className="mt-1 text-[13px] text-faint">{stat.label}</p>
+                    <p className="font-display text-[24px] font-bold text-ink">{stat.value}</p>
+                    <p className="mt-1.5 text-[12px] leading-snug text-faint">{stat.label}</p>
                   </div>
                 </Reveal>
               ))}
@@ -329,7 +332,7 @@ export function StudentLanding() {
               Ready to stop fighting formatting?
             </h2>
             <p className="mt-3 text-[15px] text-muted">
-              Join thousands of students who are already using krackit to get their work done.
+              Create your first document in under two minutes — free, no card required.
             </p>
             <Link
               href="/sign-up"

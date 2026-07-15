@@ -21,16 +21,27 @@ const isPublicRoute = createRouteMatcher([
 
 
 
+// API clients (the mobile app, or any other non-browser caller) need a 401 they can
+// branch on, not an HTML redirect to /sign-in. Covers all /api/* — not just /api/mobile/* —
+// since e.g. /api/assistant is also called directly by the mobile app.
+const isMobileApiRoute = createRouteMatcher(["/api/(.*)"]);
+
 export default clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
     try {
       const { userId } = await auth();
       if (!userId) {
+        if (isMobileApiRoute(req)) {
+          return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+        }
         const signInUrl = new URL("/sign-in", req.url);
         signInUrl.searchParams.set("redirect_url", req.nextUrl.pathname);
         return NextResponse.redirect(signInUrl);
       }
     } catch {
+      if (isMobileApiRoute(req)) {
+        return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+      }
       // Clerk keyless-mode / env-drift errors: redirect to sign-in so the user
       // gets a fresh session rather than a cryptic "hiccuped" error page.
       return NextResponse.redirect(new URL("/sign-in", req.url));

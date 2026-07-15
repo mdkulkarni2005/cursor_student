@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
+import { RecruiterProfileMockup } from "./landing-mockups";
 
 /**
  * Marketing pitch shown to logged-out visitors on recruiter.krackit.in — signed-in recruiters
@@ -62,27 +63,27 @@ export function RecruiterLanding() {
       </header>
 
       {/* HERO */}
-      <section className="relative mx-auto flex min-h-[88vh] max-w-7xl flex-col items-center justify-center px-5 pt-24 text-center">
-        <div className="pointer-events-none absolute -top-40 left-1/2 size-[560px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(129,140,248,0.09),transparent_70%)]" />
+      <section className="relative mx-auto grid min-h-screen max-w-7xl items-center gap-10 px-5 pt-28 pb-16 lg:grid-cols-[1fr_1.05fr] lg:gap-6 lg:pt-24">
+        <div className="pointer-events-none absolute -top-40 left-1/4 size-[560px] rounded-full bg-[radial-gradient(circle,rgba(129,140,248,0.08),transparent_70%)]" />
 
-        <div className="relative">
+        <div className="relative text-center lg:text-left">
           <div className="mb-6 inline-block rounded-full border border-cyan/20 bg-cyan/8 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-cyan">
             krackit for Recruiters
           </div>
 
-          <h1 className="font-display text-[38px] font-bold leading-[1.1] tracking-tight text-ink sm:text-[50px] lg:text-[58px]">
+          <h1 className="font-display text-[38px] font-bold leading-[1.1] tracking-tight text-ink sm:text-[50px] lg:text-[54px]">
             Hire students who&apos;ve
             <span className="mt-2 block bg-gradient-to-r from-cyan to-indigo bg-clip-text text-transparent">
               already proved it.
             </span>
           </h1>
 
-          <p className="mx-auto mt-5 max-w-[560px] text-[16px] leading-relaxed text-muted">
+          <p className="mx-auto mt-5 max-w-[500px] text-[16px] leading-relaxed text-muted lg:mx-0">
             Skip resume roulette. On krackit, every student profile is backed by real projects, real
             DSA scores, and real interview practice — so you can hire on evidence, not keywords.
           </p>
 
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4 lg:justify-start">
             <Link
               href="/sign-in"
               className="rounded-xl bg-cyan px-[26px] py-3 text-[15px] font-semibold text-on-accent shadow-[0_8px_28px_rgba(6,182,212,0.25)] transition-all hover:-translate-y-0.5"
@@ -99,6 +100,11 @@ export function RecruiterLanding() {
           <p className="mt-4 text-[12px] text-faint">
             Every recruiter account is manually verified before activation.
           </p>
+        </div>
+
+        <div className="relative">
+          <div className="pointer-events-none absolute -inset-6 -z-10 rounded-[32px] bg-[radial-gradient(circle,rgba(129,140,248,0.1),transparent_70%)]" />
+          <RecruiterProfileMockup />
         </div>
       </section>
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
+import { FeedbackWidget } from "@/components/feedback-widget";
 import { InstallPrompt } from "@/components/install-prompt";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Logo } from "@/components/logo";
@@ -29,6 +30,9 @@ export function RecruiterShell({ children }: { children: React.ReactNode }) {
               <Link href="/support" className="hover:text-ink">
                 Support
               </Link>
+              <Link href="/plans" className="hover:text-ink">
+                Plans
+              </Link>
               <Link href="/settings" className="hover:text-ink">
                 Settings
               </Link>
@@ -41,6 +45,7 @@ export function RecruiterShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <div className="mx-auto max-w-[1200px] px-5 py-8">{children}</div>
+      <FeedbackWidget />
       <InstallPrompt />
     </div>
   );

@@ -6,6 +6,7 @@ import { getPlatformCostSummary, getMaxMonthlyAiCostCents } from "@/lib/platform
 import { getMaxConcurrentSessions } from "@/lib/sessions";
 import { SessionLimitControl } from "./session-limit-control";
 import { CostCapControl } from "./cost-cap-control";
+import { TrialControl } from "./trial-control";
 
 export const metadata = { title: "Platform — Admin" };
 
@@ -17,12 +18,26 @@ export default async function PlatformPage() {
   const guard = await requireAdmin();
   if (!guard.ok) return <NotAuthorized reason={guard.reason} />;
 
-  const [summary, totalUsers, activeSubs, maxConcurrentSessions, maxMonthlyAiCostCents] = await Promise.all([
+  const [
+    summary,
+    totalUsers,
+    activeSubs,
+    maxConcurrentSessions,
+    maxMonthlyAiCostCents,
+    trialEnabledRow,
+    trialDaysRow,
+    trialPlanTierIdRow,
+    studentTiers,
+  ] = await Promise.all([
     getPlatformCostSummary(),
     prisma.user.count(),
     prisma.subscription.count({ where: { status: "ACTIVE" } }),
     getMaxConcurrentSessions(),
     getMaxMonthlyAiCostCents(),
+    prisma.platformSetting.findUnique({ where: { key: "GLOBAL_TRIAL_ENABLED" } }),
+    prisma.platformSetting.findUnique({ where: { key: "GLOBAL_TRIAL_DAYS" } }),
+    prisma.platformSetting.findUnique({ where: { key: "GLOBAL_TRIAL_PLAN_TIER_ID" } }),
+    prisma.planTier.findMany({ where: { audience: "STUDENT" }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true } }),
   ]);
 
   const gatewayOk = !("error" in summary.gateway);
@@ -89,6 +104,12 @@ export default async function PlatformPage() {
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <SessionLimitControl initial={maxConcurrentSessions} />
         <CostCapControl initialCents={maxMonthlyAiCostCents} />
+        <TrialControl
+          initialEnabled={trialEnabledRow?.value === "true"}
+          initialDays={Number(trialDaysRow?.value) || 60}
+          initialPlanTierId={trialPlanTierIdRow?.value || null}
+          studentTiers={studentTiers}
+        />
       </div>
     </AdminShell>
   );

@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import { prisma, type PlanLimits } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
 import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
 import { CheckoutForm } from "@/components/checkout/checkout-form";
@@ -6,30 +8,29 @@ import { StarIcon } from "@/components/icons";
 
 export const metadata = { title: "Checkout — krackit" };
 
-const PLANS: Record<string, { name: string; price: number; credits: string; features: string[] }> = {
-  pro: {
-    name: "Vidyas Pro",
-    price: 499,
-    credits: "5,000 AI Academic Credits / month",
-    features: [
-      "5,000 AI Academic Credits / month",
-      "Unlimited reports, PPTs & assignments",
-      "Priority generation queue",
-      "Full interview & DSA practice suite",
-    ],
-  },
-  premium: {
-    name: "Vidyas Premium",
-    price: 999,
-    credits: "Unlimited AI Academic Credits",
-    features: [
-      "Unlimited AI Academic Credits",
-      "Everything in Pro",
-      "1:1 mentor reviews",
-      "Early access to new modules",
-    ],
-  },
+const USAGE_LABEL: Record<string, string> = {
+  ASSIGNMENT: "Assignments",
+  REPORT: "Reports",
+  PPT: "PPTs",
+  LAB_REPORT: "Lab reports",
+  BRANCH_SOLVER: "Branch-solver tools",
 };
+
+const FEATURE_LABEL: Record<string, string> = {
+  priorityQueue: "Priority generation queue",
+  mentorReview: "1:1 mentor reviews",
+  earlyAccess: "Early access to new modules",
+};
+
+function featuresFor(limits: PlanLimits): string[] {
+  const usage = Object.entries(limits.usage)
+    .filter(([, v]) => v !== 0)
+    .map(([k, v]) => `${v === null || v === undefined ? "Unlimited" : v} ${USAGE_LABEL[k] ?? k} / month`);
+  const features = Object.entries(limits.features)
+    .filter(([, on]) => on)
+    .map(([k]) => FEATURE_LABEL[k] ?? k);
+  return [...usage, ...features];
+}
 
 export default async function CheckoutPage({
   searchParams,
@@ -38,10 +39,13 @@ export default async function CheckoutPage({
 }) {
   const user = await requireOnboardedUser();
   const { plan } = await searchParams;
-  const selected = PLANS[(plan ?? "pro").toLowerCase()] ?? PLANS.pro;
-  const gst = Math.round(selected.price * 0.18);
-  const total = selected.price + gst;
-  const amountLabel = `₹${total.toLocaleString("en-IN")}`;
+  if (!plan) return notFound();
+
+  const tier = await prisma.planTier.findFirst({ where: { id: plan, audience: "STUDENT", active: true } });
+  if (!tier || tier.isFree || tier.priceCents <= 0) return notFound();
+
+  const amountLabel = `₹${(tier.priceCents / 100).toLocaleString("en-IN")}`;
+  const features = featuresFor(tier.limits as PlanLimits);
 
   return (
     <AppShell user={await shellUserFrom(user)}>
@@ -66,17 +70,17 @@ export default async function CheckoutPage({
                 Selected Plan
               </span>
               <div className="flex items-end justify-between">
-                <h2 className="font-display text-[20px] font-semibold text-ink">{selected.name}</h2>
+                <h2 className="font-display text-[20px] font-semibold text-ink">{tier.name}</h2>
                 <div className="font-display text-[20px] font-semibold text-ink">
-                  ₹{selected.price}
-                  <span className="text-[13px] font-normal text-muted">/mo</span>
+                  {amountLabel}
+                  <span className="text-[13px] font-normal text-muted">/{tier.billingPeriod === "yearly" ? "yr" : "mo"}</span>
                 </div>
               </div>
               <Link href="/plans" className="text-[12px] font-semibold text-cyan hover:underline">
                 Change Plan
               </Link>
               <ul className="mt-6 space-y-3 border-t border-line pt-6">
-                {selected.features.map((f) => (
+                {features.map((f) => (
                   <li key={f} className="flex items-start gap-2.5 text-[13.5px] text-soft">
                     <StarIcon size={15} className="mt-0.5 shrink-0 text-cyan" />
                     {f}
@@ -89,21 +93,14 @@ export default async function CheckoutPage({
               <h3 className="mb-4 text-[12px] font-bold uppercase tracking-widest text-muted">Order Summary</h3>
               <div className="space-y-2.5 text-[13.5px]">
                 <div className="flex justify-between text-soft">
-                  <span>{selected.name} (monthly)</span>
-                  <span>₹{selected.price}</span>
-                </div>
-                <div className="flex justify-between text-soft">
-                  <span>GST (18%)</span>
-                  <span>₹{gst}</span>
+                  <span>{tier.name} ({tier.billingPeriod})</span>
+                  <span>{amountLabel}</span>
                 </div>
                 <div className="mt-3 flex justify-between border-t border-line pt-3 font-display text-[17px] font-bold text-ink">
                   <span>Total Due</span>
                   <span>{amountLabel}</span>
                 </div>
               </div>
-              <p className="mt-4 rounded-lg bg-teal/10 px-3 py-2 text-[12px] font-medium text-teal">
-                7-day money-back guarantee
-              </p>
             </div>
           </div>
 
@@ -120,7 +117,7 @@ export default async function CheckoutPage({
               </div>
             </div>
             <div className="p-6">
-              <CheckoutForm amountLabel={amountLabel} />
+              <CheckoutForm planTierId={tier.id} amountLabel={amountLabel} userEmail={user.email} userName={user.name ?? undefined} />
             </div>
           </div>
         </div>
