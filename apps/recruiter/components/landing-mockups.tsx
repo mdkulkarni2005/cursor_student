@@ -82,7 +82,7 @@ export function LiveInterviewRoomMockup() {
           <p><span className="text-[#89b4fa]">function</span> <span className="text-[#a6e3a1]">mergeSort</span>(arr) {"{"}</p>
           <p className="pl-3"><span className="text-[#89b4fa]">if</span> (arr.length &lt;= 1) <span className="text-[#89b4fa]">return</span> arr;</p>
           <p className="pl-3">const mid = arr.length &gt;&gt; 1;</p>
-          <p className="pl-3 text-[#f9e2af]">// candidate is typing…</p>
+          <p className="pl-3 text-[#f9e2af]">{"// candidate is typing…"}</p>
           <p className="pl-3 animate-pulse">|</p>
         </div>
         <div className="relative col-span-2 flex flex-col justify-between bg-gradient-to-br from-[#11203a] to-[#0c1224] p-3">

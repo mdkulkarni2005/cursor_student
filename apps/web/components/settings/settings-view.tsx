@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useClerk } from "@clerk/nextjs";
-import { StarIcon, GearIcon } from "@/components/icons";
+import { StarIcon, GearIcon, LinkIcon, SupportIcon } from "@/components/icons";
 import { useInstallPrompt } from "@/components/install-prompt";
 import { updateProfile } from "@/lib/actions/profile-edit";
 import { DEPARTMENTS, SEMESTERS } from "@/lib/constants";
@@ -317,6 +317,26 @@ export function SettingsView({ data }: { data: SettingsData }) {
               </span>
               <span className="text-[13.5px] font-semibold text-cyan">Open →</span>
             </button>
+            <Link
+              href="/profile"
+              className="flex w-full items-center justify-between rounded-xl border border-line bg-surface p-5 text-left transition-colors hover:border-cyan/40"
+            >
+              <span className="flex items-center gap-3">
+                <LinkIcon size={18} className="text-muted" />
+                <span className="text-[14px] font-medium text-ink">Your public profile link</span>
+              </span>
+              <span className="text-[13.5px] font-semibold text-cyan">Open →</span>
+            </Link>
+            <Link
+              href="/support"
+              className="flex w-full items-center justify-between rounded-xl border border-line bg-surface p-5 text-left transition-colors hover:border-cyan/40"
+            >
+              <span className="flex items-center gap-3">
+                <SupportIcon size={18} className="text-muted" />
+                <span className="text-[14px] font-medium text-ink">Support</span>
+              </span>
+              <span className="text-[13.5px] font-semibold text-cyan">Open →</span>
+            </Link>
             {installAvailable && (
               <button
                 type="button"

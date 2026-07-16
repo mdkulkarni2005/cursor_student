@@ -30,7 +30,15 @@
       "expo-router",
       "expo-secure-store",
       "expo-status-bar",
-      "expo-web-browser"
-    ]
+      "expo-web-browser",
+      "expo-font"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "1f936c3b-9c04-41af-964b-b297d718da9a"
+      }
+    },
+    "owner": "manaskulkarni20"
   }
 }

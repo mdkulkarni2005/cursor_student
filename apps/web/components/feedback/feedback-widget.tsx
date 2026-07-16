@@ -15,7 +15,7 @@ const TYPE_OPTIONS: { value: string; label: string }[] = [
 const fieldBox =
   "w-full rounded-xl border border-line-strong bg-surface px-3.5 py-2.5 text-[13.5px] text-ink outline-none transition-colors focus:border-cyan/50";
 
-export function FeedbackWidget() {
+export function FeedbackWidget({ variant = "floating" }: { variant?: "floating" | "row" }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [type, setType] = useState("FEATURE_REQUEST");
@@ -44,12 +44,17 @@ export function FeedbackWidget() {
     setError(null);
   }
 
+  const isRow = variant === "row";
+
   return (
-    <div className="fixed bottom-20 left-4 z-50 lg:bottom-6 lg:left-6">
+    <div className={isRow ? "relative" : "fixed bottom-20 left-4 z-50 lg:hidden"}>
       {open ? (
         <form
           onSubmit={onSubmit}
-          className="mb-3 w-[300px] rounded-2xl border border-line-strong bg-card p-4 shadow-[0_20px_60px_rgba(15,23,42,0.14)]"
+          className={[
+            "w-[300px] rounded-2xl border border-line-strong bg-card p-4 shadow-[0_20px_60px_rgba(15,23,42,0.14)]",
+            isRow ? "absolute bottom-full left-0 z-50 mb-2" : "mb-3",
+          ].join(" ")}
         >
           <h3 className="text-[13.5px] font-semibold text-ink">Send feedback</h3>
           <p className="mt-1 text-[12px] text-muted">Bugs, feature requests, or anything we should improve.</p>
@@ -97,9 +102,14 @@ export function FeedbackWidget() {
         type="button"
         onClick={onToggle}
         aria-label="Send feedback"
-        className="flex h-11 w-11 items-center justify-center rounded-full border border-line-strong bg-card text-muted shadow-[0_10px_30px_rgba(15,23,42,0.12)] transition-colors hover:text-ink"
+        className={
+          isRow
+            ? "flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium text-muted transition-colors hover:bg-surface hover:text-soft"
+            : "flex h-11 w-11 items-center justify-center rounded-full border border-line-strong bg-card text-muted shadow-[0_10px_30px_rgba(15,23,42,0.12)] transition-colors hover:text-ink"
+        }
       >
-        <ChatIcon size={19} />
+        <ChatIcon size={isRow ? 17 : 19} />
+        {isRow ? "Feedback" : null}
       </button>
     </div>
   );

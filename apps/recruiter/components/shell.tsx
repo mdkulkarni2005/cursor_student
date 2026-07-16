@@ -4,6 +4,8 @@ import { FeedbackWidget } from "@/components/feedback-widget";
 import { InstallPrompt } from "@/components/install-prompt";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Logo } from "@/components/logo";
+import { SignOutButtonPlain } from "@/components/sign-out-button";
+import { LogOutIcon } from "@/components/icons";
 
 export function RecruiterShell({ children }: { children: React.ReactNode }) {
   return (
@@ -41,6 +43,12 @@ export function RecruiterShell({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <UserButton appearance={{ elements: { avatarBox: "width:32px;height:32px" } }} />
+            <SignOutButtonPlain
+              title="Sign out"
+              className="flex items-center justify-center rounded-lg border border-line p-2 text-faint transition-colors hover:border-line-strong hover:text-soft"
+            >
+              <LogOutIcon size={16} />
+            </SignOutButtonPlain>
           </div>
         </div>
       </header>

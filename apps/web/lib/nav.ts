@@ -7,13 +7,11 @@ import {
   GearIcon,
   PencilIcon,
   SlidesIcon,
-  LinkIcon,
   StarIcon,
   ArchiveIcon,
   HelpIcon,
   ChatIcon,
   VideoIcon,
-  SupportIcon,
   LayersIcon,
 } from "@/components/icons";
 
@@ -30,7 +28,7 @@ export type NavItem = {
 };
 
 export const WORKSPACE_NAV: NavItem[] = [
-  { label: "Home", href: "/dashboard", icon: Home, mobile: true },
+  { label: "Dashboard", href: "/dashboard", icon: Home, mobile: true },
   { label: "Vault", href: "/vault", icon: ArchiveIcon, mobile: true, studentOnly: true },
   { label: "Assignments", href: "/assignments", icon: PencilIcon, mobile: true, studentOnly: true },
   { label: "Reports & PPT", href: "/reports", icon: SlidesIcon, mobile: true, studentOnly: true },
@@ -53,9 +51,7 @@ export const WORKSPACE_NAV: NavItem[] = [
 ];
 
 export const YOU_NAV: NavItem[] = [
-  { label: "Profile Link", href: "/profile", icon: LinkIcon },
   { label: "Messages", href: "/messages", icon: ChatIcon },
-  { label: "Support", href: "/support", icon: SupportIcon },
   { label: "Settings", href: "/settings", icon: GearIcon },
 ];
 

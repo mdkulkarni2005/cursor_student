@@ -23,6 +23,14 @@ function Base({ size = 18, children, ...props }: IconProps & { children: React.R
   );
 }
 
+export const LogOutIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4" />
+    <path d="M16 17l5-5-5-5" />
+    <path d="M21 12H9" />
+  </Base>
+);
+
 export const BadgeCheckIcon = (p: IconProps) => (
   <Base {...p}>
     <path d="M12 2l2.2 1.3 2.6-.3 1.1 2.3 2.3 1.1-.3 2.6L21.2 11l-1.3 2.2.3 2.6-2.3 1.1-1.1 2.3-2.6-.3L12 20.2l-2.2-1.3-2.6.3-1.1-2.3-2.3-1.1.3-2.6L2.8 11l1.3-2.2-.3-2.6 2.3-1.1L7.2 3l2.6.3z" />

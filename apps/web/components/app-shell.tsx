@@ -4,12 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserButton, useClerk } from "@clerk/nextjs";
 import { WORKSPACE_NAV, YOU_NAV, ALL_NAV, type NavItem } from "@/lib/nav";
-import { SearchIcon } from "@/components/icons";
+import { SearchIcon, LogOutIcon } from "@/components/icons";
 import { Logo } from "@/components/logo";
 import { AssistantPanel } from "@/components/assistant/assistant-panel";
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import { InstallPrompt } from "@/components/install-prompt";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { SignOutButtonPlain } from "@/components/sign-out-button";
 import { hasBranchFeature } from "@/lib/capabilities";
 
 export type ShellUser = {
@@ -54,14 +55,7 @@ function NavRow({ item, active }: { item: NavItem; active: boolean }) {
   );
 }
 
-function userMeta(user: ShellUser): string {
-  return [user.department, user.semester ? `Sem ${user.semester}` : null, user.plan]
-    .filter(Boolean)
-    .join(" · ");
-}
-
 function Sidebar({ pathname, user }: { pathname: string; user: ShellUser }) {
-  const { openUserProfile } = useClerk();
   return (
     <aside className="hidden h-screen w-[256px] shrink-0 flex-col border-r border-line bg-base px-4 py-6 lg:flex">
       <Link href="/dashboard" className="mb-7 block px-2">
@@ -81,27 +75,13 @@ function Sidebar({ pathname, user }: { pathname: string; user: ShellUser }) {
       {YOU_NAV.map((item) => (
         <NavRow key={item.href} item={item} active={pathname === item.href} />
       ))}
-
-      <ThemeToggle className="mt-3 w-full justify-center border border-line" />
-
-      <button
-        type="button"
-        onClick={() => openUserProfile()}
-        className="mt-3 flex items-center gap-2.5 rounded-xl border border-line bg-surface p-2.5 text-left transition-colors hover:border-line-strong"
-      >
-        <div className="pointer-events-none">
-          <UserButton appearance={{ elements: { avatarBox: "width:34px;height:34px" } }} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-semibold text-ink">{user.name}</p>
-          <p className="truncate text-[11px] text-faint">{userMeta(user)}</p>
-        </div>
-      </button>
+      <FeedbackWidget variant="row" />
     </aside>
   );
 }
 
-function Topbar() {
+function Topbar({ user }: { user: ShellUser }) {
+  const { openUserProfile } = useClerk();
   return (
     <header className="flex h-[66px] shrink-0 items-center gap-4 border-b border-line px-5 lg:px-7">
       {/* Mobile brand */}
@@ -121,6 +101,27 @@ function Topbar() {
       {/* Account — visible on mobile, where there's no sidebar. */}
       <div className="ml-auto lg:hidden">
         <UserButton appearance={{ elements: { avatarBox: "width:32px;height:32px" } }} />
+      </div>
+
+      {/* Theme + account — desktop only, top-right corner. */}
+      <div className="ml-auto hidden items-center gap-1 lg:flex">
+        <ThemeToggle compact className="!px-2" />
+        <button
+          type="button"
+          onClick={() => openUserProfile()}
+          className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-left transition-colors hover:bg-surface"
+          title={user.name}
+        >
+          <div className="pointer-events-none">
+            <UserButton appearance={{ elements: { avatarBox: "width:28px;height:28px" } }} />
+          </div>
+        </button>
+        <SignOutButtonPlain
+          title="Sign out"
+          className="flex items-center justify-center rounded-xl p-2 text-faint transition-colors hover:bg-surface hover:text-soft"
+        >
+          <LogOutIcon size={16} />
+        </SignOutButtonPlain>
       </div>
     </header>
   );
@@ -157,7 +158,7 @@ export function AppShell({ children, user }: { children: React.ReactNode; user: 
     <div className="flex h-screen overflow-hidden bg-canvas">
       <Sidebar pathname={pathname} user={user} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar />
+        <Topbar user={user} />
         <main className="flex-1 overflow-y-auto px-4 pb-28 pt-6 sm:px-6 lg:px-7 lg:pb-10">{children}</main>
       </div>
       <AssistantPanel name={user.name} />

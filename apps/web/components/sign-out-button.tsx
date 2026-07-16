@@ -7,10 +7,18 @@ import { useClerk } from "@clerk/nextjs";
  * ("multiple children components") against this Clerk version even with a single <button>
  * child — reproduces the same way in apps/admin and apps/recruiter. Sidestep it with useClerk() directly.
  */
-export function SignOutButtonPlain({ className, children }: { className?: string; children: React.ReactNode }) {
+export function SignOutButtonPlain({
+  className,
+  title,
+  children,
+}: {
+  className?: string;
+  title?: string;
+  children: React.ReactNode;
+}) {
   const { signOut } = useClerk();
   return (
-    <button type="button" onClick={() => signOut({ redirectUrl: "/sign-in" })} className={className}>
+    <button type="button" onClick={() => signOut({ redirectUrl: "/sign-in" })} className={className} title={title}>
       {children}
     </button>
   );

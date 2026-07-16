@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Link } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import type { MeResponse } from "@studentos/api-types";
 import { useApiClient } from "@/lib/api";
+import { ScrollScreen } from "@/components/ui/screen";
+import { Card } from "@/components/ui/card";
+import { colors, font, gradient, radius, spacing } from "@/lib/theme";
 
 const TILES: { label: string; href: string; hint: string }[] = [
   { label: "Reports", href: "/reports", hint: "College-format reports, generated" },
@@ -22,7 +26,14 @@ export default function Home() {
   }, [client]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ padding: 16 }}>
+    <ScrollScreen>
+      <View style={styles.brandRow}>
+        <LinearGradient colors={gradient.colors} start={gradient.start} end={gradient.end} style={styles.brandBadge}>
+          <Text style={styles.brandGlyph}>✦</Text>
+        </LinearGradient>
+        <Text style={styles.brandWord}>krackit</Text>
+      </View>
+
       <Text style={styles.greeting}>Hi{me ? `, ${me.shell.name}` : ""} 👋</Text>
       {me ? (
         <Text style={styles.meta}>
@@ -33,23 +44,29 @@ export default function Home() {
       <View style={styles.grid}>
         {TILES.map((t) => (
           <Link key={t.href} href={t.href as never} asChild>
-            <View style={styles.tile}>
-              <Text style={styles.tileLabel}>{t.label}</Text>
-              <Text style={styles.tileHint}>{t.hint}</Text>
-            </View>
+            <Pressable style={styles.tileWrap}>
+              <Card style={styles.tile}>
+                <Text style={styles.tileLabel}>{t.label}</Text>
+                <Text style={styles.tileHint}>{t.hint}</Text>
+              </Card>
+            </Pressable>
           </Link>
         ))}
       </View>
-    </ScrollView>
+    </ScrollScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
-  greeting: { fontSize: 24, fontWeight: "700" },
-  meta: { fontSize: 13, color: "#666", marginTop: 4, marginBottom: 20 },
-  grid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  tile: { width: "47%", borderWidth: 1, borderColor: "#eee", borderRadius: 12, padding: 14, backgroundColor: "#fafafa" },
-  tileLabel: { fontSize: 15, fontWeight: "600" },
-  tileHint: { fontSize: 12, color: "#777", marginTop: 4 },
+  brandRow: { flexDirection: "row", alignItems: "center", gap: spacing.sm, marginBottom: spacing.xl },
+  brandBadge: { width: 32, height: 32, borderRadius: radius.md, alignItems: "center", justifyContent: "center" },
+  brandGlyph: { color: colors.onAccent, fontSize: 15 },
+  brandWord: { fontFamily: font.display, fontSize: 17, color: colors.ink },
+  greeting: { fontFamily: font.display, fontSize: 24, color: colors.ink },
+  meta: { fontFamily: font.sans, fontSize: 13, color: colors.muted, marginTop: spacing.xs, marginBottom: spacing.xl },
+  grid: { flexDirection: "row", flexWrap: "wrap", gap: spacing.md },
+  tileWrap: { width: "47%" },
+  tile: { padding: spacing.md },
+  tileLabel: { fontFamily: font.sansSemibold, fontSize: 15, color: colors.ink },
+  tileHint: { fontFamily: font.sans, fontSize: 12, color: colors.faint, marginTop: spacing.xs },
 });
