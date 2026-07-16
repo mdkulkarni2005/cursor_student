@@ -39,3 +39,4 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
 export * from "@prisma/client";
 export * from "./phone";
 export * from "./plan-limits";
+export * from "./payments";

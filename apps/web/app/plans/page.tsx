@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { prisma, type PlanLimits } from "@studentos/db";
+import { prisma, arePaymentsEnabled, type PlanLimits } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
 import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
 import { getActivePlanTier } from "@/lib/entitlements";
@@ -34,9 +34,10 @@ function featuresFor(limits: PlanLimits): string[] {
 
 export default async function PlansPage() {
   const user = await requireOnboardedUser();
-  const [tiers, currentTier] = await Promise.all([
+  const [tiers, currentTier, paymentsEnabled] = await Promise.all([
     prisma.planTier.findMany({ where: { audience: "STUDENT", active: true }, orderBy: { sortOrder: "asc" } }),
     getActivePlanTier(user),
+    arePaymentsEnabled(),
   ]);
 
   return (
@@ -83,7 +84,7 @@ export default async function PlansPage() {
                   <span className="font-display text-[36px] font-bold text-ink">₹{(t.priceCents / 100).toLocaleString("en-IN")}</span>
                   {!t.isFree && <span className="mb-1.5 text-[13px] text-muted">/{t.billingPeriod === "yearly" ? "year" : "month"}</span>}
                 </div>
-                {!t.isFree && !isCurrent ? (
+                {!t.isFree && !isCurrent && paymentsEnabled ? (
                   <Link
                     href={`/plans/checkout?plan=${t.id}`}
                     className={`mt-6 rounded-xl py-3 text-center text-[14px] font-semibold transition-transform active:scale-95 ${
@@ -92,6 +93,10 @@ export default async function PlansPage() {
                   >
                     Upgrade to {t.name}
                   </Link>
+                ) : !t.isFree && !isCurrent ? (
+                  <span className="mt-6 cursor-default rounded-xl border border-line bg-surface py-3 text-center text-[14px] font-semibold text-faint">
+                    Launching soon
+                  </span>
                 ) : (
                   <span className="mt-6 cursor-default rounded-xl border border-line bg-surface py-3 text-center text-[14px] font-semibold text-muted">
                     {isCurrent ? "Current plan" : "Free"}

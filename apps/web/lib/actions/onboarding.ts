@@ -53,10 +53,16 @@ export async function completeOnboarding(
     const companyName = String(formData.get("companyName") ?? "").trim();
     const jobTitle = String(formData.get("jobTitle") ?? "").trim();
     const yearsRaw = String(formData.get("yearsOfExperience") ?? "").trim();
+    const industry = String(formData.get("industry") ?? "").trim();
+    const seniorityLevel = String(formData.get("seniorityLevel") ?? "").trim();
+    const skills = String(formData.get("skills") ?? "").trim();
+    // Same "technical / coding role" checkbox students use — gates GitHub + DSA/coding-interview
+    // access identically for both roles (see onboarding-form.tsx's githubRequired).
+    const codingEnabled = formData.get("codingEnabled") === "on";
 
     if (!companyName) return { error: "Please enter your company name." };
     if (!jobTitle) return { error: "Please enter your job title." };
-    if (!github) return { error: "Please add your GitHub link." };
+    if (codingEnabled && !github) return { error: "Please add your GitHub link — it's required for the coding track." };
     let yearsOfExperience: number | null = null;
     if (yearsRaw) {
       yearsOfExperience = Number(yearsRaw);
@@ -71,12 +77,15 @@ export async function completeOnboarding(
         companyName,
         jobTitle,
         yearsOfExperience,
-        githubUrl: github,
+        industry: industry || null,
+        seniorityLevel: seniorityLevel || null,
+        skills: skills || null,
+        githubUrl: github || null,
         linkedin,
         gpa,
         careerGoal: careerGoal || null,
         phone,
-        codingEnabled: true,
+        codingEnabled,
         acceptedLegalAt: new Date(),
         onboardedAt: new Date(),
       },

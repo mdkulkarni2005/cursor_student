@@ -15,27 +15,37 @@ export type StudentListItem = {
   dsaSolved: number;
 };
 
+const PAGE_SIZE = 100;
+
+export type StudentListPage = { items: StudentListItem[]; hasMore: boolean };
+
 /**
  * Every student visible to recruiters (`visibleToRecruiters`), optionally narrowed by the
  * recruiter's own branch/department filter (chosen in the UI, not tied to their onboarding
- * industry). No department filter = show every visible student.
+ * industry). No department filter = show every visible student. Paginated — `page` is 1-based;
+ * without this, students ranked past the first 100 by visibleToRecruitersAt were permanently
+ * unreachable regardless of search/filter.
  */
-export async function listVisibleStudents(params: { department?: string | null; query?: string }): Promise<StudentListItem[]> {
+export async function listVisibleStudents(params: { department?: string | null; query?: string; page?: number }): Promise<StudentListPage> {
   const where: Prisma.UserWhereInput = {
     visibleToRecruiters: true,
     ...(params.department ? { department: params.department } : {}),
     ...(params.query ? { name: { contains: params.query, mode: "insensitive" } } : {}),
   };
+  const page = Math.max(1, params.page ?? 1);
 
   const users = await prisma.user.findMany({
     where,
     orderBy: { visibleToRecruitersAt: "desc" },
-    take: 100,
+    skip: (page - 1) * PAGE_SIZE,
+    take: PAGE_SIZE + 1,
     include: {
       institution: { select: { name: true } },
       _count: { select: { dsaAttempts: true } },
     },
   });
+  const hasMore = users.length > PAGE_SIZE;
+  if (hasMore) users.pop();
 
   const solvedCounts = await prisma.dsaAttempt.groupBy({
     by: ["userId"],
@@ -44,19 +54,22 @@ export async function listVisibleStudents(params: { department?: string | null; 
   });
   const solvedByUser = new Map(solvedCounts.map((s) => [s.userId, s._count._all]));
 
-  return users.map((u) => ({
-    id: u.id,
-    name: u.name ?? "Student",
-    userType: u.userType,
-    department: u.department,
-    semester: u.semester,
-    careerGoal: u.careerGoal,
-    institution: u.institution?.name ?? null,
-    companyName: u.companyName,
-    jobTitle: u.jobTitle,
-    yearsOfExperience: u.yearsOfExperience,
-    dsaSolved: solvedByUser.get(u.id) ?? 0,
-  }));
+  return {
+    items: users.map((u) => ({
+      id: u.id,
+      name: u.name ?? "Student",
+      userType: u.userType,
+      department: u.department,
+      semester: u.semester,
+      careerGoal: u.careerGoal,
+      institution: u.institution?.name ?? null,
+      companyName: u.companyName,
+      jobTitle: u.jobTitle,
+      yearsOfExperience: u.yearsOfExperience,
+      dsaSolved: solvedByUser.get(u.id) ?? 0,
+    })),
+    hasMore,
+  };
 }
 
 /** Distinct department/branch values among visible students, for the recruiter's filter dropdown. */

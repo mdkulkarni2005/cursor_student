@@ -11,20 +11,31 @@
 
 ## Whole pillars / big features
 
-### #7 — Profile Link (Aadhar-style shareable profile)  — SKIPPED (user deferred 2026-06-20)
-Public, shareable per-user profile page aggregating resume + projects + DSA-solved + GitHub.
-- **Why deferred:** depends on Resume (#3 ✓), Projects (#4 ✓), DSA (#6 ✓) and a GitHub connect — it
-  aggregates everything, so it's naturally last; user chose to skip for now.
-- **What it needs:** a public route (`/u/[handle]` or similar, no auth), GitHub OAuth connect, a
-  `publicProfile` toggle/handle on `User`, and rendering of existing data (resume, finalized projects,
-  DSA solved count). Stretch: hosted/clickable projects + auto routing/system-design diagrams from a repo.
-- **Hooks into:** existing `Document` (RESUME/PROJECT), `DsaAttempt` (solved count), and a new GitHub link.
+### #7 — Profile Link (Aadhar-style shareable profile) — BUILT (corrected 2026-07-15, was stale)
+Public, shareable per-user profile page aggregating resume + projects + DSA-solved.
+- **Status:** live at `apps/web/app/u/[handle]/page.tsx`, gated by `User.publicHandle` (set on first
+  "Share Profile"). This entry previously said "SKIPPED" — that was out of date.
+- **Still not built:** GitHub OAuth connect and auto routing/system-design diagrams generated from a
+  repo — the page renders existing DB data only, nothing pulled live from GitHub.
+- **Hooks into:** existing `Document` (RESUME/PROJECT), `DsaAttempt` (solved count).
 
-### Payments / Razorpay (PLAN.md §9.3) — SKIPPED (intentional, launch decision)
-- **Why:** free for the first ~100 users; no payment gateway until there's demand. Plan-gating logic
-  (`lib/entitlements.ts`) already exists and works — only the *paywall/checkout* is absent.
-- **What it needs:** Razorpay integration + `Subscription` lifecycle wiring + upgrade UI on `/plans`.
-- **Hooks into:** `assertWithinQuota`/`QuotaExceededError` already throw with `upgrade: true` in the UI.
+### Payments / Razorpay (PLAN.md §9.3) — BUILT, gated by admin switch (corrected 2026-07-15, was stale)
+- **Status:** full Razorpay integration is live in both `apps/web` and `apps/recruiter` — checkout,
+  `/api/checkout/verify`, `/api/webhooks/razorpay`, and a real `/plans` pricing page. This entry
+  previously said "SKIPPED (intentional, launch decision)" — that was out of date; the checkout code
+  was already built and would otherwise take real money the moment an admin activated a non-free
+  `PlanTier`, with no staged rollout control.
+- **Fix applied 2026-07-15:** added an admin master switch, `PAYMENTS_ENABLED`
+  (`packages/db/src/payments.ts`, toggled from apps/admin `/platform` → "Payments" card). Defaults
+  OFF. While off, both apps' pricing pages show "Launching soon" instead of a working checkout link,
+  `/plans/checkout` 404s in both, and the switch is also enforced server-side in
+  `createCheckoutOrder` (`apps/web/lib/actions/checkout.ts`, `apps/recruiter/app/plans/actions.ts`)
+  and `/api/checkout/verify` in both apps — not just at the page level, so the gate can't be
+  bypassed by calling the action/route directly while the UI is hidden. Flip it on from admin when
+  ready — no deploy needed. PlanTier pricing/config and manual admin plan grants work regardless of
+  this switch.
+- **Hooks into:** `assertWithinQuota`/`QuotaExceededError` (already throw with `upgrade: true` in the
+  UI), `apps/admin/app/platform/actions.ts` (`updatePaymentsEnabled`).
 
 ---
 

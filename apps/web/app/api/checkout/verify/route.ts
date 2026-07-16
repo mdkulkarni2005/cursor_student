@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { prisma } from "@studentos/db";
+import { prisma, arePaymentsEnabled } from "@studentos/db";
 import { auth } from "@clerk/nextjs/server";
 
 /**
@@ -24,6 +24,8 @@ type Body =
 export async function POST(req: Request): Promise<Response> {
   const { userId: clerkId } = await auth();
   if (!clerkId) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
+  if (!(await arePaymentsEnabled())) return NextResponse.json({ error: "payments not live" }, { status: 403 });
 
   const secret = process.env.RAZORPAY_KEY_SECRET;
   if (!secret) return NextResponse.json({ error: "not configured" }, { status: 500 });

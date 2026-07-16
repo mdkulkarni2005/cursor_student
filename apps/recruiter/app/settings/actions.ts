@@ -1,7 +1,7 @@
 "use server";
 
-import { currentUser } from "@clerk/nextjs/server";
 import { prisma } from "@studentos/db";
+import { requireRecruiter } from "@/lib/recruiter";
 
 export type SettingsState = { error?: string; savedAt?: string };
 
@@ -11,18 +11,13 @@ export type SettingsState = { error?: string; savedAt?: string };
  * this only ever touches `industry`, never `status`.
  */
 export async function updateIndustry(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
-  const user = await currentUser();
-  if (!user) return { error: "You must be signed in." };
+  const guard = await requireRecruiter();
+  if (!guard.ok) return { error: "Only approved recruiters can change their preference." };
 
   const industry = String(formData.get("industry") ?? "").trim();
 
-  const recruiter = await prisma.recruiter.findUnique({ where: { clerkId: user.id } });
-  if (!recruiter || recruiter.status !== "APPROVED") {
-    return { error: "Only approved recruiters can change their preference." };
-  }
-
   await prisma.recruiter.update({
-    where: { clerkId: user.id },
+    where: { id: guard.recruiter.id },
     data: { industry: industry || null },
   });
 

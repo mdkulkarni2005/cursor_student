@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@studentos/db";
+import { prisma, arePaymentsEnabled } from "@studentos/db";
 import { requireRecruiter } from "@/lib/recruiter";
 import { createOrder, createSubscription, ensureRazorpayPlanId, razorpayKeyId } from "@/lib/payments/razorpay-client";
 
@@ -13,6 +13,7 @@ export type CheckoutOrderResult =
 export async function createCheckoutOrder(planTierId: string): Promise<CheckoutOrderResult> {
   const guard = await requireRecruiter();
   if (!guard.ok) throw new Error("Not authorized");
+  if (!(await arePaymentsEnabled())) throw new Error("Payments are not live yet");
 
   const tier = await prisma.planTier.findUnique({ where: { id: planTierId } });
   if (!tier || tier.audience !== "RECRUITER" || !tier.active) throw new Error("Plan not available");

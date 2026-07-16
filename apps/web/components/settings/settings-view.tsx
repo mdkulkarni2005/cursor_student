@@ -71,7 +71,8 @@ function EditProfileForm({ data }: { data: SettingsData }) {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [pending, start] = useTransition();
-  const githubRequired = data.userType === "PROFESSIONAL" || data.codingEnabled;
+  // Same rule for both roles now — driven purely by the coding-track flag, set at onboarding.
+  const githubRequired = data.codingEnabled;
 
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();

@@ -79,8 +79,10 @@ export async function runFindCandidates(jobPostingId: string, recruiterId: strin
     const posting = await getJobPosting(jobPostingId, recruiterId);
     if (!posting) return;
 
+    // Matches against the first page only (same 100-candidate cap as before pagination was added
+    // to the students list) — widening this to the full visible pool is a separate change.
     const pool = await listVisibleStudents({});
-    const summaries = await getCandidateProfileSummaries(pool.map((s) => s.id), recruiterId);
+    const summaries = await getCandidateProfileSummaries(pool.items.map((s) => s.id), recruiterId);
 
     const { matches, model } = await matchCandidatesToJob(posting.title, posting.description, summaries);
 

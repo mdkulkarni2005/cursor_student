@@ -245,9 +245,18 @@ desktop-only rather than chasing an unreachable mobile equivalent.
 
 ## 🅿️ Parked — later version (in `docs/DEFERRED.md`)
 
-Not in this build order; pull any when you want. — **#7 Public Profile link**, **Payments/Razorpay +
-real Plans page**, **Reminders/notifications (#2.4) + cron**, **DSA leaderboard**, **streak push
-reminders**, **PWA / offline**, **free-tier AI router (NIM)**, **PPT slide-image generation**.
+Not in this build order; pull any when you want. — **Reminders/notifications (#2.4) + cron**,
+**DSA leaderboard**, **streak push reminders**, **PWA / offline**, **free-tier AI router (NIM)**,
+**PPT slide-image generation**.
+
+*(2026-07-15: **#7 Public Profile link** and **Payments/Razorpay + real Plans page** were removed
+from this list — both are built. Payments ships behind a new admin master switch,
+`PAYMENTS_ENABLED` (apps/admin `/platform` → "Payments"), default OFF — flip it on when ready to
+take real money, no deploy needed. See `docs/APP_STATUS.md` §7/§11 for detail.)*
+
+Also not covered anywhere in this build order: **`apps/recruiter`**, a full fourth app (onboarding,
+student search, messages, jobs, interviews, its own plans/checkout) that exists in the codebase
+today. Give it its own build-order pass rather than assuming Phase E below is its only mention.
 
 ---
 

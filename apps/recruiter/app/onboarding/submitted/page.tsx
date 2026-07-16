@@ -1,6 +1,11 @@
 import Link from "next/link";
+import { currentUser } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
-export default function SubmittedPage() {
+export default async function SubmittedPage() {
+  const user = await currentUser();
+  if (!user) redirect("/sign-in");
+
   return (
     <main className="flex min-h-screen items-center justify-center bg-canvas px-6">
       <div className="max-w-[380px] rounded-2xl border border-line bg-card p-6 text-center">

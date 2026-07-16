@@ -9,16 +9,26 @@ export const metadata = { title: "Students — Recruiter" };
 export default async function StudentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; department?: string }>;
+  searchParams: Promise<{ q?: string; department?: string; page?: string }>;
 }) {
   const guard = await requireRecruiter();
   if (!guard.ok) return <NotAuthorized reason={guard.reason} />;
 
-  const { q, department } = await searchParams;
-  const [students, departments] = await Promise.all([
-    listVisibleStudents({ department, query: q }),
+  const { q, department, page: pageRaw } = await searchParams;
+  const page = Math.max(1, Number(pageRaw) || 1);
+  const [{ items: students, hasMore }, departments] = await Promise.all([
+    listVisibleStudents({ department, query: q, page }),
     listVisibleDepartments(),
   ]);
+
+  const pageHref = (p: number) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (department) params.set("department", department);
+    if (p > 1) params.set("page", String(p));
+    const qs = params.toString();
+    return qs ? `/students?${qs}` : "/students";
+  };
 
   return (
     <RecruiterShell>
@@ -26,7 +36,7 @@ export default async function StudentsPage({
         <h1 className="font-display text-[24px] font-bold text-ink">Students</h1>
         <p className="mt-1 text-[13px] text-muted">
           {students.length} student{students.length === 1 ? "" : "s"}
-          {department ? ` in "${department}"` : ""}. Use the filters below to narrow by branch or name.
+          {department ? ` in "${department}"` : ""} on page {page}. Use the filters below to narrow by branch or name.
         </p>
       </div>
 
@@ -93,6 +103,21 @@ export default async function StudentsPage({
               </div>
             </Link>
           ))}
+        </div>
+      )}
+
+      {(page > 1 || hasMore) && (
+        <div className="mt-6 flex items-center justify-center gap-3">
+          {page > 1 ? (
+            <Link href={pageHref(page - 1)} className="rounded-xl border border-line px-4 py-2 text-[13px] font-semibold text-soft hover:bg-surface">
+              ← Previous
+            </Link>
+          ) : null}
+          {hasMore ? (
+            <Link href={pageHref(page + 1)} className="rounded-xl border border-line px-4 py-2 text-[13px] font-semibold text-soft hover:bg-surface">
+              Next →
+            </Link>
+          ) : null}
         </div>
       )}
     </RecruiterShell>

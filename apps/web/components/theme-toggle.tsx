@@ -2,7 +2,7 @@
 
 import { useTheme } from "@/components/theme-provider";
 
-export function ThemeToggle({ className = "" }: { className?: string }) {
+export function ThemeToggle({ className = "", compact = false }: { className?: string; compact?: boolean }) {
   const { setTheme, resolved } = useTheme();
 
   return (
@@ -28,7 +28,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
           <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
         </svg>
       )}
-      {resolved === "dark" ? "Light mode" : "Dark mode"}
+      {compact ? null : resolved === "dark" ? "Light mode" : "Dark mode"}
     </button>
   );
 }

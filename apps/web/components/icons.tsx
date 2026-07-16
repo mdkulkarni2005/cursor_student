@@ -171,3 +171,18 @@ export const SupportIcon = (p: IconProps) => (
     <path d="M5.6 5.6l3 3M18.4 5.6l-3 3M5.6 18.4l3-3M18.4 18.4l-3-3" />
   </Base>
 );
+
+export const GraduationCapIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M22 10L12 5 2 10l10 5 10-5z" />
+    <path d="M6 12.5V17c0 1.5 2.7 3 6 3s6-1.5 6-3v-4.5" />
+    <path d="M22 10v6" />
+  </Base>
+);
+
+export const BriefcaseIcon = (p: IconProps) => (
+  <Base {...p}>
+    <rect x="2" y="7" width="20" height="14" rx="2" />
+    <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16M2 13h20" />
+  </Base>
+);

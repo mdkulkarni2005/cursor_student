@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@studentos/db";
+import { prisma, setPaymentsEnabled } from "@studentos/db";
 import { requireAdmin } from "@/lib/admin";
 import { logAdminAction } from "@/lib/audit";
 import { setMaxConcurrentSessions } from "@/lib/sessions";
@@ -81,6 +81,26 @@ export async function updateGlobalTrial(params: {
     targetType: "platform",
     targetId: "GLOBAL_TRIAL",
     after: params,
+  });
+
+  revalidatePath("/platform");
+}
+
+/**
+ * Master switch for real Razorpay checkout, shared by apps/web and apps/recruiter (see
+ * @studentos/db's payments.ts). PlanTier pricing and manual admin plan grants are unaffected
+ * either way — this only gates the checkout entry points.
+ */
+export async function updatePaymentsEnabled(enabled: boolean): Promise<void> {
+  const guard = await requireAdmin();
+  if (!guard.ok) throw new Error("Not authorized");
+
+  await setPaymentsEnabled(enabled);
+  await logAdminAction({
+    action: "platform.payments_enabled.set",
+    targetType: "platform",
+    targetId: "PAYMENTS_ENABLED",
+    after: { enabled },
   });
 
   revalidatePath("/platform");

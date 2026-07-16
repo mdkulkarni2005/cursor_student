@@ -1,5 +1,7 @@
 import { Logo, LogoMark } from "@/components/logo";
 import { Reveal } from "@/components/reveal";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { GraduationCapIcon, BriefcaseIcon } from "@/components/icons";
 import { ReportMockup } from "./mockups";
 
 /**
@@ -43,6 +45,7 @@ export function RootLanding() {
             <a href="#contact" className="hidden rounded-xl px-4 py-2 text-[13px] font-semibold text-soft transition-colors hover:bg-surface sm:block">
               Contact
             </a>
+            <ThemeToggle compact className="!px-2.5" />
             {/* One login for both audiences — an already-signed-in recruiter lands straight
                 back on recruiter.krackit.in with no second sign-in (route-after-login). */}
             <a
@@ -62,7 +65,7 @@ export function RootLanding() {
       </header>
 
       {/* HERO */}
-      <section className="relative mx-auto flex min-h-screen max-w-7xl flex-col items-center justify-center px-5 pb-16 pt-28 text-center">
+      <section className="relative mx-auto flex max-w-7xl flex-col items-center justify-center px-5 pb-16 pt-28 text-center lg:min-h-screen">
         <div className="pointer-events-none absolute -top-40 left-1/2 size-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(246,146,30,0.08),transparent_70%)] animate-float-drift" />
 
         <div className="relative w-full">
@@ -96,8 +99,8 @@ export function RootLanding() {
               className="group relative overflow-hidden rounded-3xl border border-line bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-cyan/40 hover:shadow-[0_18px_50px_rgba(246,146,30,0.18)]"
             >
               <div className="pointer-events-none absolute -right-12 -top-12 size-40 rounded-full bg-[radial-gradient(circle,rgba(246,146,30,0.14),transparent_70%)] transition-transform duration-500 group-hover:scale-125" />
-              <span className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-accent-gradient text-2xl shadow-[0_8px_20px_rgba(246,146,30,0.3)]">
-                🎓
+              <span className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-accent-gradient text-on-accent shadow-[0_8px_20px_rgba(246,146,30,0.3)]">
+                <GraduationCapIcon size={22} />
               </span>
               <h2 className="font-display text-[22px] font-bold text-ink">I&apos;m a student</h2>
               <p className="mt-1 text-[13.5px] text-muted">Create, practice, and get hired.</p>
@@ -119,8 +122,8 @@ export function RootLanding() {
               className="group relative overflow-hidden rounded-3xl border border-line bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-indigo/40 hover:shadow-[0_18px_50px_rgba(129,140,248,0.18)]"
             >
               <div className="pointer-events-none absolute -right-12 -top-12 size-40 rounded-full bg-[radial-gradient(circle,rgba(129,140,248,0.14),transparent_70%)] transition-transform duration-500 group-hover:scale-125" />
-              <span className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo/80 to-violet/70 text-2xl shadow-[0_8px_20px_rgba(129,140,248,0.3)]">
-                💼
+              <span className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo/80 to-violet/70 text-white shadow-[0_8px_20px_rgba(129,140,248,0.3)]">
+                <BriefcaseIcon size={22} />
               </span>
               <h2 className="font-display text-[22px] font-bold text-ink">I&apos;m a recruiter</h2>
               <p className="mt-1 text-[13.5px] text-muted">Hire on proof, not promises.</p>

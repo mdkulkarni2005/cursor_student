@@ -35,17 +35,22 @@ export function ReportMockup() {
     <BrowserFrame title="app.krackit.in/reports/mini-project-report">
       <div className="report-doc bg-surface/50 p-5 sm:p-7">
         <div className="mx-auto max-w-[420px] rounded-md bg-white p-5 shadow-[0_10px_40px_rgba(15,23,42,0.14)] sm:p-7">
-          <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-faint">
+          {/* `!` overrides here are load-bearing — .report-doc's h1/h2/p rules (globals.css,
+              built for the real full-size document editor) outrank these Tailwind utilities on
+              specificity alone, so without `!` this "miniature" mockup silently renders at real
+              editor scale (26px h1, 1.75rem heading margins…), badly inflating this section's
+              height — the mobile gap bug traced back to exactly this collision. */}
+          <p className="text-[9px]! font-semibold uppercase tracking-[0.14em] text-faint">
             Department of Computer Science
           </p>
-          <h1 className="mt-2 text-[17px]">Smart Attendance System Using Facial Recognition</h1>
-          <h2 className="text-[12px]">Introduction</h2>
-          <p className="text-[10.5px]">
+          <h1 className="mt-2! mb-2! text-[17px]! leading-snug!">Smart Attendance System Using Facial Recognition</h1>
+          <h2 className="mt-3! mb-1! text-[12px]!">Introduction</h2>
+          <p className="my-1! text-[10.5px]! leading-snug!">
             Manual attendance tracking in academic institutions is time-consuming and prone to
             proxy attendance. This report presents a facial-recognition-based system that...
           </p>
-          <h2 className="text-[12px]">Literature Survey</h2>
-          <p className="text-[10.5px]">
+          <h2 className="mt-3! mb-1! text-[12px]!">Literature Survey</h2>
+          <p className="my-1! text-[10.5px]! leading-snug!">
             Prior work in biometric attendance falls into two categories: fingerprint-based and
             vision-based systems. Vision-based approaches offer contactless...
           </p>

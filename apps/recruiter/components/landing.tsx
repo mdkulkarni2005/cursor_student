@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
-import { RecruiterProfileMockup } from "./landing-mockups";
+import { BadgeCheckIcon, ChatIcon, BarChartIcon, VideoIcon } from "@/components/icons";
+import { RecruiterProfileMockup, DsaScoreboardMockup, LiveInterviewRoomMockup } from "./landing-mockups";
 
 /**
  * Marketing pitch shown to logged-out visitors on recruiter.krackit.in — signed-in recruiters
@@ -9,24 +10,14 @@ import { RecruiterProfileMockup } from "./landing-mockups";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
-const FEATURES = [
+const SUPPORTING_FEATURES = [
   {
-    icon: "🧾",
+    Icon: BadgeCheckIcon,
     title: "Proof-of-work profiles",
     desc: "Every candidate comes with real projects, reports, and code — not just a one-page resume.",
   },
   {
-    icon: "🧠",
-    title: "Verified DSA scores",
-    desc: "Problems solved on-platform with real code execution. You see actual skill, not claimed skill.",
-  },
-  {
-    icon: "🎥",
-    title: "Live interview rooms",
-    desc: "Run live coding interviews with collaborative editors and AI question suggestions, built in.",
-  },
-  {
-    icon: "💬",
+    Icon: ChatIcon,
     title: "Direct messaging",
     desc: "Talk to candidates directly on the platform. No agencies, no middlemen, no spam folders.",
   },
@@ -108,10 +99,10 @@ export function RecruiterLanding() {
         </div>
       </section>
 
-      {/* FEATURES */}
+      {/* FEATURES — alternating, each backed by a real screen (same pattern as app.krackit.in) */}
       <section className="border-t border-line">
         <div className="mx-auto max-w-7xl px-5 py-24">
-          <div className="mb-14 text-center">
+          <div className="mb-16 text-center">
             <h2 className="font-display text-[30px] font-bold text-ink sm:text-[36px]">
               Everything you need to find real talent
             </h2>
@@ -119,17 +110,48 @@ export function RecruiterLanding() {
               Sourcing, screening, and interviewing — in one verified pipeline.
             </p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {FEATURES.map((f) => (
+
+          <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+            <div>
+              <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-teal/20 to-teal/5 text-teal">
+                <BarChartIcon size={20} />
+              </span>
+              <h3 className="font-display text-[22px] font-semibold text-ink">Verified DSA scores</h3>
+              <p className="mt-2.5 max-w-[420px] text-[14px] leading-relaxed text-muted">
+                Problems solved on-platform with real code execution. Sort and filter candidates by
+                actual skill, not a claimed skill rating on a resume.
+              </p>
+            </div>
+            <DsaScoreboardMockup />
+          </div>
+
+          <div className="mt-20 grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
+            <div className="lg:order-2">
+              <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-cyan/20 to-cyan/5 text-cyan">
+                <VideoIcon size={20} />
+              </span>
+              <h3 className="font-display text-[22px] font-semibold text-ink">Live interview rooms</h3>
+              <p className="mt-2.5 max-w-[420px] text-[14px] leading-relaxed text-muted">
+                Run live coding interviews with a collaborative editor and AI question suggestions,
+                built in — no separate scheduling tool or screen-share hack.
+              </p>
+            </div>
+            <div className="lg:order-1">
+              <LiveInterviewRoomMockup />
+            </div>
+          </div>
+
+          <div className="mt-20 grid gap-4 sm:grid-cols-2">
+            {SUPPORTING_FEATURES.map((f) => (
               <div
                 key={f.title}
-                className="group rounded-2xl border border-line bg-card p-6 transition-all duration-300 hover:-translate-y-1.5 hover:border-cyan/25 hover:shadow-[0_14px_40px_rgba(15,23,42,0.12)]"
+                className="group rounded-2xl border border-line bg-card p-6 transition-all duration-300 hover:-translate-y-1 hover:border-cyan/20 hover:shadow-[0_14px_40px_rgba(15,23,42,0.1)]"
               >
-                <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-cyan/10 text-xl transition-transform duration-300 group-hover:scale-110">
-                  {f.icon}
+                <span className="mb-3 flex size-10 items-center justify-center rounded-lg bg-surface text-cyan">
+                  <f.Icon size={18} />
                 </span>
-                <h3 className="mb-1.5 font-display text-[17px] font-semibold text-ink">{f.title}</h3>
-                <p className="text-[13.5px] leading-relaxed text-muted">{f.desc}</p>
+                <h4 className="font-display text-[15.5px] font-semibold text-ink">{f.title}</h4>
+                <p className="mt-1.5 text-[13px] leading-relaxed text-muted">{f.desc}</p>
               </div>
             ))}
           </div>

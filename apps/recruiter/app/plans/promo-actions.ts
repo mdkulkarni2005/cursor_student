@@ -18,14 +18,18 @@ export async function redeemPromoCode(rawCode: string): Promise<RedeemPromoResul
   const promo = await prisma.promoCode.findUnique({ where: { code } });
   if (!promo || !promo.active) return { ok: false, error: "Invalid or expired code." };
   if (promo.expiresAt && promo.expiresAt.getTime() < Date.now()) return { ok: false, error: "This code has expired." };
-  if (promo.maxRedemptions !== null && promo.redemptions >= promo.maxRedemptions) {
-    return { ok: false, error: "This code has reached its redemption limit." };
-  }
 
   try {
     await prisma.$transaction(async (tx) => {
       await tx.promoRedemption.create({ data: { promoCodeId: promo.id, recruiterId } });
-      await tx.promoCode.update({ where: { id: promo.id }, data: { redemptions: { increment: 1 } } });
+      // Atomic conditional increment — the WHERE clause is re-evaluated against the latest
+      // committed row when a concurrent redemption is mid-flight, so two requests racing near
+      // maxRedemptions can't both succeed (unlike a separate read-then-write check).
+      const updated = await tx.promoCode.updateMany({
+        where: { id: promo.id, OR: [{ maxRedemptions: null }, { redemptions: { lt: promo.maxRedemptions ?? 2147483647 } }] },
+        data: { redemptions: { increment: 1 } },
+      });
+      if (updated.count === 0) throw new Error("LIMIT_REACHED");
 
       if (promo.discountType === "FREE_TRIAL_EXTENSION") {
         const existing = await tx.recruiterSubscription.findUnique({ where: { recruiterId } });
@@ -41,6 +45,9 @@ export async function redeemPromoCode(rawCode: string): Promise<RedeemPromoResul
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
       return { ok: false, error: "You've already redeemed this code." };
+    }
+    if (err instanceof Error && err.message === "LIMIT_REACHED") {
+      return { ok: false, error: "This code has reached its redemption limit." };
     }
     throw err;
   }

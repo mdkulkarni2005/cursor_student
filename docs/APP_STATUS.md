@@ -56,11 +56,14 @@
   test (I can't run a mic).**
 - ⏸️ **System design** — you said DON'T add yet. (Intentionally excluded.)
 
-## 7. Profile link (Aadhaar-like shareable) — 🔴 NOT BUILT (biggest gap)
-- 🔴 Public shareable link; resume + projects + GitHub + DSA-solved, **per department** (hide DSA for non-CS).
-- 🔴 **GitHub connect**; projects **hosted + clickable**; auto **routing/system-design diagrams from the
-  codebase**, language/feature detection.
-- *Currently:* a "coming soon" page only. This is the largest unbuilt feature and a multi-part build.
+## 7. Profile link (Aadhaar-like shareable) — ✅ built (2026-07-15 correction — was stale)
+- ✅ Public shareable route at `/u/[handle]` (`apps/web/app/u/[handle]/page.tsx`), gated by
+  `User.publicHandle` — set on first "Share Profile" from the profile actions.
+- 🔴 **GitHub connect** (repo-derived data) and auto **routing/system-design diagrams from the
+  codebase** are still not built — the page renders existing DB data (resume/projects/DSA-solved),
+  not anything pulled live from GitHub.
+- *Previously marked "NOT BUILT / biggest gap" in this doc — that was out of date; the doc, not the
+  code, was wrong. Corrected after a 2026-07-15 audit.*
 
 ## 8. DSA practice — ✅ core (3 items remain)
 - ✅ Problem catalog; **real execution grading** (Python/JS/TS — pass-all-tests = solved); **streak** (real,
@@ -82,10 +85,20 @@
   via the shared DB, not via live websockets.
 - 🔴 **PWA / installable** app.
 
-## 11. Plans & payments — 🟡 gating only
-- 🟡 **Plan-gating** exists (FREE caps: assignments/reports/PPTs per month) — but **PRO and PREMIUM are
-  identical**, and resume/viva/interview/DSA aren't metered.
-- 🔴 **Payments (Razorpay)** + a **real Plans/pricing page** — not built (currently free, "coming soon" page).
+## 11. Plans & payments — ✅ built, gated by admin switch (2026-07-15 correction — was stale)
+- ✅ **Plan-gating** (`lib/entitlements.ts`), a **real `/plans` pricing page**, and full **Razorpay
+  checkout** (`/plans/checkout`, `/api/checkout/verify`, `/api/webhooks/razorpay`) all exist and are
+  live in `apps/web` — plus a parallel build in `apps/recruiter` (own pricing/checkout, `RECRUITER`
+  audience `PlanTier`s).
+- ✅ **Admin master switch** — `PAYMENTS_ENABLED` (apps/admin `/platform` → "Payments" card,
+  `packages/db/src/payments.ts`). Defaults OFF; while off, pricing still shows but the "Upgrade" CTA
+  reads "Launching soon" and `/plans/checkout` 404s in both apps. Admin flips it on when ready — no
+  deploy needed. PlanTier pricing config and manual admin plan grants (`apps/admin/app/users/[id]`)
+  work regardless of this switch.
+- 🟡 PRO and PREMIUM tier limits are still admin-configured JSON, not yet meaningfully differentiated
+  by default — a pricing/product decision, not a build gap.
+- *Previously marked "not built" in this doc — that was out of date; corrected after a 2026-07-15
+  audit found the checkout flow was already fully wired.*
 
 ---
 
@@ -109,14 +122,19 @@
 - ✅ Paid-only / gateway-only routing decision (free-tier NIM router shelved).
 
 ## The consolidated remaining backlog (biggest → smallest)
-1. 🔴 **Profile link (#7)** — shareable per-user page + GitHub connect + repo diagrams. *Largest.*
+1. 🔴 **Profile link GitHub connect + repo diagrams** — the page itself (#7) is built; live GitHub
+   data and auto-generated diagrams are the remaining piece.
 2. 🔴 **Notifications/reminders + study-planner (#9)** + **DSA streak push** — all need a **cron + push/email**
    layer (one shared build unlocks several features).
-3. 🔴 **Payments + real Plans page (#11)** + PRO-vs-PREMIUM differentiation.
+3. 🟡 **PRO-vs-PREMIUM differentiation (#11)** — checkout itself is built and admin-gated; only the
+   tier limits need real differentiation before turning `PAYMENTS_ENABLED` on for real users.
 4. 🟡 **Real plagiarism / AI-detection / Humanizer APIs** (replace the heuristic).
 5. 🔴 **DSA leaderboard** + 🔴 **Java/C++ DSA grading** ("A2").
 6. 🟡 **Assignment** richer inputs (reference properties) + **code execution** + formula-chooser loop.
 7. 🟡 **Resume** multiple-format suggestions + project suggestions.
+8. 🟡 **`apps/recruiter`** — a full fourth app (onboarding, student search, messages, jobs,
+   interviews, its own plans/checkout) exists and isn't otherwise documented in this file; give it
+   its own status pass rather than assuming it's covered by the sections above.
 8. 🔴 **PWA / installable** + 🔴 **real-time device sync**.
 9. 🟡 **B2** — FAILED/stuck generation recovery (retry button).
 10. **Prod setup** (not code): Vercel deploy, prod Piston, R2, AI-gateway card, VAPI live test, durable rate-limit store.

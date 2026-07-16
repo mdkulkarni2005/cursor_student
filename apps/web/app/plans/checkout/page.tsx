@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma, type PlanLimits } from "@studentos/db";
+import { prisma, arePaymentsEnabled, type PlanLimits } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
 import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
 import { CheckoutForm } from "@/components/checkout/checkout-form";
@@ -40,6 +40,7 @@ export default async function CheckoutPage({
   const user = await requireOnboardedUser();
   const { plan } = await searchParams;
   if (!plan) return notFound();
+  if (!(await arePaymentsEnabled())) return notFound();
 
   const tier = await prisma.planTier.findFirst({ where: { id: plan, audience: "STUDENT", active: true } });
   if (!tier || tier.isFree || tier.priceCents <= 0) return notFound();

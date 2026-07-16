@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma, type PlanLimits } from "@studentos/db";
+import { prisma, arePaymentsEnabled, type PlanLimits } from "@studentos/db";
 import { requireRecruiter } from "@/lib/recruiter";
 import { NotAuthorized } from "@/components/not-authorized";
 import { RecruiterShell } from "@/components/shell";
@@ -39,6 +39,7 @@ export default async function RecruiterCheckoutPage({
 
   const { plan } = await searchParams;
   if (!plan) return notFound();
+  if (!(await arePaymentsEnabled())) return notFound();
 
   const tier = await prisma.planTier.findFirst({ where: { id: plan, audience: "RECRUITER", active: true } });
   if (!tier || tier.isFree || tier.priceCents <= 0) return notFound();

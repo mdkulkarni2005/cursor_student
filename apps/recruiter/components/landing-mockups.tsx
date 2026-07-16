@@ -35,6 +35,74 @@ const STATS = [
 
 const SKILLS = ["React", "Node.js", "PostgreSQL", "System Design", "Python"];
 
+const LEADERBOARD = [
+  { name: "Ananya Rao", dept: "CSE · NIT Trichy", solved: 142, pct: 94 },
+  { name: "Rohit Verma", dept: "IT · VJTI", solved: 118, pct: 82 },
+  { name: "Priya Nair", dept: "CSE · IIIT-B", solved: 96, pct: 71 },
+];
+
+/** Feature-block mockup for "Verified DSA scores" — a compact scoreboard, not a literal brain
+ *  icon: shows the thing recruiters actually care about (solved counts, relative standing). */
+export function DsaScoreboardMockup() {
+  return (
+    <BrowserFrame title="recruiter.krackit.in/students?sort=dsa">
+      <div className="bg-surface/40 p-5 sm:p-6">
+        <div className="rounded-2xl border border-line bg-card p-4 sm:p-5">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-[11px] font-bold uppercase tracking-wide text-faint">DSA solved, this batch</p>
+            <span className="rounded-full bg-teal/10 px-2 py-0.5 text-[9.5px] font-semibold text-teal">Live</span>
+          </div>
+          <div className="space-y-3">
+            {LEADERBOARD.map((s) => (
+              <div key={s.name}>
+                <div className="flex items-center justify-between text-[12px]">
+                  <span className="font-semibold text-ink">{s.name}</span>
+                  <span className="font-mono text-[11px] text-muted">{s.solved} solved</span>
+                </div>
+                <p className="text-[10.5px] text-faint">{s.dept}</p>
+                <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-surface">
+                  <div className="h-full rounded-full bg-gradient-to-r from-cyan to-teal" style={{ width: `${s.pct}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </BrowserFrame>
+  );
+}
+
+/** Feature-block mockup for "Live interview rooms" — split code editor + candidate feed, the
+ *  actual product surface (real interview rooms), not a generic camera icon. */
+export function LiveInterviewRoomMockup() {
+  return (
+    <BrowserFrame title="recruiter.krackit.in/interviews/live/8f2c">
+      <div className="grid grid-cols-5">
+        <div className="col-span-3 bg-[#1e1e2e] p-4 font-mono text-[10px] leading-relaxed text-[#cdd6f4]">
+          <p><span className="text-[#89b4fa]">function</span> <span className="text-[#a6e3a1]">mergeSort</span>(arr) {"{"}</p>
+          <p className="pl-3"><span className="text-[#89b4fa]">if</span> (arr.length &lt;= 1) <span className="text-[#89b4fa]">return</span> arr;</p>
+          <p className="pl-3">const mid = arr.length &gt;&gt; 1;</p>
+          <p className="pl-3 text-[#f9e2af]">// candidate is typing…</p>
+          <p className="pl-3 animate-pulse">|</p>
+        </div>
+        <div className="relative col-span-2 flex flex-col justify-between bg-gradient-to-br from-[#11203a] to-[#0c1224] p-3">
+          <div className="flex items-center gap-1.5 self-start rounded-full bg-danger/90 px-2 py-0.5 text-[9px] font-bold text-white">
+            <span className="size-1.5 animate-pulse-ring rounded-full bg-white" />
+            LIVE
+          </div>
+          <div className="flex flex-col items-center gap-1.5 text-center">
+            <span className="flex size-10 items-center justify-center rounded-full bg-cyan/20 text-[13px] font-bold text-cyan">RV</span>
+            <p className="text-[9.5px] text-white/70">Rohit V.</p>
+          </div>
+          <div className="rounded-md bg-black/40 px-2 py-1.5 text-[9px] text-white/80">
+            AI suggests: ask about time complexity
+          </div>
+        </div>
+      </div>
+    </BrowserFrame>
+  );
+}
+
 export function RecruiterProfileMockup() {
   return (
     <BrowserFrame title="recruiter.krackit.in/students/ananya-r">

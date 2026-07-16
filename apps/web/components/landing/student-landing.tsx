@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { prisma, type PlanLimits } from "@studentos/db";
 import { Logo } from "@/components/logo";
 import { Reveal } from "@/components/reveal";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { ReportMockup, InterviewMockup, DsaMockup } from "./mockups";
 
 /**
@@ -11,11 +13,31 @@ import { ReportMockup, InterviewMockup, DsaMockup } from "./mockups";
 
 const RECRUITER_URL = process.env.NEXT_PUBLIC_RECRUITER_APP_URL ?? "http://localhost:3200";
 
-const PRICING = [
-  { name: "Free", price: 0, tagline: "Get started with the essentials.", features: ["50 AI Credits / month", "A few reports, PPTs & assignments", "DSA practice & streaks"], highlight: false },
-  { name: "Pro", price: 499, tagline: "For students who ship every week.", features: ["500 AI Credits / month", "Unlimited reports, PPTs & assignments", "Priority generation queue"], highlight: true },
-  { name: "Premium", price: 999, tagline: "Everything, unlimited.", features: ["Unlimited AI Credits", "Everything in Pro", "1:1 mentor reviews"], highlight: false },
-];
+// Same labels/shape as apps/web/app/plans/page.tsx — kept in sync manually since this renders
+// pre-auth (no user, no entitlements context) while /plans needs a signed-in user.
+const USAGE_LABEL: Record<string, string> = {
+  ASSIGNMENT: "Assignments",
+  REPORT: "Reports",
+  PPT: "PPTs",
+  LAB_REPORT: "Lab reports",
+  BRANCH_SOLVER: "Branch-solver tools",
+};
+
+const FEATURE_LABEL: Record<string, string> = {
+  priorityQueue: "Priority generation queue",
+  mentorReview: "1:1 mentor reviews",
+  earlyAccess: "Early access to new modules",
+};
+
+function pricingFeaturesFor(limits: PlanLimits): string[] {
+  const usage = Object.entries(limits.usage)
+    .filter(([, v]) => v !== 0)
+    .map(([k, v]) => `${v === null || v === undefined ? "Unlimited" : v} ${USAGE_LABEL[k] ?? k} / month`);
+  const features = Object.entries(limits.features)
+    .filter(([, on]) => on)
+    .map(([k]) => FEATURE_LABEL[k] ?? k);
+  return [...usage, ...features];
+}
 
 const SUPPORTING_FEATURES = [
   { title: "Resume Builder", desc: "ATS-ready resumes tailored to your branch, skills, and experience level.", icon: "📄" },
@@ -36,7 +58,10 @@ const STEPS = [
   { num: "03", title: "Start creating", desc: "Generate assignments, reports, resumes, and more — all in your format." },
 ];
 
-export function StudentLanding() {
+export async function StudentLanding() {
+  // Live, admin-managed pricing (apps/admin/app/plans) — never hardcode numbers here, they'd
+  // silently drift from what checkout actually charges the moment an admin edits a tier.
+  const tiers = await prisma.planTier.findMany({ where: { audience: "STUDENT", active: true }, orderBy: { sortOrder: "asc" } });
   return (
     <div className="min-h-screen overflow-hidden bg-canvas">
       {/* NAV */}
@@ -58,6 +83,7 @@ export function StudentLanding() {
             >
               For Recruiters
             </a>
+            <ThemeToggle compact className="!px-2.5" />
             <Link
               href="/sign-in"
               className="rounded-xl px-4 py-2 text-[13px] font-semibold text-soft transition-colors hover:bg-surface"
@@ -75,7 +101,7 @@ export function StudentLanding() {
       </header>
 
       {/* HERO */}
-      <section className="relative mx-auto grid min-h-screen max-w-7xl items-center gap-10 px-5 pt-28 pb-16 lg:grid-cols-[1.05fr_1fr] lg:gap-6 lg:pt-24">
+      <section className="relative mx-auto grid max-w-7xl items-center gap-10 px-5 pt-28 pb-16 lg:min-h-screen lg:grid-cols-[1.05fr_1fr] lg:gap-6 lg:pt-24">
         <div className="pointer-events-none absolute -top-40 left-1/4 size-[600px] rounded-full bg-[radial-gradient(circle,rgba(246,146,30,0.07),transparent_70%)] animate-float-drift" />
 
         <div className="relative text-center lg:text-left">
@@ -256,47 +282,57 @@ export function StudentLanding() {
               <p className="mt-3 text-[15px] text-muted">Start free. Upgrade the moment you need more.</p>
             </div>
             <div className="grid gap-5 md:grid-cols-3">
-              {PRICING.map((tier, i) => (
-                <Reveal key={tier.name} delay={i * 100}>
-                  <div
-                    className={`relative flex h-full flex-col rounded-2xl border p-6 transition-all hover:-translate-y-1 ${
-                      tier.highlight
-                        ? "border-cyan/30 bg-cyan/5 shadow-[0_14px_40px_rgba(6,182,212,0.12)]"
-                        : "border-line bg-card"
-                    }`}
-                  >
-                    {tier.highlight && (
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent-gradient px-3 py-1 text-[11px] font-semibold text-on-accent">
-                        Most popular
-                      </span>
-                    )}
-                    <h3 className="font-display text-[18px] font-semibold text-ink">{tier.name}</h3>
-                    <p className="mt-1 text-[13px] text-muted">{tier.tagline}</p>
-                    <p className="mt-4">
-                      <span className="font-display text-[32px] font-bold text-ink">₹{tier.price}</span>
-                      <span className="text-[13px] text-faint">/month</span>
-                    </p>
-                    <ul className="mt-5 flex-1 space-y-2.5">
-                      {tier.features.map((f) => (
-                        <li key={f} className="flex items-start gap-2 text-[13px] text-soft">
-                          <span className="mt-0.5 text-cyan">✓</span>
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-                    <Link
-                      href="/sign-up"
-                      className={`mt-6 rounded-xl px-4 py-2.5 text-center text-[13.5px] font-semibold transition-all ${
-                        tier.highlight
-                          ? "bg-accent-gradient text-on-accent hover:-translate-y-0.5"
-                          : "border border-line-strong bg-surface text-soft hover:border-cyan/30"
+              {tiers.map((tier, i) => {
+                const highlight = !tier.isFree && i === Math.min(1, tiers.length - 1);
+                const features = pricingFeaturesFor(tier.limits as PlanLimits);
+                return (
+                  <Reveal key={tier.id} delay={i * 100}>
+                    <div
+                      className={`relative flex h-full flex-col rounded-2xl border p-6 transition-all hover:-translate-y-1 ${
+                        highlight
+                          ? "border-cyan/30 bg-cyan/5 shadow-[0_14px_40px_rgba(6,182,212,0.12)]"
+                          : "border-line bg-card"
                       }`}
                     >
-                      {tier.price === 0 ? "Get started free" : `Get ${tier.name}`}
-                    </Link>
-                  </div>
-                </Reveal>
-              ))}
+                      {highlight && (
+                        <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent-gradient px-3 py-1 text-[11px] font-semibold text-on-accent">
+                          Most popular
+                        </span>
+                      )}
+                      <h3 className="font-display text-[18px] font-semibold text-ink">{tier.name}</h3>
+                      {tier.description && <p className="mt-1 text-[13px] text-muted">{tier.description}</p>}
+                      <p className="mt-4">
+                        <span className="font-display text-[32px] font-bold text-ink">₹{(tier.priceCents / 100).toLocaleString("en-IN")}</span>
+                        <span className="text-[13px] text-faint">/{tier.billingPeriod === "yearly" ? "year" : "month"}</span>
+                      </p>
+                      <ul className="mt-5 flex-1 space-y-2.5">
+                        {features.map((f) => (
+                          <li key={f} className="flex items-start gap-2 text-[13px] text-soft">
+                            <span className="mt-0.5 text-cyan">✓</span>
+                            {f}
+                          </li>
+                        ))}
+                        {features.length === 0 && <li className="text-[13px] text-faint">Unlimited everything.</li>}
+                      </ul>
+                      <Link
+                        href="/sign-up"
+                        className={`mt-6 rounded-xl px-4 py-2.5 text-center text-[13.5px] font-semibold transition-all ${
+                          highlight
+                            ? "bg-accent-gradient text-on-accent hover:-translate-y-0.5"
+                            : "border border-line-strong bg-surface text-soft hover:border-cyan/30"
+                        }`}
+                      >
+                        {tier.isFree ? "Get started free" : `Get ${tier.name}`}
+                      </Link>
+                    </div>
+                  </Reveal>
+                );
+              })}
+              {tiers.length === 0 && (
+                <p className="col-span-full text-center text-[14px] text-faint">
+                  Pricing is being set up — sign up free while we finish rolling out plans.
+                </p>
+              )}
             </div>
           </div>
         </Reveal>

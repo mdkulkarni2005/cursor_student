@@ -23,6 +23,8 @@ const CAREER_GOALS = [
   "Undecided",
 ] as const;
 
+const SENIORITY_LEVELS = ["Fresher", "Mid", "Senior", "Lead"] as const;
+
 const CAREER_INSIGHT: Record<string, string> = {
   "Software Engineer": "Strong DSA + system design skills see a 40% higher placement rate at top product companies.",
   "Data Scientist": "Pairing statistics with a portfolio of real projects is the #1 differentiator recruiters look for.",
@@ -63,9 +65,9 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
   // The department value actually submitted — the picked branch, or (for "Other") whatever the
   // student typed. Downstream (dashboard, generation prompts) sees the real branch name either way.
   const departmentToSubmit = isCustomDept ? customDept.trim() : dept;
-  // GitHub only matters for the coding track — professionals always have it, students only if
-  // CS/IT (or any branch that opted in via the checkbox below).
-  const githubRequired = userType === "PROFESSIONAL" || coding;
+  // GitHub only matters for the coding track — same rule for both roles, driven by the single
+  // "I'm in a technical / coding role" (student copy: "DSA practice & coding interviews") checkbox.
+  const githubRequired = coding;
 
   function onDept(value: string) {
     setDept(value);
@@ -183,6 +185,24 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
                 <label htmlFor="yearsOfExperience" className={fieldLabel}>Years of experience</label>
                 <input id="yearsOfExperience" name="yearsOfExperience" type="number" min={0} max={60} placeholder="e.g. 3" className={`${fieldBox} placeholder:text-faint`} />
               </div>
+
+              <div className="mb-4">
+                <label htmlFor="industry" className={fieldLabel}>Industry <span className="font-normal text-faint">(optional)</span></label>
+                <input id="industry" name="industry" type="text" placeholder="e.g. Fintech, EdTech, Manufacturing" className={`${fieldBox} placeholder:text-faint`} />
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="seniorityLevel" className={fieldLabel}>Seniority <span className="font-normal text-faint">(optional)</span></label>
+                <select id="seniorityLevel" name="seniorityLevel" defaultValue="" className={fieldBox}>
+                  <option value="">Select…</option>
+                  {SENIORITY_LEVELS.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </div>
+
+              <div className="mb-4">
+                <label htmlFor="skills" className={fieldLabel}>Skills <span className="font-normal text-faint">(optional)</span></label>
+                <input id="skills" name="skills" type="text" placeholder="e.g. React, AWS, Figma" className={`${fieldBox} placeholder:text-faint`} />
+              </div>
             </>
           )}
 
@@ -192,15 +212,12 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
             <p className="mt-1 text-[11px] text-faint">Used only to verify you&apos;re a unique person — never shared or used for marketing.</p>
           </div>
 
-          <div className="mb-4">
-            <label htmlFor="github" className={fieldLabel}>
-              GitHub link{githubRequired ? "" : <span className="font-normal text-faint"> (optional)</span>}
-            </label>
-            <input id="github" name="github" type="text" required={githubRequired} placeholder="e.g. github.com/yourname" className={`${fieldBox} placeholder:text-faint`} />
-            {!githubRequired ? (
-              <p className="mt-1 text-[11px] text-faint">Only needed for the coding track — add it anytime later from Settings.</p>
-            ) : null}
-          </div>
+          {githubRequired ? (
+            <div className="mb-4">
+              <label htmlFor="github" className={fieldLabel}>GitHub link</label>
+              <input id="github" name="github" type="text" required placeholder="e.g. github.com/yourname" className={`${fieldBox} placeholder:text-faint`} />
+            </div>
+          ) : null}
 
           <div className="mb-4">
             <label htmlFor="linkedin" className={fieldLabel}>LinkedIn link</label>
@@ -227,16 +244,24 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
             ) : null}
           </div>
 
-          {/* Coding track — seeded by branch, but the student decides. Professionals always get it. */}
-          {userType === "STUDENT" ? (
-            <label className="mb-5 flex cursor-pointer items-start gap-2.5 rounded-xl border border-line-strong bg-surface/60 p-3">
-              <input type="checkbox" name="codingEnabled" checked={coding} onChange={(e) => { setCoding(e.target.checked); setCodingTouched(true); }} className="mt-0.5 size-4 accent-cyan" />
-              <span className="text-[12.5px] text-soft">
-                I want <b>DSA practice &amp; coding interviews</b>
-                <span className="block text-[11.5px] text-faint">On by default for CS/IT. Any branch can turn it on — turn it off if you only want reports, PPTs, resume &amp; non-coding interviews.</span>
-              </span>
-            </label>
-          ) : null}
+          {/* Coding track — for students, seeded by branch; either role decides for themselves.
+              Also gates whether GitHub is required (see githubRequired above). */}
+          <label className="mb-5 flex cursor-pointer items-start gap-2.5 rounded-xl border border-line-strong bg-surface/60 p-3">
+            <input type="checkbox" name="codingEnabled" checked={coding} onChange={(e) => { setCoding(e.target.checked); setCodingTouched(true); }} className="mt-0.5 size-4 accent-cyan" />
+            <span className="text-[12.5px] text-soft">
+              {userType === "STUDENT" ? (
+                <>
+                  I want <b>DSA practice &amp; coding interviews</b>
+                  <span className="block text-[11.5px] text-faint">On by default for CS/IT. Any branch can turn it on — turn it off if you only want reports, PPTs, resume &amp; non-coding interviews.</span>
+                </>
+              ) : (
+                <>
+                  I&apos;m in a <b>technical / coding role</b>
+                  <span className="block text-[11.5px] text-faint">Turn this on for DSA practice &amp; coding interview rounds. Leave it off if your role is non-technical — you won&apos;t need GitHub then.</span>
+                </>
+              )}
+            </span>
+          </label>
 
           {/* Legal acceptance — the last step before entering. */}
           <label className="mb-4 flex cursor-pointer items-start gap-2.5">

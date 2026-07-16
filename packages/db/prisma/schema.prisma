@@ -182,6 +182,14 @@ model User {
   companyName       String?
   jobTitle          String?
   yearsOfExperience Int?
+  // Free-text domain, mirrors Recruiter.industry — powers future recruiter-side matching.
+  industry          String?
+  // "Fresher" | "Mid" | "Senior" | "Lead" — plain string like billingPeriod, no enum so admin/product
+  // can add a level without a migration.
+  seniorityLevel    String?
+  // Comma-separated free text (e.g. "React, AWS, Figma") — no separate Skill model, same
+  // lightweight-profile-data convention as industry/seniorityLevel above.
+  skills            String?
 
   // Branch-aware capability: coding track (DSA + coding interview round). Department seeds the
   // default at onboarding, but the student can opt in/out. Default true = fail-open (show everything).

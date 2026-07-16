@@ -7,6 +7,7 @@ import { getMaxConcurrentSessions } from "@/lib/sessions";
 import { SessionLimitControl } from "./session-limit-control";
 import { CostCapControl } from "./cost-cap-control";
 import { TrialControl } from "./trial-control";
+import { PaymentsControl } from "./payments-control";
 
 export const metadata = { title: "Platform — Admin" };
 
@@ -28,6 +29,7 @@ export default async function PlatformPage() {
     trialDaysRow,
     trialPlanTierIdRow,
     studentTiers,
+    paymentsEnabledRow,
   ] = await Promise.all([
     getPlatformCostSummary(),
     prisma.user.count(),
@@ -38,6 +40,7 @@ export default async function PlatformPage() {
     prisma.platformSetting.findUnique({ where: { key: "GLOBAL_TRIAL_DAYS" } }),
     prisma.platformSetting.findUnique({ where: { key: "GLOBAL_TRIAL_PLAN_TIER_ID" } }),
     prisma.planTier.findMany({ where: { audience: "STUDENT" }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true } }),
+    prisma.platformSetting.findUnique({ where: { key: "PAYMENTS_ENABLED" } }),
   ]);
 
   const gatewayOk = !("error" in summary.gateway);
@@ -110,6 +113,7 @@ export default async function PlatformPage() {
           initialPlanTierId={trialPlanTierIdRow?.value || null}
           studentTiers={studentTiers}
         />
+        <PaymentsControl initialEnabled={paymentsEnabledRow?.value === "true"} />
       </div>
     </AdminShell>
   );
