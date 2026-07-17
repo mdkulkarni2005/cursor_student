@@ -707,6 +707,12 @@ model Recruiter {
   approvedByEmail String?
   approvedAt      DateTime?
 
+  // Admin-controlled access hold, distinct from `status` — a REJECTED recruiter never had
+  // access; a suspended one is an approved recruiter whose access is temporarily revoked.
+  // Enforced in apps/recruiter's requireRecruiter. Set/cleared only from apps/admin.
+  suspended   Boolean   @default(false)
+  suspendedAt DateTime?
+
   messages       RecruiterMessage[]
   schedules      InterviewSchedule[]
   supportTickets SupportTicket[]

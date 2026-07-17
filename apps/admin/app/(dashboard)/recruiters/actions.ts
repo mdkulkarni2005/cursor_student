@@ -66,3 +66,62 @@ export async function rejectRecruiter(id: string, note: string): Promise<void> {
 
   revalidatePath("/recruiters");
 }
+
+/**
+ * Manual grant of a real DB-driven PlanTier (audience RECRUITER) onto RecruiterSubscription —
+ * the recruiter-side mirror of apps/admin/app/(dashboard)/users/[id]/actions.ts's
+ * setUserPlanTier. `planTierId: null` resets the recruiter back to the audience's default free
+ * tier. Ignored the moment the recruiter has an ACTIVE paid RecruiterSubscription of their own
+ * (self-serve Razorpay checkout) — see getActiveRecruiterPlanTier's precedence.
+ */
+export async function setRecruiterPlanTier(recruiterId: string, planTierId: string | null): Promise<void> {
+  const guard = await requireAdmin();
+  if (!guard.ok) throw new Error("Not authorized");
+
+  if (planTierId) {
+    const tier = await prisma.planTier.findUnique({ where: { id: planTierId } });
+    if (!tier || tier.audience !== "RECRUITER" || !tier.active) throw new Error("Invalid plan tier");
+  }
+
+  const before = await prisma.recruiterSubscription.findUnique({
+    where: { recruiterId },
+    select: { planTierId: true, status: true },
+  });
+
+  await prisma.recruiterSubscription.upsert({
+    where: { recruiterId },
+    create: { recruiterId, planTierId, status: "ACTIVE" },
+    update: { planTierId, status: "ACTIVE" },
+  });
+
+  await logAdminAction({
+    action: "recruiter.plan_tier.set",
+    targetType: "recruiter",
+    targetId: recruiterId,
+    before: { planTierId: before?.planTierId },
+    after: { planTierId },
+  });
+
+  revalidatePath(`/recruiters/${recruiterId}`);
+  revalidatePath("/recruiters");
+}
+
+/** Suspend or reactivate an already-approved recruiter's access. Enforced in apps/recruiter's
+ *  requireRecruiter — distinct from reject, which is for applications that never had access. */
+export async function setRecruiterSuspended(recruiterId: string, suspended: boolean): Promise<void> {
+  const guard = await requireAdmin();
+  if (!guard.ok) throw new Error("Not authorized");
+
+  await prisma.recruiter.update({
+    where: { id: recruiterId },
+    data: { suspended, suspendedAt: suspended ? new Date() : null },
+  });
+  await logAdminAction({
+    action: suspended ? "recruiter.suspend" : "recruiter.reactivate",
+    targetType: "recruiter",
+    targetId: recruiterId,
+  });
+
+  revalidatePath(`/recruiters/${recruiterId}`);
+  revalidatePath("/recruiters");
+}

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { clerkClient } from "@clerk/nextjs/server";
 import { prisma } from "@studentos/db";
 import { requireAdmin } from "@/lib/admin";
@@ -43,6 +44,7 @@ export default async function RecruitersPage() {
   const recruiters = await prisma.recruiter.findMany({
     where: { status: { not: "DRAFT" } },
     orderBy: [{ status: "asc" }, { updatedAt: "desc" }],
+    include: { subscription: { include: { planTier: { select: { name: true } } } } },
   });
 
   const pendingCount = recruiters.filter((r) => r.status === "PENDING").length;
@@ -62,7 +64,7 @@ export default async function RecruitersPage() {
         <table className="w-full text-left text-[14.5px]">
           <thead className="border-b border-line text-[13px] uppercase tracking-wide text-faint">
             <tr>
-              {["Name", "Company", "Contact", "Industry", "Status", "Submitted", "Actions"].map((h) => (
+              {["Name", "Company", "Contact", "Industry", "Status", "Plan", "Submitted", "Actions"].map((h) => (
                 <th key={h} className="px-3 py-2.5 font-semibold">
                   {h}
                 </th>
@@ -72,7 +74,18 @@ export default async function RecruitersPage() {
           <tbody>
             {recruiters.map((r) => (
               <tr key={r.id} className="border-b border-line/60 last:border-0 align-top hover:bg-surface">
-                <td className="px-3 py-2.5 font-medium text-ink">{r.name ?? "—"}</td>
+                <td className="px-3 py-2.5 font-medium text-ink">
+                  <div className="flex items-center gap-1.5">
+                    <Link href={`/recruiters/${r.id}`} className="hover:text-cyan">
+                      {r.name ?? "—"}
+                    </Link>
+                    {r.suspended && (
+                      <span className="rounded-full bg-danger/12 px-1.5 py-0.5 text-[12px] font-semibold text-danger">
+                        suspended
+                      </span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-3 py-2.5 text-soft">{r.companyName ?? "—"}</td>
                 <td className="px-3 py-2.5 text-soft">
                   <p>
@@ -91,13 +104,14 @@ export default async function RecruitersPage() {
                   <span className={`rounded-full px-2 py-0.5 text-[13px] font-semibold ${STATUS_STYLE[r.status]}`}>{r.status}</span>
                   {r.status === "REJECTED" && r.rejectionNote && <p className="mt-1 text-[13px] text-faint">{r.rejectionNote}</p>}
                 </td>
+                <td className="px-3 py-2.5 text-soft">{r.subscription?.planTier?.name ?? (r.status === "APPROVED" ? "Free" : "—")}</td>
                 <td className="px-3 py-2.5 text-soft">{fmtDateTime(r.updatedAt)}</td>
                 <td className="px-3 py-2.5">{r.status === "PENDING" ? <RecruiterRow id={r.id} /> : <span className="text-faint">—</span>}</td>
               </tr>
             ))}
             {recruiters.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-3 py-8 text-center text-faint">
+                <td colSpan={8} className="px-3 py-8 text-center text-faint">
                   No recruiter applications yet.
                 </td>
               </tr>

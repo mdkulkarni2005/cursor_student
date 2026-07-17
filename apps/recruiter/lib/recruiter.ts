@@ -10,7 +10,7 @@ import { prisma, type Recruiter } from "@studentos/db";
  */
 export type RecruiterGuardResult =
   | { ok: true; recruiter: Recruiter }
-  | { ok: false; reason: "signed-out" | "no-application" | "draft" | "pending" | "rejected" };
+  | { ok: false; reason: "signed-out" | "no-application" | "draft" | "pending" | "rejected" | "suspended" };
 
 export async function requireRecruiter(): Promise<RecruiterGuardResult> {
   const user = await currentUser();
@@ -18,6 +18,7 @@ export async function requireRecruiter(): Promise<RecruiterGuardResult> {
 
   const recruiter = await prisma.recruiter.findUnique({ where: { clerkId: user.id } });
   if (!recruiter) return { ok: false, reason: "no-application" };
+  if (recruiter.suspended) return { ok: false, reason: "suspended" };
   if (recruiter.status === "DRAFT") return { ok: false, reason: "draft" };
   if (recruiter.status === "PENDING") return { ok: false, reason: "pending" };
   if (recruiter.status === "REJECTED") return { ok: false, reason: "rejected" };
