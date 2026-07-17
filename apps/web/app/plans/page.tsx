@@ -35,19 +35,23 @@ function featuresFor(limits: PlanLimits): string[] {
 export default async function PlansPage() {
   const user = await requireOnboardedUser();
   const [tiers, currentTier, paymentsEnabled] = await Promise.all([
-    prisma.planTier.findMany({ where: { audience: "STUDENT", active: true }, orderBy: { sortOrder: "asc" } }),
+    prisma.planTier.findMany({ where: { audience: user.userType, active: true }, orderBy: { sortOrder: "asc" } }),
     getActivePlanTier(user),
     arePaymentsEnabled(),
   ]);
+  const isProfessional = user.userType === "PROFESSIONAL";
 
   return (
     <AppShell user={await shellUserFrom(user)}>
       <div className="mx-auto max-w-[1080px]">
         <header className="mb-10 text-center">
-          <h1 className="font-display text-[32px] font-bold tracking-tight text-ink">Elevate Your Academic Intelligence</h1>
+          <h1 className="font-display text-[32px] font-bold tracking-tight text-ink">
+            {isProfessional ? "Sharpen Your Interview Edge" : "Elevate Your Academic Intelligence"}
+          </h1>
           <p className="mx-auto mt-2 max-w-2xl text-[15px] text-muted">
-            Choose the plan that fits your study needs. Unlock powerful AI features, unlimited projects, and advanced
-            research tools.
+            {isProfessional
+              ? "Choose the plan that fits your prep. Unlock unlimited DSA practice, mock interviews, and priority support."
+              : "Choose the plan that fits your study needs. Unlock powerful AI features, unlimited projects, and advanced research tools."}
           </p>
         </header>
 

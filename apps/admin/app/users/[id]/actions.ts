@@ -7,31 +7,41 @@ import { requireAdmin } from "@/lib/admin";
 import { logAdminAction } from "@/lib/audit";
 import { revokeClerkSession } from "@/lib/sessions";
 
-const PLAN_VALUES = new Set(Object.values(Plan));
-
 function periodStart(): Date {
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), 1);
 }
 
 /**
- * Manual plan override. There's no payment gateway wired up yet, so this is how a paid
- * upgrade/downgrade actually takes effect until Razorpay billing lands — admin sets the
- * plan by hand after confirming payment out-of-band.
+ * Manual grant of a real DB-driven PlanTier (see apps/admin/app/plans) — the authoritative
+ * entitlement source (apps/web/lib/entitlements.ts). `planTierId: null` resets the user back to
+ * the audience's default free tier. Also mirrors a coarse legacy `plan` label (still read by the
+ * user list badge / apps/web settings) so it never falls out of sync with the real grant.
+ * Ignored the moment the user has an ACTIVE paid Subscription — see getActivePlanTier's
+ * precedence — so this never downgrades a real payer.
  */
-export async function setUserPlan(userId: string, plan: string): Promise<void> {
+export async function setUserPlanTier(userId: string, planTierId: string | null): Promise<void> {
   const guard = await requireAdmin();
   if (!guard.ok) throw new Error("Not authorized");
-  if (!PLAN_VALUES.has(plan as Plan)) throw new Error("Invalid plan");
 
-  const before = await prisma.user.findUnique({ where: { id: userId }, select: { plan: true } });
-  await prisma.user.update({ where: { id: userId }, data: { plan: plan as Plan } });
+  let legacyPlan: Plan = Plan.FREE;
+  if (planTierId) {
+    const [tier, user] = await Promise.all([
+      prisma.planTier.findUnique({ where: { id: planTierId } }),
+      prisma.user.findUnique({ where: { id: userId }, select: { userType: true } }),
+    ]);
+    if (!tier || !user || tier.audience !== user.userType || !tier.active) throw new Error("Invalid plan tier");
+    legacyPlan = tier.isFree ? Plan.FREE : Plan.PRO;
+  }
+
+  const before = await prisma.user.findUnique({ where: { id: userId }, select: { planTierId: true, plan: true } });
+  await prisma.user.update({ where: { id: userId }, data: { planTierId, plan: legacyPlan } });
   await logAdminAction({
-    action: "user.plan.set",
+    action: "user.plan_tier.set",
     targetType: "user",
     targetId: userId,
-    before: { plan: before?.plan },
-    after: { plan },
+    before: { planTierId: before?.planTierId, plan: before?.plan },
+    after: { planTierId, plan: legacyPlan },
   });
 
   revalidatePath(`/users/${userId}`);

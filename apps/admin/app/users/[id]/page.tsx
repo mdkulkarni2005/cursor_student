@@ -4,7 +4,7 @@ import { prisma } from "@studentos/db";
 import { requireAdmin } from "@/lib/admin";
 import { NotAuthorized } from "@/components/not-authorized";
 import { AdminShell } from "@/components/shell";
-import { PlanSelector } from "./plan-selector";
+import { PlanTierPicker } from "./plan-tier-picker";
 import { AccountOps } from "./account-ops";
 import { getUserCostSummary } from "@/lib/platform-cost";
 import { listActiveSessions } from "@/lib/sessions";
@@ -39,7 +39,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
     where: { id },
     include: {
       institution: true,
-      subscription: true,
+      subscription: { include: { planTier: { select: { id: true, name: true } } } },
       documents: { orderBy: { createdAt: "desc" }, take: 10, select: { id: true, title: true, type: true, status: true, createdAt: true } },
       dsaAttempts: { orderBy: { createdAt: "desc" }, take: 10, select: { id: true, problemSlug: true, solved: true, createdAt: true } },
       payments: { orderBy: { createdAt: "desc" }, take: 20 },
@@ -48,7 +48,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
 
   if (!user) notFound();
 
-  const [usageByKindAll, usageByKindPeriod, cost, sessionsResult] = await Promise.all([
+  const [usageByKindAll, usageByKindPeriod, cost, sessionsResult, tiersForAudience] = await Promise.all([
     prisma.usageEvent.groupBy({ by: ["kind"], where: { userId: id }, _count: { _all: true } }),
     prisma.usageEvent.groupBy({ by: ["kind"], where: { userId: id, createdAt: { gte: periodStart() } }, _count: { _all: true } }),
     getUserCostSummary(id),
@@ -56,9 +56,25 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
       (sessions) => ({ sessions, error: undefined as string | undefined }),
       (err) => ({ sessions: [], error: err instanceof Error ? err.message : "Failed to load sessions" }),
     ),
+    // User.userType ("STUDENT" | "PROFESSIONAL") is exactly the PlanAudience this user can be
+    // granted a tier from — a professional must never be offered a student tier here.
+    prisma.planTier.findMany({
+      where: { audience: user.userType, active: true },
+      orderBy: { sortOrder: "asc" },
+      select: { id: true, name: true, isFree: true },
+    }),
   ]);
 
   const periodCountByKind = Object.fromEntries(usageByKindPeriod.map((r) => [r.kind, r._count._all]));
+
+  // An ACTIVE paid Subscription always outranks a manual planTierId grant (see
+  // apps/web/lib/entitlements.ts's getActivePlanTier) — lock the picker in that case so admin
+  // doesn't set a grant that's silently ignored.
+  const lockedByActiveSubscription = user.subscription?.status === "ACTIVE" && !!user.subscription.planTierId;
+  const currentTierId = lockedByActiveSubscription ? user.subscription!.planTierId : user.planTierId;
+  const resolvedTierName =
+    (lockedByActiveSubscription ? user.subscription?.planTier?.name : tiersForAudience.find((t) => t.id === currentTierId)?.name) ??
+    (currentTierId ? null : tiersForAudience.find((t) => t.isFree)?.name ?? "Free");
 
   return (
     <AdminShell>
@@ -78,7 +94,13 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
           </div>
           <p className="mt-1 text-[13px] text-muted">{user.email}</p>
         </div>
-        <PlanSelector userId={user.id} plan={user.plan} />
+        <PlanTierPicker
+          userId={user.id}
+          tiers={tiersForAudience}
+          currentTierId={currentTierId}
+          locked={!!lockedByActiveSubscription}
+          lockedTierName={user.subscription?.planTier?.name}
+        />
       </div>
 
       <div className="mb-6">
@@ -118,7 +140,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
                   </span>
                 </dd>
               </div>
-              <div className="flex justify-between"><dt className="text-muted">Plan</dt><dd className="text-ink">{user.subscription.plan}</dd></div>
+              <div className="flex justify-between"><dt className="text-muted">Plan tier</dt><dd className="text-ink">{user.subscription.planTier?.name ?? user.subscription.plan}</dd></div>
               <div className="flex justify-between"><dt className="text-muted">Next payment</dt><dd className="text-ink">{fmtDateTime(user.subscription.currentPeriodEnd)}</dd></div>
               <div className="flex justify-between">
                 <dt className="text-muted">Autopay</dt>
@@ -129,7 +151,7 @@ export default async function UserDetailPage({ params }: { params: Promise<{ id:
               <div className="flex justify-between"><dt className="text-muted">Razorpay sub</dt><dd className="text-ink">{user.subscription.razorpaySubId ?? "—"}</dd></div>
             </dl>
           ) : (
-            <p className="text-[13px] text-faint">No subscription record — user is on the {user.plan} plan by default (no billing history).</p>
+            <p className="text-[13px] text-faint">No subscription record — user is on {resolvedTierName ?? "the default free tier"} (manual grant / default, no billing history).</p>
           )}
         </div>
 

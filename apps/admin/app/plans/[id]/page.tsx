@@ -25,7 +25,10 @@ export default async function EditPlanTierPage({ params }: { params: Promise<{ i
     <AdminShell>
       <div className="mb-5">
         <h1 className="font-display text-[24px] font-bold text-ink">Edit {tier.name}</h1>
-        <p className="mt-1 text-[13px] text-muted">{tier.audience === "STUDENT" ? "Student" : "Recruiter"} plan tier — {tier.slug}</p>
+        <p className="mt-1 text-[13px] text-muted">
+          {tier.audience === "STUDENT" ? "Student" : tier.audience === "PROFESSIONAL" ? "Working professional" : "Recruiter"} plan
+          tier — {tier.slug}
+        </p>
       </div>
       <PlanTierForm
         action={boundUpdate}

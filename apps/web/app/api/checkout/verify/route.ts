@@ -41,7 +41,7 @@ export async function POST(req: Request): Promise<Response> {
   }
 
   const tier = await prisma.planTier.findUnique({ where: { id: body.planTierId } });
-  if (!tier || tier.audience !== "STUDENT") return NextResponse.json({ error: "invalid plan" }, { status: 400 });
+  if (!tier || tier.audience !== user.userType) return NextResponse.json({ error: "invalid plan" }, { status: 400 });
 
   if (body.mode === "order") {
     const ok = verify(`${body.razorpay_order_id}|${body.razorpay_payment_id}`, body.razorpay_signature, secret);

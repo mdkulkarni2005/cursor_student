@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 // Local mirrors of packages/db enums/types — deliberately not imported from "@studentos/db" here
 // since that package's index also instantiates PrismaClient, which must never end up in a client
 // bundle. Keep these lists in sync with the Prisma schema's UsageKind/RecruiterUsageKind and
@@ -15,7 +17,7 @@ export type PlanLimitsJson = {
 };
 
 export type PlanTierInitial = {
-  audience: "STUDENT" | "RECRUITER";
+  audience: "STUDENT" | "PROFESSIONAL" | "RECRUITER";
   slug: string;
   name: string;
   description: string | null;
@@ -90,20 +92,26 @@ export function PlanTierForm({
   const usage = initial?.limits.usage ?? {};
   const recruiterUsage = initial?.limits.recruiterUsage ?? {};
   const features = initial?.limits.features ?? {};
+  const [audience, setAudience] = useState<PlanTierInitial["audience"]>(initial?.audience ?? "STUDENT");
 
   return (
     <form action={action} className="space-y-5 rounded-2xl border border-line bg-card p-5">
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <label className="mb-1 block text-[11.5px] font-semibold uppercase tracking-wide text-faint">Audience</label>
+          {/* Disabled fields aren't submitted with a form — mirror the locked value via a hidden
+              input so editing an existing tier still posts its audience. */}
+          {initial && <input type="hidden" name="audience" value={initial.audience} />}
           <select
-            name="audience"
+            name={initial ? undefined : "audience"}
             defaultValue={initial?.audience ?? "STUDENT"}
+            onChange={(e) => setAudience(e.target.value as PlanTierInitial["audience"])}
             disabled={!!initial}
             required
             className="w-full rounded-lg border border-line bg-input px-3 py-2 text-[13px] text-ink disabled:opacity-60"
           >
             <option value="STUDENT">Student</option>
+            <option value="PROFESSIONAL">Working professional</option>
             <option value="RECRUITER">Recruiter</option>
           </select>
         </div>
@@ -192,30 +200,46 @@ export function PlanTierForm({
             This is the default free tier for its audience
           </label>
         </div>
-      </div>
-
-      <div>
-        <h3 className="mb-2 text-[12px] font-bold uppercase tracking-widest text-muted">Student usage limits</h3>
-        <div className="space-y-2">
-          {USAGE_KINDS.map((kind) => (
-            <QuotaField key={kind} name={`usage_${kind}`} label={USAGE_LABEL[kind] ?? kind} value={usage[kind]} />
-          ))}
+        <div className="sm:col-span-2">
+          <p className="text-[11px] text-faint">
+            Only one tier per audience can be the default free plan — checking this box unchecks it on any other tier.
+          </p>
         </div>
       </div>
 
-      <div>
-        <h3 className="mb-2 text-[12px] font-bold uppercase tracking-widest text-muted">Recruiter usage limits</h3>
-        <div className="space-y-2">
-          {RECRUITER_USAGE_KINDS.map((kind) => (
-            <QuotaField
-              key={kind}
-              name={`recruiterUsage_${kind}`}
-              label={RECRUITER_USAGE_LABEL[kind] ?? kind}
-              value={recruiterUsage[kind]}
-            />
-          ))}
+      {audience === "STUDENT" && (
+        <div>
+          <h3 className="mb-2 text-[12px] font-bold uppercase tracking-widest text-muted">Student usage limits</h3>
+          <div className="space-y-2">
+            {USAGE_KINDS.map((kind) => (
+              <QuotaField key={kind} name={`usage_${kind}`} label={USAGE_LABEL[kind] ?? kind} value={usage[kind]} />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {audience === "RECRUITER" && (
+        <div>
+          <h3 className="mb-2 text-[12px] font-bold uppercase tracking-widest text-muted">Recruiter usage limits</h3>
+          <div className="space-y-2">
+            {RECRUITER_USAGE_KINDS.map((kind) => (
+              <QuotaField
+                key={kind}
+                name={`recruiterUsage_${kind}`}
+                label={RECRUITER_USAGE_LABEL[kind] ?? kind}
+                value={recruiterUsage[kind]}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {audience === "PROFESSIONAL" && (
+        <p className="text-[11px] text-faint">
+          Working professionals only get DSA practice + mock interviews, neither of which is metered yet — gate this
+          tier with price and the feature toggles below.
+        </p>
+      )}
 
       <div>
         <h3 className="mb-2 text-[12px] font-bold uppercase tracking-widest text-muted">Feature toggles</h3>
@@ -228,6 +252,22 @@ export function PlanTierForm({
           ))}
         </div>
       </div>
+
+      {!initial && (
+        <div className="rounded-xl border border-line/60 bg-surface p-3">
+          <label className="flex items-start gap-2 text-[12.5px] text-soft">
+            <input type="checkbox" name="applyToAllUsers" className="mt-0.5" />
+            <span>
+              Apply this plan to all existing users in this audience now.
+              <br />
+              <span className="text-[11px] text-faint">
+                Students/professionals: grants everyone in this audience the tier immediately (an active paid
+                subscription still wins). Recruiters: skips anyone with a real active paid subscription.
+              </span>
+            </span>
+          </label>
+        </div>
+      )}
 
       <button type="submit" className="rounded-lg bg-cyan px-4 py-2 text-[13px] font-semibold text-on-accent hover:opacity-90">
         {initial ? "Save changes" : "Create tier"}

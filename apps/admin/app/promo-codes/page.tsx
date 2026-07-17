@@ -58,7 +58,7 @@ export default async function PromoCodesPage() {
           <option value="">No specific plan</option>
           {tiers.map((t) => (
             <option key={t.id} value={t.id}>
-              {t.audience === "STUDENT" ? "Student" : "Recruiter"} — {t.name}
+              {t.audience === "STUDENT" ? "Student" : t.audience === "PROFESSIONAL" ? "Working professional" : "Recruiter"} — {t.name}
             </option>
           ))}
         </select>
