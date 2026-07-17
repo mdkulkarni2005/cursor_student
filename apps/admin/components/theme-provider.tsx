@@ -23,8 +23,7 @@ function getSystemTheme(): "light" | "dark" {
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
-function getInitialTheme(): { theme: Theme; resolved: "light" | "dark" } {
-  if (typeof window === "undefined") return { theme: "system", resolved: "light" };
+function readStoredTheme(): { theme: Theme; resolved: "light" | "dark" } {
   const stored = localStorage.getItem("vidyos-admin-theme") as Theme | null;
   const theme = stored || "system";
   const resolved = theme === "system" ? getSystemTheme() : theme;
@@ -32,7 +31,14 @@ function getInitialTheme(): { theme: Theme; resolved: "light" | "dark" } {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState(getInitialTheme);
+  // Always starts matching the server's deterministic render ("light") — reading localStorage or
+  // matchMedia synchronously here would mismatch the SSR HTML and trigger a hydration error. The
+  // real value is applied in the effect below, which only runs client-side after mount.
+  const [state, setState] = useState<{ theme: Theme; resolved: "light" | "dark" }>({ theme: "system", resolved: "light" });
+
+  useEffect(() => {
+    setState(readStoredTheme());
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", state.resolved === "dark");

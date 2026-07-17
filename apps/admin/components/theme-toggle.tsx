@@ -8,7 +8,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
   return (
     <button
       onClick={() => setTheme(resolved === "dark" ? "light" : "dark")}
-      className={`flex items-center gap-2 rounded-xl px-3 py-2 text-[13px] font-medium transition-colors hover:bg-surface ${className}`}
+      className={`flex items-center gap-2 rounded-xl px-3 py-2 text-[15px] font-medium transition-colors hover:bg-surface ${className}`}
       aria-label={`Switch to ${resolved === "dark" ? "light" : "dark"} mode`}
     >
       {resolved === "dark" ? (

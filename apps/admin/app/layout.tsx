@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
+import Script from "next/script";
 import "./globals.css";
 
 const inter = Inter({
@@ -43,6 +44,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     >
       <html lang="en" suppressHydrationWarning className={`${inter.variable} h-full antialiased`}>
         <body className="min-h-full font-sans text-soft">
+          {/* Applies the dark class before first paint, synchronously, so dark-mode/system-dark
+              users don't see a flash of the light theme while React hydrates. ThemeProvider's
+              own state still starts at "light" (see theme-provider.tsx) to keep server/client
+              markup identical — this script only touches the class, not any rendered content. */}
+          <Script id="theme-init" strategy="beforeInteractive">
+            {`(function(){try{var t=localStorage.getItem("vidyos-admin-theme");var d=t==="dark"||(t!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);if(d)document.documentElement.classList.add("dark");}catch(e){}})();`}
+          </Script>
           <ThemeProvider>
             {children}
             <Toaster position="top-right" richColors duration={3000} />
