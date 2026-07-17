@@ -33,9 +33,11 @@ export type ResolvedPlanTier = { id: string; limits: PlanLimits };
  *  "everything unlimited" behavior so a fresh deploy never breaks generation. */
 const FALLBACK_TIER: ResolvedPlanTier = { id: "fallback-unlimited", limits: emptyPlanLimits() };
 
-async function defaultFreeStudentTier(): Promise<ResolvedPlanTier | null> {
+/** User.userType ("STUDENT" | "PROFESSIONAL") is exactly the PlanAudience each account draws its
+ *  default free tier from — professionals must never fall back to the student free tier. */
+async function defaultFreeTier(audience: "STUDENT" | "PROFESSIONAL"): Promise<ResolvedPlanTier | null> {
   const tier = await prisma.planTier.findFirst({
-    where: { audience: "STUDENT", active: true, isFree: true },
+    where: { audience, active: true, isFree: true },
     orderBy: { sortOrder: "asc" },
   });
   return tier ? { id: tier.id, limits: parsePlanLimits(tier.limits) } : null;
@@ -68,7 +70,7 @@ export async function getActivePlanTier(user: User): Promise<ResolvedPlanTier> {
     }
   }
 
-  return (await defaultFreeStudentTier()) ?? FALLBACK_TIER;
+  return (await defaultFreeTier(user.userType)) ?? FALLBACK_TIER;
 }
 
 export class QuotaExceededError extends Error {

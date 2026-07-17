@@ -8,6 +8,7 @@ const COPY: Record<Extract<RecruiterGuardResult, { ok: false }>["reason"], { tit
   draft: { title: "Finish your application", body: "You've started an application — pick up where you left off." },
   pending: { title: "Application under review", body: "Our team is reviewing your application. We'll be in touch once it's approved." },
   rejected: { title: "Application not approved", body: "Your recruiter application wasn't approved. Contact support if you think this is a mistake." },
+  suspended: { title: "Account suspended", body: "Your recruiter account has been suspended. Contact support if you think this is a mistake." },
 };
 
 export function NotAuthorized({ reason }: { reason: Extract<RecruiterGuardResult, { ok: false }>["reason"] }) {

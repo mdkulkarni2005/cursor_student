@@ -49,7 +49,7 @@ export function Logo({
           krackit
         </span>
         {suffix && (
-          <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-faint">{suffix}</span>
+          <span className="text-[12px] font-bold uppercase tracking-[0.16em] text-faint">{suffix}</span>
         )}
       </span>
     </span>

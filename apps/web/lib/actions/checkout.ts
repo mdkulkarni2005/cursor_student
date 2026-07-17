@@ -19,7 +19,7 @@ export async function createCheckoutOrder(planTierId: string): Promise<CheckoutO
   const user = await requireOnboardedUser();
   if (!(await arePaymentsEnabled())) throw new Error("Payments are not live yet");
   const tier = await prisma.planTier.findUnique({ where: { id: planTierId } });
-  if (!tier || tier.audience !== "STUDENT" || !tier.active) throw new Error("Plan not available");
+  if (!tier || tier.audience !== user.userType || !tier.active) throw new Error("Plan not available");
   if (tier.isFree || tier.priceCents <= 0) throw new Error("This plan does not require checkout");
 
   if (tier.billingPeriod === "one-time") {

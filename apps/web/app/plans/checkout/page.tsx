@@ -42,7 +42,7 @@ export default async function CheckoutPage({
   if (!plan) return notFound();
   if (!(await arePaymentsEnabled())) return notFound();
 
-  const tier = await prisma.planTier.findFirst({ where: { id: plan, audience: "STUDENT", active: true } });
+  const tier = await prisma.planTier.findFirst({ where: { id: plan, audience: user.userType, active: true } });
   if (!tier || tier.isFree || tier.priceCents <= 0) return notFound();
 
   const amountLabel = `₹${(tier.priceCents / 100).toLocaleString("en-IN")}`;

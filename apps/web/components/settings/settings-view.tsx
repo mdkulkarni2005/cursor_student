@@ -28,8 +28,6 @@ export type SettingsData = {
   linkedin: string | null;
   gpa: number | null;
   plan: string;
-  /** Plan allowance (FREE=limited number/month, paid=null=unlimited). Usage metering not yet tracked. */
-  creditsLimit: number | null;
   /** Intelligence Pulse — generations used this period vs total allowance (null limit = unlimited). */
   usage: { used: number; limit: number | null };
 };
@@ -288,9 +286,11 @@ export function SettingsView({ data }: { data: SettingsData }) {
                   />
                 </div>
                 <p className="mt-3 text-[13px] text-soft">
-                  {data.usage.limit === null
-                    ? "Unlimited reports, PPTs, assignments and prep on your plan."
-                    : `Your ${data.plan} plan includes a generous monthly allowance for reports, PPTs and assignments. Limits reset on the 1st.`}
+                  {data.userType === "PROFESSIONAL"
+                    ? "Your plan governs DSA practice and mock interview access."
+                    : data.usage.limit === null
+                      ? "Unlimited reports, PPTs, assignments and prep on your plan."
+                      : `Your ${data.plan} plan includes a generous monthly allowance for reports, PPTs and assignments. Limits reset on the 1st.`}
                 </p>
                 <Link href="/plans" className="mt-3 inline-block text-[13px] font-semibold text-cyan hover:underline">Compare plans →</Link>
               </div>

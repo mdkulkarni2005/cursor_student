@@ -50,7 +50,6 @@ export default async function SettingsPage() {
             linkedin: user.linkedin,
             gpa: user.gpa,
             plan,
-            creditsLimit: user.plan === "FREE" ? 50 : null,
             usage: { used, limit: totalLimit },
           }}
         />

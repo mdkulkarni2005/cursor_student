@@ -37,10 +37,13 @@ enum SubscriptionStatus {
   EXPIRED
 }
 
-// Which side of the marketplace a PlanTier applies to — student plans and recruiter plans are
-// fully independent (different limit dimensions, different pricing), never mixed in one row.
+// Which side of the marketplace a PlanTier applies to — student, professional, and recruiter
+// plans are fully independent (different limit dimensions, different pricing), never mixed in one
+// row. PROFESSIONAL mirrors UserType.PROFESSIONAL (see that enum's comment) — those users only
+// ever see/buy PROFESSIONAL tiers, never STUDENT ones.
 enum PlanAudience {
   STUDENT
+  PROFESSIONAL
   RECRUITER
 }
 
@@ -703,6 +706,12 @@ model Recruiter {
   // The reviewing admin's Clerk email (mirrors AdminAuditLog.actorEmail — no admin User relation).
   approvedByEmail String?
   approvedAt      DateTime?
+
+  // Admin-controlled access hold, distinct from `status` — a REJECTED recruiter never had
+  // access; a suspended one is an approved recruiter whose access is temporarily revoked.
+  // Enforced in apps/recruiter's requireRecruiter. Set/cleared only from apps/admin.
+  suspended   Boolean   @default(false)
+  suspendedAt DateTime?
 
   messages       RecruiterMessage[]
   schedules      InterviewSchedule[]
