@@ -1,0 +1,3 @@
+-- AlterEnum
+ALTER TYPE "UsageKind" ADD VALUE 'INTERVIEW';
+ALTER TYPE "UsageKind" ADD VALUE 'DSA';

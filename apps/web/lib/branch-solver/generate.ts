@@ -2,7 +2,7 @@ import { prisma } from "@studentos/db";
 import { getObjectBuffer, putObject, keys } from "@studentos/storage";
 import { renderAssignmentDocx, type AssignmentSolution } from "@studentos/documents";
 import { generateBranchSolverSolution, branchSolverFollowUp, withAiRetry, type BranchSolverTurn } from "@studentos/ai";
-import { assertWithinQuota, recordUsage } from "@/lib/entitlements";
+import { assertWithinQuota, assertWithinCostBudget, recordUsage } from "@/lib/entitlements";
 import { getOrCreateCurrentWorkspace } from "@/lib/workspace";
 import { setJobStage, addJobCostCents } from "@/lib/jobs";
 
@@ -117,6 +117,8 @@ export async function addBranchSolverTurn(userId: string, docId: string, message
     const loaded = await getBranchSolverDoc(userId, docId);
     if (!loaded) throw new Error("Document not found.");
     const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new Error("Document not found.");
+    await assertWithinCostBudget(user);
     const { conversation = [], ...solution } = loaded.data;
 
     const { result, costCents } = await withAiRetry(() => branchSolverFollowUp({

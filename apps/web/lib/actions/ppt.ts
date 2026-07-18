@@ -10,7 +10,8 @@ import { putObject, getObjectBuffer, keys } from "@studentos/storage";
 import { getOrCreateUser } from "@/lib/user";
 import { createPptDoc, runPptGeneration, resumePptGeneration, markPptGenerating, rerenderPptExport } from "@/lib/ppt/generate";
 import { createConvertedReportDoc, runConvertedReport } from "@/lib/reports/generate";
-import { QuotaExceededError } from "@/lib/entitlements";
+import { addJobCostCents } from "@/lib/jobs";
+import { QuotaExceededError, assertWithinCostBudget, CostBudgetExceededError } from "@/lib/entitlements";
 import { rateLimit, friendlyError } from "@/lib/reliability";
 
 const PPTX_MIME =
@@ -273,6 +274,13 @@ export async function regenerateSlideImageAction(
   const doc = await prisma.document.findFirst({ where: { id: docId, ownerId: user.id, type: "PPT" } });
   if (!doc) return { error: "Presentation not found." };
 
+  try {
+    await assertWithinCostBudget(user);
+  } catch (e) {
+    if (e instanceof CostBudgetExceededError) return { error: e.message };
+    throw e;
+  }
+
   const parsed = PptContentSchema.safeParse(rawContent);
   if (!parsed.success) return { error: "Please save your edits before generating an image." };
   const slide = parsed.data.slides[slideIndex];
@@ -280,6 +288,7 @@ export async function regenerateSlideImageAction(
 
   const img = await generateSlideImage(slideImagePrompt(richToPlain(slide.heading) || parsed.data.title, parsed.data.title));
   if (!img) return { error: "Image generation isn't available right now (check the AI Gateway image model)." };
+  await addJobCostCents(docId, img.costCents);
 
   const m = /^data:(image\/[a-z0-9.+-]+);base64,(.*)$/i.exec(img.dataUrl);
   if (!m) return { error: "Image generation returned an unexpected format." };

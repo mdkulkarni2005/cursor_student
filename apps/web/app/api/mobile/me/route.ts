@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@studentos/db";
 import { getOrCreateUser, shellUserFrom } from "@/lib/user";
 import { codingEnabledFor, branchFeaturesFor } from "@/lib/capabilities";
 
@@ -12,6 +13,11 @@ export async function GET() {
   const user = await getOrCreateUser();
   if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
 
+  // Settings' edit form needs the college name, not just the id it's stored as.
+  const institution = user.institutionId
+    ? await prisma.institution.findUnique({ where: { id: user.institutionId }, select: { name: true } })
+    : null;
+
   return NextResponse.json({
     id: user.id,
     email: user.email,
@@ -21,6 +27,16 @@ export async function GET() {
     capabilities: {
       codingEnabled: codingEnabledFor(user),
       branchFeatures: branchFeaturesFor(user.department),
+    },
+    profile: {
+      careerGoal: user.careerGoal,
+      github: user.githubUrl,
+      linkedin: user.linkedin,
+      gpa: user.gpa,
+      college: institution?.name ?? null,
+      companyName: user.companyName,
+      jobTitle: user.jobTitle,
+      yearsOfExperience: user.yearsOfExperience,
     },
   });
 }

@@ -1,4 +1,4 @@
-import { prisma, parsePlanLimits, emptyPlanLimits } from "@studentos/db";
+import { prisma, parsePlanLimits, emptyPlanLimits, usdCentsToCredits } from "@studentos/db";
 import type { UsageKind, User, PlanLimits } from "@studentos/db";
 
 /**
@@ -109,6 +109,13 @@ export async function getMaxMonthlyAiCostCents(): Promise<number> {
   return Number.isFinite(n) && n >= 0 ? n : DEFAULT_MAX_MONTHLY_AI_COST_CENTS;
 }
 
+/** Tier-specific cap (PlanTier.limits.maxMonthlyAiCostCents) wins when set; otherwise falls back to
+ *  the admin global default above. This is what makes a Pro tier actually get more $ headroom than
+ *  Free — without it every tier shared one global cap regardless of price. */
+async function effectiveCostCapCents(tier: ResolvedPlanTier): Promise<number> {
+  return tier.limits.maxMonthlyAiCostCents ?? (await getMaxMonthlyAiCostCents());
+}
+
 export async function setMaxMonthlyAiCostCents(cents: number): Promise<void> {
   const value = String(Math.max(0, Math.round(cents)));
   await prisma.platformSetting.upsert({
@@ -128,13 +135,15 @@ export async function aiCostCentsThisPeriod(userId: string): Promise<number> {
 }
 
 /**
- * Hard $ backstop, independent of the per-feature quotas below (which are currently unlimited).
- * Throws `CostBudgetExceededError` once this user's tracked AI spend this month is at/over the
- * admin-configured cap. Call at the ENTRY of every AI-cost action — even ones whose own feature
- * quota is unlimited — so no single account can run up an unbounded Gateway bill.
+ * Hard $ backstop, independent of the per-feature quotas below. Throws `CostBudgetExceededError`
+ * once this user's tracked AI spend this month is at/over their PLAN TIER's cap (falling back to
+ * the admin global default if the tier doesn't set one) — so no single account can run up an
+ * unbounded Gateway bill, and paid tiers get real headroom over free. Call at the ENTRY of every
+ * AI-cost action — even ones whose own feature quota is unlimited.
  */
-export async function assertWithinCostBudget(userId: string): Promise<void> {
-  const [cap, used] = await Promise.all([getMaxMonthlyAiCostCents(), aiCostCentsThisPeriod(userId)]);
+export async function assertWithinCostBudget(user: User): Promise<void> {
+  const tier = await getActivePlanTier(user);
+  const [cap, used] = await Promise.all([effectiveCostCapCents(tier), aiCostCentsThisPeriod(user.id)]);
   if (used >= cap) throw new CostBudgetExceededError(cap);
 }
 
@@ -156,7 +165,7 @@ export function usageThisPeriod(userId: string, kind: UsageKind): Promise<number
 /** Throws QuotaExceededError if the user has no remaining quota for `kind`, or
  *  CostBudgetExceededError if they've hit the $ backstop regardless of feature quota. */
 export async function assertWithinQuota(user: User, kind: UsageKind): Promise<void> {
-  await assertWithinCostBudget(user.id);
+  await assertWithinCostBudget(user);
   const tier = await getActivePlanTier(user);
   const limit = quotaFor(tier, kind);
   if (limit === null) return; // unlimited
@@ -179,4 +188,21 @@ export async function quotaStatus(user: User, kind: UsageKind): Promise<QuotaSta
   const limit = quotaFor(tier, kind);
   const used = await usageThisPeriod(user.id, kind);
   return { used, limit, remaining: limit === null ? null : Math.max(0, limit - used) };
+}
+
+/**
+ * The user-facing "credits" balance — the same number `assertWithinCostBudget` enforces, just
+ * converted from USD cents to the ₹-denominated credit figure shown on plan cards and the usage
+ * page. Every generation AND every edit/regeneration/follow-up draws from this same balance (see
+ * assertWithinCostBudget call sites across lib/*\/generate.ts) — there's no separate "editing is
+ * free" pool.
+ */
+export type CreditStatus = { limit: number | null; used: number; remaining: number | null };
+
+export async function creditStatus(user: User): Promise<CreditStatus> {
+  const tier = await getActivePlanTier(user);
+  const [capCents, usedCents] = await Promise.all([effectiveCostCapCents(tier), aiCostCentsThisPeriod(user.id)]);
+  const limit = tier.limits.maxMonthlyAiCostCents === null ? null : usdCentsToCredits(capCents);
+  const used = usdCentsToCredits(usedCents);
+  return { limit, used, remaining: limit === null ? null : Math.max(0, limit - used) };
 }

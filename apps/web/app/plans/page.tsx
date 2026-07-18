@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { prisma, arePaymentsEnabled, type PlanLimits } from "@studentos/db";
+import { prisma, arePaymentsEnabled, usdCentsToCredits, type PlanLimits } from "@studentos/db";
 import { AppShell } from "@/components/app-shell";
 import { requireOnboardedUser, shellUserFrom } from "@/lib/user";
 import { getActivePlanTier } from "@/lib/entitlements";
@@ -62,7 +62,9 @@ export default async function PlansPage() {
           {tiers.map((t, i) => {
             const isCurrent = currentTier.id === t.id;
             const highlight = !t.isFree && i === Math.min(1, tiers.length - 1);
-            const features = featuresFor(t.limits as PlanLimits);
+            const limits = t.limits as PlanLimits;
+            const features = featuresFor(limits);
+            const credits = limits.maxMonthlyAiCostCents == null ? null : usdCentsToCredits(limits.maxMonthlyAiCostCents);
             return (
               <div
                 key={t.id}
@@ -115,6 +117,16 @@ export default async function PlansPage() {
                   ))}
                   {features.length === 0 && <li className="text-[13px] text-faint">Unlimited everything.</li>}
                 </ul>
+                {!t.isFree && (
+                  <div className="mt-4 border-t border-line pt-4">
+                    <span className="inline-block rounded-md bg-teal/10 px-2 py-1 text-[12.5px] font-semibold text-teal">
+                      + {credits === null ? "Unlimited" : credits} credits/mo
+                    </span>
+                    <p className="mt-1.5 text-[12px] italic text-faint">
+                      Every generation and every edit spends credits — priced to break even: no profit, no loss.
+                    </p>
+                  </div>
+                )}
               </div>
             );
           })}

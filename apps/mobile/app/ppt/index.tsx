@@ -1,47 +1,138 @@
 import { useCallback, useEffect, useState } from "react";
-import { FlatList, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, FlatList, Pressable, StyleSheet, Text, View } from "react-native";
 import { router, Stack } from "expo-router";
 import type { DocSummary } from "@studentos/api-types";
 import { useApiClient } from "@/lib/api";
+import { Card } from "@/components/ui/card";
+import { colors, font, radius, spacing } from "@/lib/theme";
+import { SlidesIcon } from "@/components/icons";
+
+const STATUS_TINT: Record<string, { bg: string; fg: string }> = {
+  READY: { bg: colors.successTint, fg: colors.success },
+  GENERATING: { bg: colors.indigoTint, fg: colors.primaryDeep },
+  QUEUED: { bg: colors.indigoTint, fg: colors.primaryDeep },
+  NEEDS_INPUT: { bg: "rgba(217, 119, 6, 0.12)", fg: colors.warning },
+  FAILED: { bg: colors.dangerTint, fg: colors.danger },
+  DRAFT: { bg: colors.surface, fg: colors.muted },
+};
+const STATUS_LABEL: Record<string, string> = {
+  READY: "Ready",
+  GENERATING: "Building",
+  QUEUED: "Queued",
+  NEEDS_INPUT: "Input",
+  FAILED: "Failed",
+  DRAFT: "Draft",
+};
 
 export default function PptList() {
   const client = useApiClient();
   const [decks, setDecks] = useState<DocSummary[]>([]);
+  // Separate from `refreshing` — seeding FlatList's own `refreshing` prop as true on mount can
+  // send SwipeRefreshLayout into a loop where it keeps re-invoking onRefresh (Fabric quirk).
+  // `loading` only gates the empty-state copy; `refreshing` is purely user pull-to-refresh.
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(() => {
-    setLoading(true);
-    client.listPpts().then((r) => setDecks(r.decks)).finally(() => setLoading(false));
+    setError(null);
+    client
+      .listPpts()
+      .then((r) => setDecks(r.decks))
+      .catch((err) => setError(err instanceof Error ? err.message : "Couldn't load presentations."))
+      .finally(() => {
+        setLoading(false);
+        setRefreshing(false);
+      });
   }, [client]);
   useEffect(load, [load]);
 
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    load();
+  }, [load]);
+
   return (
-    <View style={{ flex: 1, backgroundColor: "#fff" }}>
-      <Stack.Screen options={{ title: "PPTs", headerRight: () => (
-        <Pressable onPress={() => router.push("/ppt/new")}><Text style={styles.newLink}>New</Text></Pressable>
-      ) }} />
+    <View style={styles.screen}>
+      <Stack.Screen
+        options={{
+          title: "PPTs",
+          headerRight: () => (
+            <Pressable onPress={() => router.push("/ppt/new")}>
+              <Text style={styles.newLink}>New</Text>
+            </Pressable>
+          ),
+        }}
+      />
       <FlatList
-        contentContainerStyle={{ padding: 16 }}
+        contentContainerStyle={styles.listContent}
         data={decks}
-        refreshing={loading}
-        onRefresh={load}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
         keyExtractor={(d) => d.id}
-        ListEmptyComponent={!loading ? <Text style={styles.empty}>No presentations yet.</Text> : null}
-        renderItem={({ item }) => (
-          <Pressable style={styles.row} onPress={() => router.push(`/ppt/${item.id}`)}>
-            <Text style={styles.title}>{item.title}</Text>
-            <Text style={styles.meta}>{item.status}</Text>
-          </Pressable>
-        )}
+        ListHeaderComponent={
+          <View style={styles.intro}>
+            <Text style={styles.title}>Presentation Builder</Text>
+            <Text style={styles.subtitle}>Slide decks with your college theme, complete with speaker notes and auto-generated visuals.</Text>
+          </View>
+        }
+        ListEmptyComponent={
+          loading ? (
+            <ActivityIndicator color={colors.primaryDeep} style={{ marginTop: 60 }} />
+          ) : error ? (
+            <View style={styles.emptyState}>
+              <Text style={styles.errorText}>{error}</Text>
+              <Pressable style={styles.retryButton} onPress={load}>
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <View style={styles.emptyState}>
+              <Text style={styles.empty}>Your generated decks will appear here — tap New to create one.</Text>
+            </View>
+          )
+        }
+        renderItem={({ item }) => {
+          const tint = STATUS_TINT[item.status] ?? STATUS_TINT.DRAFT;
+          return (
+            <Pressable onPress={() => router.push(`/ppt/${item.id}`)}>
+              <Card style={styles.row}>
+                <View style={styles.rowIconBadge}>
+                  <SlidesIcon size={16} color={colors.primaryDeep} />
+                </View>
+                <View style={styles.rowText}>
+                  <Text style={styles.rowTitle} numberOfLines={1}>{item.title}</Text>
+                  <Text style={styles.rowMeta}>{new Date(item.updatedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</Text>
+                </View>
+                <View style={[styles.badge, { backgroundColor: tint.bg }]}>
+                  <Text style={[styles.badgeText, { color: tint.fg }]}>{STATUS_LABEL[item.status] ?? "Draft"}</Text>
+                </View>
+              </Card>
+            </Pressable>
+          );
+        }}
       />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: { paddingVertical: 14, borderBottomWidth: 1, borderColor: "#eee" },
-  title: { fontSize: 15, fontWeight: "600" },
-  meta: { fontSize: 12, color: "#888", marginTop: 2 },
-  empty: { textAlign: "center", color: "#999", marginTop: 60 },
-  newLink: { color: "#2563eb", fontWeight: "600", fontSize: 15 },
+  screen: { flex: 1, backgroundColor: colors.canvas },
+  listContent: { padding: spacing.lg, paddingBottom: 40 },
+  intro: { marginBottom: spacing.lg },
+  title: { fontFamily: font.display, fontSize: 22, color: colors.ink },
+  subtitle: { fontFamily: font.sans, fontSize: 13, color: colors.muted, marginTop: spacing.xs, lineHeight: 18 },
+  newLink: { color: colors.primaryDeep, fontFamily: font.sansSemibold, fontSize: 15 },
+  row: { flexDirection: "row", alignItems: "center", gap: spacing.md, padding: spacing.md, marginBottom: spacing.sm },
+  rowIconBadge: { width: 36, height: 36, borderRadius: radius.lg, backgroundColor: colors.indigoTint, alignItems: "center", justifyContent: "center" },
+  rowText: { flex: 1, minWidth: 0 },
+  rowTitle: { fontFamily: font.sansSemibold, fontSize: 14, color: colors.ink },
+  rowMeta: { fontFamily: font.sans, fontSize: 11.5, color: colors.muted, marginTop: 2 },
+  badge: { borderRadius: radius.sm, paddingVertical: 4, paddingHorizontal: 8 },
+  badgeText: { fontFamily: font.sansSemibold, fontSize: 10, textTransform: "uppercase" },
+  emptyState: { alignItems: "center", marginTop: 40, paddingHorizontal: spacing.lg },
+  empty: { fontFamily: font.sans, fontSize: 13.5, color: colors.muted, textAlign: "center" },
+  errorText: { fontFamily: font.sans, fontSize: 13.5, color: colors.danger, textAlign: "center", marginBottom: spacing.md },
+  retryButton: { backgroundColor: colors.primaryDeep, borderRadius: radius.lg, paddingVertical: 10, paddingHorizontal: spacing.xl },
+  retryButtonText: { fontFamily: font.sansSemibold, fontSize: 14, color: colors.onAccent },
 });

@@ -15,7 +15,7 @@ export async function POST(req: Request) {
 
   try {
     await rateLimit(user.id, "interview-answer", 80);
-    await assertWithinCostBudget(user.id);
+    await assertWithinCostBudget(user);
   } catch (e) {
     const retryAfter = e instanceof RateLimitError ? Math.ceil(e.retryAfterMs / 1000) : 30;
     return NextResponse.json({ error: friendlyError(e) }, { status: 429, headers: { "Retry-After": String(retryAfter) } });

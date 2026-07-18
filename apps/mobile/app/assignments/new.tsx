@@ -1,8 +1,13 @@
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Alert, Image, Pressable, ScrollView, StyleSheet, Text, TextInput } from "react-native";
+import { ActivityIndicator, Alert, Image, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { router, Stack } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
+import * as FileSystem from "expo-file-system/legacy";
 import { useApiClient } from "@/lib/api";
+import { ScrollScreen } from "@/components/ui/screen";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { colors, font, radius, spacing } from "@/lib/theme";
 
 /** Mobile's camera is a genuinely better fit here than the web upload flow. */
 export default function NewAssignment() {
@@ -11,6 +16,7 @@ export default function NewAssignment() {
   const [instructions, setInstructions] = useState("");
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [uploadKey, setUploadKey] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const takePhoto = useCallback(async () => {
@@ -19,17 +25,23 @@ export default function NewAssignment() {
     const res = await ImagePicker.launchCameraAsync({ quality: 0.8 });
     if (res.canceled || !res.assets[0]) return;
     const asset = res.assets[0];
-    setBusy(true);
+    setUploading(true);
     try {
       const { key, url } = await client.requestUploadUrl("jpg");
-      const bytes = await fetch(asset.uri).then((r) => r.blob());
-      await fetch(url, { method: "PUT", body: bytes, headers: { "Content-Type": "image/jpeg" } });
+      // Not fetch(uri).then(r => r.blob()) — RN's Blob polyfill can't build a Blob from a local
+      // file:// URI ("Creating blobs from 'ArrayBuffer' ... are not supported"). uploadAsync
+      // streams the file directly instead. See onboarding.tsx for the same fix.
+      await FileSystem.uploadAsync(url, asset.uri, {
+        httpMethod: "PUT",
+        uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+        headers: { "Content-Type": "image/jpeg" },
+      });
       setPhotoUri(asset.uri);
       setUploadKey(key);
     } catch (err) {
       Alert.alert("Upload failed", err instanceof Error ? err.message : "Try again.");
     } finally {
-      setBusy(false);
+      setUploading(false);
     }
   }, [client]);
 
@@ -47,32 +59,57 @@ export default function NewAssignment() {
   }, [client, questionText, instructions, uploadKey]);
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: "#fff" }} contentContainerStyle={{ padding: 20 }}>
+    <ScrollScreen contentContainerStyle={{ paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
       <Stack.Screen options={{ title: "New Assignment" }} />
-      <Text style={styles.label}>Photo of the question</Text>
-      <Pressable style={styles.uploadButton} onPress={takePhoto}>
-        <Text style={styles.uploadButtonText}>{photoUri ? "Photo captured ✓" : "Take photo"}</Text>
-      </Pressable>
-      {photoUri ? <Image source={{ uri: photoUri }} style={{ width: "100%", height: 180, borderRadius: 10, marginTop: 10 }} /> : null}
+      <Text style={styles.title}>Solve an assignment</Text>
+      <Text style={styles.subtitle}>Photograph the question or type it — AI solves it step by step.</Text>
 
-      <Text style={styles.label}>Or type the question</Text>
-      <TextInput style={[styles.input, { height: 80 }]} value={questionText} onChangeText={setQuestionText} multiline />
+      <Card style={styles.card}>
+        <Text style={styles.label}>Photo of the question</Text>
+        <Pressable style={[styles.uploadButton, photoUri && styles.uploadButtonDone]} onPress={takePhoto} disabled={uploading}>
+          {uploading ? (
+            <ActivityIndicator color={colors.cyan} />
+          ) : (
+            <Text style={[styles.uploadButtonText, photoUri && styles.uploadButtonTextDone]}>{photoUri ? "Photo captured ✓" : "Take photo"}</Text>
+          )}
+        </Pressable>
+        {photoUri ? <Image source={{ uri: photoUri }} style={styles.preview} /> : null}
 
-      <Text style={styles.label}>Instructions (optional)</Text>
-      <TextInput style={styles.input} value={instructions} onChangeText={setInstructions} />
+        <Text style={[styles.label, { marginTop: spacing.lg }]}>Or type the question</Text>
+        <TextInput
+          style={[styles.input, styles.textArea]}
+          value={questionText}
+          onChangeText={setQuestionText}
+          placeholder="Paste or type the question here…"
+          placeholderTextColor={colors.faint}
+          multiline
+        />
 
-      <Pressable style={styles.submitButton} onPress={submit} disabled={busy}>
-        {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitButtonText}>Solve</Text>}
-      </Pressable>
-    </ScrollView>
+        <Text style={[styles.label, { marginTop: spacing.lg }]}>Instructions (optional)</Text>
+        <TextInput
+          style={styles.input}
+          value={instructions}
+          onChangeText={setInstructions}
+          placeholder="e.g. show working, use SI units"
+          placeholderTextColor={colors.faint}
+        />
+
+        <Button label="Solve" onPress={submit} loading={busy} disabled={busy} style={{ marginTop: spacing.xl }} />
+      </Card>
+    </ScrollScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  label: { fontSize: 13, fontWeight: "600", marginTop: 16, marginBottom: 6 },
-  input: { borderWidth: 1, borderColor: "#e5e5e5", borderRadius: 10, padding: 12, fontSize: 15 },
-  uploadButton: { borderWidth: 1, borderColor: "#ddd", borderRadius: 10, padding: 12, alignItems: "center" },
-  uploadButtonText: { fontSize: 14, color: "#333" },
-  submitButton: { backgroundColor: "#2563eb", borderRadius: 10, paddingVertical: 14, alignItems: "center", marginTop: 28, marginBottom: 40 },
-  submitButtonText: { color: "#fff", fontWeight: "600", fontSize: 15 },
+  title: { fontFamily: font.display, fontSize: 22, color: colors.ink },
+  subtitle: { fontFamily: font.sans, fontSize: 13, color: colors.muted, marginTop: spacing.xs, marginBottom: spacing.lg, lineHeight: 18 },
+  card: {},
+  label: { fontFamily: font.sansSemibold, fontSize: 13, color: colors.ink, marginBottom: spacing.sm },
+  input: { borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radius.md, padding: spacing.md, fontFamily: font.sans, fontSize: 15, color: colors.ink, backgroundColor: colors.input },
+  textArea: { height: 90, textAlignVertical: "top" },
+  uploadButton: { borderWidth: 1, borderColor: colors.lineStrong, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: "center", backgroundColor: colors.surface },
+  uploadButtonDone: { borderColor: colors.cyan, backgroundColor: colors.cyanTint },
+  uploadButtonText: { fontFamily: font.sansMedium, fontSize: 14, color: colors.muted },
+  uploadButtonTextDone: { color: colors.cyan, fontFamily: font.sansSemibold },
+  preview: { width: "100%", height: 180, borderRadius: radius.md, marginTop: spacing.sm },
 });

@@ -37,7 +37,7 @@ export async function POST(req: Request) {
   // Anti-drain: cap assistant messages per user per minute.
   try {
     await rateLimit(user.id, "assistant", 30);
-    await assertWithinCostBudget(user.id);
+    await assertWithinCostBudget(user);
   } catch (e) {
     const retryAfter = e instanceof RateLimitError ? Math.ceil(e.retryAfterMs / 1000) : 30;
     return NextResponse.json({ error: friendlyError(e) }, { status: 429, headers: { "Retry-After": String(retryAfter) } });

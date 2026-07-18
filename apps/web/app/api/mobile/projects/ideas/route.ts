@@ -12,7 +12,7 @@ export async function POST(req: Request) {
 
   try {
     await rateLimit(user.id, "project-ideas");
-    await assertWithinCostBudget(user.id);
+    await assertWithinCostBudget(user);
   } catch (e) {
     return NextResponse.json({ error: friendlyError(e) }, { status: 429 });
   }

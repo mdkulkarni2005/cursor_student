@@ -1,6 +1,7 @@
 import { prisma } from "@studentos/db";
 import { matchCandidatesToJob } from "@studentos/ai";
 import { listVisibleStudents, getCandidateProfileSummaries } from "./student-profile";
+import { assertRecruiterWithinCostBudget, recordRecruiterAiSpend } from "./entitlements";
 
 export async function listJobPostings(recruiterId: string) {
   return prisma.jobPosting.findMany({ where: { recruiterId }, orderBy: { createdAt: "desc" } });
@@ -79,12 +80,18 @@ export async function runFindCandidates(jobPostingId: string, recruiterId: strin
     const posting = await getJobPosting(jobPostingId, recruiterId);
     if (!posting) return;
 
+    // Was previously unmetered — a recruiter could re-trigger "find candidates" on the same
+    // posting unlimited times with zero cost or rate control. This is the same $ backstop the
+    // student side has on every AI action (see apps/web/lib/entitlements.ts assertWithinCostBudget).
+    await assertRecruiterWithinCostBudget(recruiterId);
+
     // Matches against the first page only (same 100-candidate cap as before pagination was added
     // to the students list) — widening this to the full visible pool is a separate change.
     const pool = await listVisibleStudents({});
     const summaries = await getCandidateProfileSummaries(pool.items.map((s) => s.id), recruiterId);
 
-    const { matches, model } = await matchCandidatesToJob(posting.title, posting.description, summaries);
+    const { matches, model, costCents } = await matchCandidatesToJob(posting.title, posting.description, summaries);
+    await recordRecruiterAiSpend(recruiterId, costCents, jobPostingId);
 
     await Promise.all(
       matches.map((m) =>

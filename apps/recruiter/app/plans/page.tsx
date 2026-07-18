@@ -1,9 +1,9 @@
 import Link from "next/link";
-import { prisma, arePaymentsEnabled, type PlanLimits } from "@studentos/db";
+import { prisma, arePaymentsEnabled, usdCentsToCredits, type PlanLimits } from "@studentos/db";
 import { requireRecruiter } from "@/lib/recruiter";
 import { NotAuthorized } from "@/components/not-authorized";
 import { RecruiterShell } from "@/components/shell";
-import { getActiveRecruiterPlanTier } from "@/lib/entitlements";
+import { getActiveRecruiterPlanTier, recruiterCreditStatus } from "@/lib/entitlements";
 import { PromoCodeForm } from "./promo-code-form";
 
 export const metadata = { title: "Plans — Recruiter" };
@@ -33,10 +33,11 @@ export default async function RecruiterPlansPage() {
   const guard = await requireRecruiter();
   if (!guard.ok) return <NotAuthorized reason={guard.reason} />;
 
-  const [tiers, currentTier, paymentsEnabled] = await Promise.all([
+  const [tiers, currentTier, paymentsEnabled, credits] = await Promise.all([
     prisma.planTier.findMany({ where: { audience: "RECRUITER", active: true }, orderBy: { sortOrder: "asc" } }),
     getActiveRecruiterPlanTier(guard.recruiter.id),
     arePaymentsEnabled(),
+    recruiterCreditStatus(guard.recruiter.id),
   ]);
 
   return (
@@ -55,7 +56,9 @@ export default async function RecruiterPlansPage() {
           {tiers.map((t, i) => {
             const isCurrent = currentTier.id === t.id;
             const highlight = !t.isFree && i === Math.min(1, tiers.length - 1);
-            const features = featuresFor(t.limits as PlanLimits);
+            const limits = t.limits as PlanLimits;
+            const features = featuresFor(limits);
+            const tierCredits = limits.maxMonthlyAiCostCents == null ? null : usdCentsToCredits(limits.maxMonthlyAiCostCents);
             return (
               <div
                 key={t.id}
@@ -65,7 +68,8 @@ export default async function RecruiterPlansPage() {
               >
                 {isCurrent && (
                   <span className="absolute right-4 top-4 rounded-full bg-teal/15 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-teal">
-                    Current Plan
+                    Current Plan{" "}
+                    {!t.isFree && `· ${credits.remaining ?? "∞"}/${credits.limit ?? "∞"} credits left`}
                   </span>
                 )}
                 <h3 className="font-display text-[20px] font-bold text-ink">{t.name}</h3>
@@ -101,6 +105,17 @@ export default async function RecruiterPlansPage() {
                   ))}
                   {features.length === 0 && <li className="text-[13px] text-faint">Unlimited everything.</li>}
                 </ul>
+                {!t.isFree && (
+                  <div className="mt-4 border-t border-line pt-4">
+                    <span className="inline-block rounded-md bg-teal/10 px-2 py-1 text-[12.5px] font-semibold text-teal">
+                      + {tierCredits === null ? "Unlimited" : tierCredits} credits/mo
+                    </span>
+                    <p className="mt-1.5 text-[12px] italic text-faint">
+                      Every candidate match search and re-run spends credits — priced to break even: no profit, no
+                      loss.
+                    </p>
+                  </div>
+                )}
               </div>
             );
           })}

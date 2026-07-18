@@ -24,7 +24,7 @@ export async function generateResumeAction(
   const user = await getOrCreateUser();
   if (!user) return { error: "You must be signed in." };
   if (!user.onboardedAt) redirect("/onboarding");
-  try { await rateLimit(user.id, "resume"); await assertWithinCostBudget(user.id); } catch (e) { return { error: friendlyError(e) }; }
+  try { await rateLimit(user.id, "resume"); await assertWithinCostBudget(user); } catch (e) { return { error: friendlyError(e) }; }
 
   const targetRole = String(formData.get("targetRole") ?? "").trim() || undefined;
   let rawNotes = String(formData.get("rawNotes") ?? "").trim() || undefined;

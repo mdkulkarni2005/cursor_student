@@ -2,7 +2,17 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { Plan, prisma, UsageKind, RecruiterUsageKind, FEATURE_KEYS, planLimitsSchema, type PlanLimits, type PlanTier } from "@studentos/db";
+import {
+  Plan,
+  prisma,
+  UsageKind,
+  RecruiterUsageKind,
+  FEATURE_KEYS,
+  planLimitsSchema,
+  creditsToUsdCents,
+  type PlanLimits,
+  type PlanTier,
+} from "@studentos/db";
 import { requireAdmin } from "@/lib/admin";
 import { logAdminAction } from "@/lib/audit";
 
@@ -77,7 +87,12 @@ function limitsFromFormData(formData: FormData, audience: "STUDENT" | "PROFESSIO
     features[key] = formData.get(`feature_${key}`) === "on";
   }
 
-  return planLimitsSchema.parse({ usage, features, recruiterUsage });
+  const creditsUnlimited = formData.get("credits_unlimited") === "on";
+  const maxMonthlyAiCostCents = creditsUnlimited
+    ? null
+    : creditsToUsdCents(Math.max(0, Math.round(Number(formData.get("credits")) || 0)));
+
+  return planLimitsSchema.parse({ usage, features, recruiterUsage, maxMonthlyAiCostCents });
 }
 
 function fieldsFromFormData(formData: FormData) {
@@ -108,7 +123,9 @@ export async function createPlanTier(formData: FormData): Promise<void> {
   const fields = fieldsFromFormData(formData);
   const limits = limitsFromFormData(formData, fields.audience);
 
-  const tier = await prisma.planTier.create({ data: { ...fields, limits } });
+  // Always create inactive — a new tier's price/limits should be reviewed on the Plans list
+  // before it's shown to users; use setPlanTierActive to go live once confirmed.
+  const tier = await prisma.planTier.create({ data: { ...fields, limits, active: false } });
   if (fields.isFree) await clearOtherDefaultFreeTiers(fields.audience, tier.id);
 
   await logAdminAction({

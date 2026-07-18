@@ -6,6 +6,7 @@
  */
 import { generateObject } from "ai";
 import { z } from "zod";
+import { costCentsFromUsage } from "./pricing";
 
 const PRIMARY_MODEL = "anthropic/claude-sonnet-4.6";
 const FALLBACK_MODEL = "google/gemini-3.5-flash";
@@ -89,16 +90,17 @@ export async function matchCandidatesToJob(
   jobTitle: string,
   jobDescription: string,
   candidates: CandidateProfileSummary[],
-): Promise<{ matches: JobMatchResult[]; model: string }> {
-  if (candidates.length === 0) return { matches: [], model: "n/a" };
+): Promise<{ matches: JobMatchResult[]; model: string; costCents: number }> {
+  if (candidates.length === 0) return { matches: [], model: "n/a", costCents: 0 };
 
   if (process.env.AI_DRIVER === "stub") {
-    return { matches: stubMatches(jobTitle, candidates), model: "stub" };
+    return { matches: stubMatches(jobTitle, candidates), model: "stub", costCents: 0 };
   }
 
   const batches = chunk(candidates, BATCH_SIZE);
   const allMatches: JobMatchResult[] = [];
   let usedModel = "";
+  let costCents = 0;
   let lastError: unknown;
 
   for (const batch of batches) {
@@ -111,9 +113,10 @@ export async function matchCandidatesToJob(
     let batchDone = false;
     for (const model of [PRIMARY_MODEL, FALLBACK_MODEL]) {
       try {
-        const { object } = await generateObject({ model, schema: JobMatchBatchSchema, system: MATCH_SYSTEM, prompt });
+        const { object, usage } = await generateObject({ model, schema: JobMatchBatchSchema, system: MATCH_SYSTEM, prompt });
         allMatches.push(...object.matches);
         usedModel = model;
+        costCents += costCentsFromUsage(model, usage);
         batchDone = true;
         break;
       } catch (err) {
@@ -125,5 +128,5 @@ export async function matchCandidatesToJob(
     }
   }
 
-  return { matches: allMatches, model: usedModel };
+  return { matches: allMatches, model: usedModel, costCents };
 }
