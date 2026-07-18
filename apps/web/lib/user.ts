@@ -5,9 +5,7 @@ import { Prisma, prisma, type User } from "@studentos/db";
 import type { ShellUser } from "@/components/app-shell";
 import { hasJoinableRealInterview } from "@/lib/real-interview";
 import { enforceConcurrentSessionLimit } from "@/lib/sessions";
-import { getGlobalTrialDays } from "@/lib/entitlements";
-
-const PLAN_LABEL: Record<string, string> = {  FREE: "Free", PRO: "Pro", PREMIUM: "Premium" };
+import { getActivePlanTier, getGlobalTrialDays } from "@/lib/entitlements";
 const ACTIVITY_STALE_MS = 30 * 60 * 1000; // bump "last seen" / opens at most twice an hour per user
 
 /** Opportunistic, throttled activity metric for the admin panel (one write per ~session). */
@@ -125,13 +123,20 @@ export async function requireStudentRoute(): Promise<User> {
   return user;
 }
 
-/** Maps the DB user to the shape the app shell needs. */
+/** Maps the DB user to the shape the app shell needs. Plan name comes from the real DB-driven
+ *  PlanTier (see entitlements.ts) — not the legacy User.plan enum, which never reflects the
+ *  admin-configured tiers a user is actually on. */
 export async function shellUserFrom(user: User): Promise<ShellUser> {
+  const activeTier = await getActivePlanTier(user);
+  const tierRow =
+    activeTier.id === "fallback-unlimited"
+      ? null
+      : await prisma.planTier.findUnique({ where: { id: activeTier.id }, select: { name: true } });
   return {
     name: user.name ?? "Student",
     department: user.department,
     semester: user.semester,
-    plan: PLAN_LABEL[user.plan] ?? "Free",
+    plan: tierRow?.name ?? "Free",
     codingEnabled: user.codingEnabled !== false,
     hasJoinableRealInterview: await hasJoinableRealInterview(user.id),
     userType: user.userType,

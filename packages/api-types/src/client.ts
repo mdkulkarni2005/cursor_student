@@ -13,16 +13,30 @@ import type {
   GeneratingDocDetail,
   MeResponse,
   OnboardingInput,
+  PptDeckContent,
   ProfileEditInput,
+  ProjectBreakdownContent,
   ProjectBundle,
   ProjectDetail,
   ProjectIdea,
+  Resume,
+  ResumeDensity,
   ResumeDetail,
   SuggestIdeasInput,
   SupportTicketInput,
   FeedbackInput,
   UploadUrlResponse,
   VaultDocSummary,
+  WorkspaceResponse,
+  SearchResponse,
+  MessagesResponse,
+  ScheduleRespondInput,
+  ProfileResponse,
+  SetRecruiterVisibilityInput,
+  PlansResponse,
+  CheckoutOrderInput,
+  CheckoutOrderResponse,
+  CheckoutVerifyInput,
 } from "./types";
 
 export class ApiRequestError extends Error {
@@ -49,14 +63,22 @@ export class StudentOSClient {
 
   private async request<T>(path: string, init?: RequestInit): Promise<T> {
     const token = await this.getToken();
-    const res = await fetch(`${this.baseUrl}${path}`, {
-      ...init,
-      headers: {
-        ...(init?.body ? { "Content-Type": "application/json" } : {}),
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...init?.headers,
-      },
-    });
+    let res: Response;
+    try {
+      res = await fetch(`${this.baseUrl}${path}`, {
+        ...init,
+        headers: {
+          ...(init?.body ? { "Content-Type": "application/json" } : {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...init?.headers,
+        },
+      });
+    } catch {
+      // Native platforms surface a raw socket exception here (e.g. Android's
+      // java.net.ConnectException) naming the unreachable host — not actionable for a student.
+      // Give them something they can actually do instead.
+      throw new Error("Can't reach StudentOS. Check your connection and try again.");
+    }
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new ApiRequestError(res.status, body as ApiError);
     return body as T;
@@ -109,19 +131,34 @@ export class StudentOSClient {
   getPpt(id: string): Promise<GeneratingDocDetail> {
     return this.request(`/api/mobile/ppt/${id}`);
   }
+  resumePpt(id: string, answers: Record<string, string>): Promise<{ ok: true }> {
+    return this.post(`/api/mobile/ppt/${id}/resume`, { answers });
+  }
+  savePpt(id: string, content: PptDeckContent): Promise<{ ok: true }> {
+    return this.patch(`/api/mobile/ppt/${id}`, content);
+  }
   pptDownloadUrl(id: string): Promise<{ url: string; expiresInSeconds: number }> {
     return this.request(`/api/mobile/ppt/${id}/download`);
   }
+  pptImageUrl(id: string, slideIndex: number): Promise<{ url: string; expiresInSeconds: number }> {
+    return this.request(`/api/mobile/ppt/${id}/image/${slideIndex}`);
+  }
 
   // Resume
+  listResumes(): Promise<{ resumes: DocSummary[] }> {
+    return this.request("/api/mobile/resume");
+  }
   createResume(input: CreateResumeInput): Promise<CreateJobResponse> {
     return this.post("/api/mobile/resume", input);
   }
   getResume(id: string): Promise<ResumeDetail> {
     return this.request(`/api/mobile/resume/${id}`);
   }
-  updateResume(id: string, resume: unknown): Promise<{ ok: true }> {
+  updateResume(id: string, resume: Resume): Promise<{ ok: true }> {
     return this.patch(`/api/mobile/resume/${id}`, { resume });
+  }
+  setResumeDensity(id: string, density: ResumeDensity): Promise<{ ok: true }> {
+    return this.post(`/api/mobile/resume/${id}/density`, { density });
   }
   resumeDownloadUrl(id: string): Promise<{ url: string; expiresInSeconds: number }> {
     return this.request(`/api/mobile/resume/${id}/download`);
@@ -151,6 +188,9 @@ export class StudentOSClient {
   getLabReport(id: string): Promise<GeneratingDocDetail> {
     return this.request(`/api/mobile/lab-reports/${id}`);
   }
+  labReportDownloadUrl(id: string): Promise<{ url: string; expiresInSeconds: number }> {
+    return this.request(`/api/mobile/lab-reports/${id}/download`);
+  }
   askLabReport(id: string, input: AskTurnInput): Promise<{ ok: true }> {
     return this.post(`/api/mobile/lab-reports/${id}/ask`, input);
   }
@@ -171,7 +211,7 @@ export class StudentOSClient {
   generateProjectBundle(id: string): Promise<{ bundle: ProjectBundle }> {
     return this.post(`/api/mobile/projects/${id}/bundle`);
   }
-  generateProjectPlan(id: string): Promise<{ plan: unknown }> {
+  generateProjectPlan(id: string): Promise<{ plan: ProjectBreakdownContent }> {
     return this.post(`/api/mobile/projects/${id}/plan`);
   }
 
@@ -208,5 +248,48 @@ export class StudentOSClient {
   // Assistant (existing /api/assistant route, reused as-is — see plan)
   getAssistantThread(): Promise<{ messages: { role: string; content: string }[] }> {
     return this.request("/api/assistant");
+  }
+
+  // Workspace (this-semester grouped view — distinct from Vault's all-time archive)
+  getWorkspace(): Promise<WorkspaceResponse> {
+    return this.request("/api/mobile/workspace");
+  }
+
+  // Search (title search over the signed-in student's own documents)
+  search(query: string): Promise<SearchResponse> {
+    return this.request(`/api/mobile/search?q=${encodeURIComponent(query)}`);
+  }
+
+  // Messages (recruiter inbox + interview requests)
+  listMessages(): Promise<MessagesResponse> {
+    return this.request("/api/mobile/messages");
+  }
+  markMessageRead(id: string): Promise<{ ok: true }> {
+    return this.post(`/api/mobile/messages/${id}/read`);
+  }
+  respondToSchedule(id: string, input: ScheduleRespondInput): Promise<{ ok: true }> {
+    return this.post(`/api/mobile/messages/schedule/${id}/respond`, input);
+  }
+
+  // Profile
+  getProfile(): Promise<ProfileResponse> {
+    return this.request("/api/mobile/profile");
+  }
+  setRecruiterVisibility(input: SetRecruiterVisibilityInput): Promise<{ ok: true }> {
+    return this.patch("/api/mobile/profile", input);
+  }
+  ensureShareHandle(): Promise<{ handle: string }> {
+    return this.post("/api/mobile/profile/share");
+  }
+
+  // Plans & payments
+  getPlans(): Promise<PlansResponse> {
+    return this.request("/api/mobile/plans");
+  }
+  createCheckoutOrder(input: CheckoutOrderInput): Promise<CheckoutOrderResponse> {
+    return this.post("/api/mobile/checkout/order", input);
+  }
+  verifyCheckout(input: CheckoutVerifyInput): Promise<{ ok: true }> {
+    return this.post("/api/mobile/checkout/verify", input);
   }
 }

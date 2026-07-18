@@ -30,6 +30,13 @@ export const colors = {
 
   line: "rgba(15, 23, 42, 0.08)",
   lineStrong: "rgba(15, 23, 42, 0.12)",
+
+  // Icon-badge tints — web's `bg-{accent}/12` etc, ported to flat RGBA since RN has no opacity utilities.
+  cyanTint: "rgba(246, 146, 30, 0.12)",
+  tealTint: "rgba(0, 106, 97, 0.12)",
+  indigoTint: "rgba(217, 122, 16, 0.15)",
+  successTint: "rgba(5, 150, 105, 0.12)",
+  dangerTint: "rgba(186, 26, 26, 0.12)",
 } as const;
 
 export const gradient = {

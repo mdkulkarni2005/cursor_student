@@ -111,6 +111,11 @@ enum UsageKind {
   // Shared quota bucket for every branch-specific tool (numerical solvers + drawing viva prep) —
   // deliberately one bucket, not one per feature, since each is a small niche tool.
   BRANCH_SOLVER
+  // One count per interview SESSION started (startInterviewAction), not per answer/turn within it.
+  INTERVIEW
+  // One count per DSA problem submission (submitAttemptAction) — each call also triggers an AI
+  // review, so this doubles as the previously-missing cost gate on that path.
+  DSA
 }
 
 // Recruiter onboarding lifecycle. DRAFT = still filling the multi-step form (resumable on
@@ -489,6 +494,21 @@ model RecruiterUsageEvent {
   @@index([recruiterId, kind, createdAt])
 }
 
+// Recruiter-side mirror of GenerationJob.costCents — the student side attributes AI $ spend to a
+// Document; recruiters don't generate documents, so AI candidate-matching spend (previously
+// completely uncapped/unmetered — see apps/recruiter/lib/job-postings.ts runFindCandidates) gets
+// its own lightweight ledger instead.
+model RecruiterAiSpend {
+  id            String       @id @default(cuid())
+  recruiterId   String
+  recruiter     Recruiter    @relation(fields: [recruiterId], references: [id], onDelete: Cascade)
+  jobPostingId  String?
+  costCents     Int
+  createdAt     DateTime     @default(now())
+
+  @@index([recruiterId, createdAt])
+}
+
 // Admin-issued discount/trial-extension code, redeemable once per account (see PromoRedemption).
 model PromoCode {
   id             String    @id @default(cuid())
@@ -719,6 +739,7 @@ model Recruiter {
   feedback       Feedback[]
   subscription   RecruiterSubscription?
   usageEvents    RecruiterUsageEvent[]
+  aiSpend        RecruiterAiSpend[]
   payments       Payment[]
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt

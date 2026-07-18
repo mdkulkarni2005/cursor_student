@@ -5,7 +5,7 @@ import { INTERVIEW_ROUNDS, INTERVIEW_DIFFICULTIES, type InterviewRound, type Int
 import { getOrCreateUser } from "@/lib/user";
 import { startInterview, submitAnswer } from "@/lib/interview/generate";
 import { rateLimit, friendlyError } from "@/lib/reliability";
-import { assertWithinCostBudget } from "@/lib/entitlements";
+import { assertWithinCostBudget, assertWithinQuota, recordUsage } from "@/lib/entitlements";
 
 export type InterviewFormState = { error?: string };
 
@@ -16,7 +16,12 @@ export async function startInterviewAction(
   const user = await getOrCreateUser();
   if (!user) return { error: "You must be signed in." };
   if (!user.onboardedAt) redirect("/onboarding");
-  try { await rateLimit(user.id, "interview-start"); await assertWithinCostBudget(user.id); } catch (e) { return { error: friendlyError(e) }; }
+  try {
+    await rateLimit(user.id, "interview-start");
+    await assertWithinQuota(user, "INTERVIEW"); // also enforces the $ cost cap internally
+  } catch (e) {
+    return { error: friendlyError(e) };
+  }
 
   const role = String(formData.get("role") ?? "").trim();
   if (role.length < 2) return { error: "Enter the role you're interviewing for." };
@@ -42,6 +47,7 @@ export async function startInterviewAction(
   } catch (err) {
     return { error: friendlyError(err) };
   }
+  await recordUsage(user.id, "INTERVIEW", docId);
   redirect(`/interview/${docId}`);
 }
 
@@ -55,7 +61,7 @@ export async function submitAnswerAction(formData: FormData): Promise<void> {
   if (!user || !docId) return;
   try {
     await rateLimit(user.id, "interview-answer", 40);
-    await assertWithinCostBudget(user.id);
+    await assertWithinCostBudget(user);
     await submitAnswer(user.id, docId, answer, { language, runOutput });
   } catch {
     /* surfaced on the page (busy/complete/rate-limited) */

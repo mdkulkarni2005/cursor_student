@@ -1,9 +1,23 @@
 import { NextResponse } from "next/server";
 import { after } from "next/server";
+import { prisma } from "@studentos/db";
 import { createResumeDoc, runResumeGeneration } from "@/lib/resume/generate";
 import { getOrCreateUser } from "@/lib/user";
 import { rateLimit, friendlyError } from "@/lib/reliability";
 import { assertWithinCostBudget } from "@/lib/entitlements";
+
+export async function GET() {
+  const user = await getOrCreateUser();
+  if (!user) return NextResponse.json({ error: "Sign in required." }, { status: 401 });
+
+  const docs = await prisma.document.findMany({
+    where: { ownerId: user.id, type: "RESUME" },
+    orderBy: { updatedAt: "desc" },
+    select: { id: true, title: true, status: true, createdAt: true, updatedAt: true },
+    take: 100,
+  });
+  return NextResponse.json({ resumes: docs });
+}
 
 export async function POST(req: Request) {
   const user = await getOrCreateUser();
@@ -12,7 +26,7 @@ export async function POST(req: Request) {
 
   try {
     await rateLimit(user.id, "resume");
-    await assertWithinCostBudget(user.id);
+    await assertWithinCostBudget(user);
   } catch (e) {
     return NextResponse.json({ error: friendlyError(e) }, { status: 429 });
   }

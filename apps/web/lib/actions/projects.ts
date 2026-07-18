@@ -37,7 +37,7 @@ export async function suggestIdeasAction(
   const user = await getOrCreateUser();
   if (!user) return { error: "You must be signed in." };
   if (!user.onboardedAt) redirect("/onboarding");
-  try { await rateLimit(user.id, "project-ideas"); await assertWithinCostBudget(user.id); } catch (e) { return { error: friendlyError(e) }; }
+  try { await rateLimit(user.id, "project-ideas"); await assertWithinCostBudget(user); } catch (e) { return { error: friendlyError(e) }; }
 
   const interests = String(formData.get("interests") ?? "").trim() || undefined;
   const difficulty = difficultyOf(formData.get("difficulty"));
@@ -109,7 +109,7 @@ export async function generateBundleAction(formData: FormData): Promise<void> {
   if (!user || !docId) return;
   try {
     await rateLimit(user.id, "project-bundle", 5);
-    await assertWithinCostBudget(user.id);
+    await assertWithinCostBudget(user);
   } catch {
     return;
   }
@@ -123,7 +123,7 @@ export async function refreshPregeneratedIdeasAction(): Promise<void> {
   if (!user) return;
   try {
     await rateLimit(user.id, "project-pregenerated-refresh", 5);
-    await assertWithinCostBudget(user.id);
+    await assertWithinCostBudget(user);
     await getOrGeneratePregeneratedIdeas(user, true);
   } catch {
     redirect("/projects?error=refresh-failed");
@@ -138,7 +138,7 @@ export async function generatePlanAction(formData: FormData): Promise<void> {
   if (!user || !docId) return;
   try {
     await rateLimit(user.id, "project-plan");
-    await assertWithinCostBudget(user.id);
+    await assertWithinCostBudget(user);
   } catch {
     return;
   }
@@ -165,7 +165,7 @@ export async function reviewProjectCodeAction(
 
   try {
     await rateLimit(user.id, "project-code-review");
-    await assertWithinCostBudget(user.id);
+    await assertWithinCostBudget(user);
   } catch (e) {
     return { error: friendlyError(e) };
   }
