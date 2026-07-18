@@ -194,3 +194,57 @@ export const BriefcaseIcon = (p: IconProps) => (
     <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16M2 13h20" />
   </Base>
 );
+
+export const InstagramIcon = (p: IconProps) => (
+  <Base {...p}>
+    <rect x="3" y="3" width="18" height="18" rx="5" />
+    <circle cx="12" cy="12" r="4" />
+    <path d="M17.5 6.5h.01" />
+  </Base>
+);
+
+export const FacebookIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M15 4h-2a4 4 0 00-4 4v3H7v4h2v7h4v-7h3l1-4h-4V8a1 1 0 011-1h3z" />
+  </Base>
+);
+
+export const LinkedInIcon = (p: IconProps) => (
+  <Base {...p}>
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <path d="M7.5 10v7M7.5 7v.01M11.5 17v-4a2 2 0 014-.3M15.5 17v-4.3" />
+  </Base>
+);
+
+export const WrenchIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M14.7 6.3a4 4 0 10-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.8 2.8-2-2z" />
+  </Base>
+);
+
+export const BuildingIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M4 21V6l8-4 8 4v15" />
+    <path d="M4 21h16M9 9h.01M9 13h.01M15 9h.01M15 13h.01M10 21v-5h4v5" />
+  </Base>
+);
+
+export const BoltIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z" />
+  </Base>
+);
+
+export const ChipIcon = (p: IconProps) => (
+  <Base {...p}>
+    <rect x="7" y="7" width="10" height="10" rx="1.5" />
+    <path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3" />
+  </Base>
+);
+
+export const FlaskIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M9 2v6.5L4 18a2 2 0 001.8 3h12.4a2 2 0 001.8-3l-5-9.5V2" />
+    <path d="M8 2h8M6.5 14h11" />
+  </Base>
+);
