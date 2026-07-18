@@ -2,7 +2,7 @@ import { prisma } from "@studentos/db";
 import { getObjectBuffer, putObject, keys } from "@studentos/storage";
 import { renderLabReportDocx, type LabReportSolution } from "@studentos/documents";
 import { generateLabReportSolution, labReportFollowUp, withAiRetry, type LabReportTurn } from "@studentos/ai";
-import { assertWithinQuota, recordUsage } from "@/lib/entitlements";
+import { assertWithinQuota, assertWithinCostBudget, recordUsage } from "@/lib/entitlements";
 import { getOrCreateCurrentWorkspace } from "@/lib/workspace";
 import { setJobStage, addJobCostCents } from "@/lib/jobs";
 
@@ -120,6 +120,8 @@ export async function addLabReportTurn(userId: string, docId: string, message: s
     const loaded = await getLabReport(userId, docId);
     if (!loaded) throw new Error("Lab report not found.");
     const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new Error("Lab report not found.");
+    await assertWithinCostBudget(user);
     const { conversation = [], ...solution } = loaded.data;
 
     const { result, costCents } = await withAiRetry(() => labReportFollowUp({

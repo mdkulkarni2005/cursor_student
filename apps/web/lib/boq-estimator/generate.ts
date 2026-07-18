@@ -2,7 +2,7 @@ import { prisma } from "@studentos/db";
 import { getObjectBuffer, putObject, keys } from "@studentos/storage";
 import { renderBoqDocx, type BOQEstimate } from "@studentos/documents";
 import { generateBoqEstimate, boqFollowUp, withAiRetry, type BOQTurn } from "@studentos/ai";
-import { assertWithinQuota, recordUsage } from "@/lib/entitlements";
+import { assertWithinQuota, assertWithinCostBudget, recordUsage } from "@/lib/entitlements";
 import { getOrCreateCurrentWorkspace } from "@/lib/workspace";
 import { setJobStage, addJobCostCents } from "@/lib/jobs";
 
@@ -112,6 +112,8 @@ export async function addBoqTurn(userId: string, docId: string, message: string)
     const loaded = await getBoqDoc(userId, docId);
     if (!loaded) throw new Error("Estimate not found.");
     const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new Error("Estimate not found.");
+    await assertWithinCostBudget(user);
     const { conversation = [], ...estimate } = loaded.data;
 
     const { result, costCents } = await withAiRetry(() => boqFollowUp({

@@ -10,11 +10,19 @@ import {
   resizeReportFigure,
 } from "@/lib/reports/generate";
 import { rateLimit, friendlyError } from "@/lib/reliability";
+import { assertWithinCostBudget, CostBudgetExceededError } from "@/lib/entitlements";
 import type { FigureSuggestion } from "@studentos/ai";
 
-/** Propose figures for a report (text only — no image generated, no credits spent). */
+/** Propose figures for a report — a real (text) AI call, so it draws from the credit balance same
+ *  as any other generation, even though no image is produced here. */
 export async function suggestFiguresAction(docId: string): Promise<{ figures: FigureSuggestion[]; error?: string }> {
   const user = await requireOnboardedUser();
+  try {
+    await assertWithinCostBudget(user);
+  } catch (e) {
+    if (e instanceof CostBudgetExceededError) return { figures: [], error: e.message };
+    throw e;
+  }
   try {
     const figures = await getReportFigureSuggestions(user.id, docId);
     return { figures };
@@ -28,6 +36,7 @@ export async function approveFigureAction(docId: string, sectionIndex: number, i
   const user = await requireOnboardedUser();
   try {
     await rateLimit(user.id, "figure-approve", 10);
+    await assertWithinCostBudget(user);
   } catch (e) {
     return { ok: false, error: friendlyError(e) };
   }

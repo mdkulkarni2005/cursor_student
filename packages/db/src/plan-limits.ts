@@ -14,6 +14,10 @@ export const planLimitsSchema = z.object({
   features: z.record(z.string(), z.boolean()).default({}),
   // Recruiter-side seat/contact quotas, per calendar month. Missing key = unlimited.
   recruiterUsage: z.record(z.nativeEnum(RecruiterUsageKind), quotaValue).default({}),
+  // This tier's own $ AI-spend cap per calendar month (cents). Null/missing = fall back to the
+  // admin global default (see entitlements.ts MAX_MONTHLY_AI_COST_CENTS) — without this every tier
+  // shared one global cap regardless of price, so a paid tier got no more headroom than free.
+  maxMonthlyAiCostCents: z.number().int().min(0).nullable().optional(),
 });
 
 export type PlanLimits = z.infer<typeof planLimitsSchema>;
@@ -27,4 +31,17 @@ export function parsePlanLimits(value: unknown): PlanLimits {
 
 export function emptyPlanLimits(): PlanLimits {
   return { usage: {}, features: {}, recruiterUsage: {} };
+}
+
+// User-facing "credits" are just maxMonthlyAiCostCents (USD cents, tied to actual vendor billing)
+// converted to a rupee-denominated number at the display/admin-input boundary, so the underlying
+// cost ledger stays accurate to what the AI Gateway actually bills regardless of FX movement.
+export const USD_TO_INR_RATE = 85;
+
+export function usdCentsToCredits(usdCents: number): number {
+  return Math.round((usdCents * USD_TO_INR_RATE) / 100);
+}
+
+export function creditsToUsdCents(credits: number): number {
+  return Math.round((credits * 100) / USD_TO_INR_RATE);
 }

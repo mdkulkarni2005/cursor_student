@@ -6,14 +6,17 @@ import { useState } from "react";
 // since that package's index also instantiates PrismaClient, which must never end up in a client
 // bundle. Keep these lists in sync with the Prisma schema's UsageKind/RecruiterUsageKind and
 // packages/db/src/plan-limits.ts's FEATURE_KEYS.
-const USAGE_KINDS = ["ASSIGNMENT", "REPORT", "PPT", "LAB_REPORT", "BRANCH_SOLVER"] as const;
+const USAGE_KINDS = ["ASSIGNMENT", "REPORT", "PPT", "LAB_REPORT", "BRANCH_SOLVER", "INTERVIEW", "DSA"] as const;
 const RECRUITER_USAGE_KINDS = ["JOB_POSTING", "CANDIDATE_CONTACT"] as const;
 const FEATURE_KEYS = ["priorityQueue", "mentorReview", "earlyAccess"] as const;
+// Keep in sync with packages/db/src/plan-limits.ts USD_TO_INR_RATE.
+const USD_TO_INR_RATE = 85;
 
 export type PlanLimitsJson = {
   usage?: Record<string, number | null>;
   features?: Record<string, boolean>;
   recruiterUsage?: Record<string, number | null>;
+  maxMonthlyAiCostCents?: number | null;
 };
 
 export type PlanTierInitial = {
@@ -36,6 +39,8 @@ const USAGE_LABEL: Record<string, string> = {
   PPT: "PPTs / month",
   LAB_REPORT: "Lab reports / month",
   BRANCH_SOLVER: "Branch-solver tools / month",
+  INTERVIEW: "Mock interview sessions / month",
+  DSA: "DSA problem submissions / month",
 };
 
 const RECRUITER_USAGE_LABEL: Record<string, string> = {
@@ -92,6 +97,11 @@ export function PlanTierForm({
   const usage = initial?.limits.usage ?? {};
   const recruiterUsage = initial?.limits.recruiterUsage ?? {};
   const features = initial?.limits.features ?? {};
+  const initialCostCents = initial?.limits.maxMonthlyAiCostCents;
+  const initialCredits =
+    initialCostCents === null || initialCostCents === undefined
+      ? null
+      : Math.round((initialCostCents * USD_TO_INR_RATE) / 100);
   const [audience, setAudience] = useState<PlanTierInitial["audience"]>(initial?.audience ?? "STUDENT");
 
   return (
@@ -207,6 +217,16 @@ export function PlanTierForm({
         </div>
       </div>
 
+      <div>
+        <h3 className="mb-2 text-[14px] font-bold uppercase tracking-widest text-muted">Monthly AI credits</h3>
+        <p className="mb-2 text-[13px] text-faint">
+          1 credit ≈ ₹1 of real AI cost. Every generation <em>and every edit or regeneration</em> spends from this
+          balance — it&apos;s the hard break-even backstop underneath the quotas below. Leave unlimited to fall
+          back to the platform-wide default cap.
+        </p>
+        <QuotaField name="credits" label="Credits / month" value={initialCredits} />
+      </div>
+
       {audience === "STUDENT" && (
         <div>
           <h3 className="mb-2 text-[14px] font-bold uppercase tracking-widest text-muted">Student usage limits</h3>
@@ -235,10 +255,18 @@ export function PlanTierForm({
       )}
 
       {audience === "PROFESSIONAL" && (
-        <p className="text-[13px] text-faint">
-          Working professionals only get DSA practice + mock interviews, neither of which is metered yet — gate this
-          tier with price and the feature toggles below.
-        </p>
+        <div>
+          <h3 className="mb-2 text-[14px] font-bold uppercase tracking-widest text-muted">Usage limits</h3>
+          <p className="mb-2 text-[13px] text-faint">
+            Working professionals only get DSA practice + mock interviews — the document-generation tools above are
+            student-only.
+          </p>
+          <div className="space-y-2">
+            {(["INTERVIEW", "DSA"] as const).map((kind) => (
+              <QuotaField key={kind} name={`usage_${kind}`} label={USAGE_LABEL[kind]} value={usage[kind]} />
+            ))}
+          </div>
+        </div>
       )}
 
       <div>

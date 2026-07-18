@@ -11,6 +11,9 @@ import { DEPARTMENTS, SEMESTERS } from "@/lib/constants";
 
 type Tab = "profile" | "billing" | "account";
 
+/** One feature's monthly quota status — null limit = unlimited. */
+export type UsageRow = { label: string; used: number; limit: number | null; remaining: number | null };
+
 export type SettingsData = {
   name: string;
   email: string;
@@ -28,9 +31,20 @@ export type SettingsData = {
   linkedin: string | null;
   gpa: number | null;
   plan: string;
-  /** Intelligence Pulse — generations used this period vs total allowance (null limit = unlimited). */
-  usage: { used: number; limit: number | null };
+  priceCents: number | null;
+  currency: string;
+  billingPeriod: string;
+  /** Per-feature quota this period, one row per usage kind the user's audience can hit. */
+  usage: UsageRow[];
+  /** The real break-even backstop — every generation AND every edit/regeneration/follow-up spends
+   *  from this same balance, not just the per-feature quotas above. Null limit = unlimited. */
+  credits: { used: number; limit: number | null; remaining: number | null };
 };
+
+function money(cents: number, currency: string): string {
+  const symbol = currency === "INR" ? "₹" : currency + " ";
+  return `${symbol}${(cents / 100).toFixed(cents % 100 === 0 ? 0 : 2)}`;
+}
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "profile", label: "Profile" },
@@ -259,7 +273,12 @@ export function SettingsView({ data }: { data: SettingsData }) {
                   </span>
                   <div>
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">Current Plan</p>
-                    <p className="font-display text-[20px] font-semibold text-ink">Vidyas {data.plan}</p>
+                    <p className="font-display text-[20px] font-semibold text-ink">{data.plan}</p>
+                    <p className="text-[13px] text-soft">
+                      {data.priceCents === null || data.priceCents === 0
+                        ? "Free"
+                        : `${money(data.priceCents, data.currency)} / ${data.billingPeriod === "monthly" ? "month" : data.billingPeriod}`}
+                    </p>
                   </div>
                 </div>
                 <Link
@@ -269,30 +288,50 @@ export function SettingsView({ data }: { data: SettingsData }) {
                   Change Plan
                 </Link>
               </div>
-              <div className="rounded-xl border border-line bg-surface p-5">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-[12px] font-bold uppercase tracking-widest text-muted">Intelligence Pulse</p>
-                    <p className="mt-0.5 text-[13px] text-soft">Generations used this period</p>
-                  </div>
-                  <span className="font-display text-[15px] font-semibold text-ink">
-                    {data.usage.used} / {data.usage.limit === null ? "∞" : data.usage.limit}
-                  </span>
-                </div>
-                <div className="mt-3 h-3 overflow-hidden rounded-full bg-card">
-                  <div
-                    className="h-full rounded-full bg-cyan"
-                    style={{ width: `${data.usage.limit ? Math.min(100, Math.round((data.usage.used / data.usage.limit) * 100)) : 8}%` }}
-                  />
-                </div>
-                <p className="mt-3 text-[13px] text-soft">
-                  {data.userType === "PROFESSIONAL"
-                    ? "Your plan governs DSA practice and mock interview access."
-                    : data.usage.limit === null
-                      ? "Unlimited reports, PPTs, assignments and prep on your plan."
-                      : `Your ${data.plan} plan includes a generous monthly allowance for reports, PPTs and assignments. Limits reset on the 1st.`}
+              <div className="rounded-xl border border-teal/30 bg-teal/5 p-5">
+                <p className="text-[12px] font-bold uppercase tracking-widest text-teal">Credit balance</p>
+                <p className="mt-0.5 text-[13px] text-soft">
+                  Every generation and every edit or regeneration spends credits — resets on the 1st.
                 </p>
-                <Link href="/plans" className="mt-3 inline-block text-[13px] font-semibold text-cyan hover:underline">Compare plans →</Link>
+                <div className="mt-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[13.5px] text-ink">Credits</span>
+                    <span className="font-display text-[14px] font-semibold text-ink">
+                      {data.credits.used} / {data.credits.limit === null ? "∞" : data.credits.limit}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-card">
+                    <div
+                      className={`h-full rounded-full ${data.credits.limit !== null && data.credits.remaining === 0 ? "bg-danger" : "bg-teal"}`}
+                      style={{
+                        width: `${data.credits.limit ? Math.min(100, Math.round((data.credits.used / data.credits.limit) * 100)) : 8}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="rounded-xl border border-line bg-surface p-5">
+                <p className="text-[12px] font-bold uppercase tracking-widest text-muted">This month&apos;s usage</p>
+                <p className="mt-0.5 text-[13px] text-soft">Resets on the 1st of every month.</p>
+                <div className="mt-4 space-y-4">
+                  {data.usage.map((row) => (
+                    <div key={row.label}>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[13.5px] text-ink">{row.label}</span>
+                        <span className="font-display text-[14px] font-semibold text-ink">
+                          {row.used} / {row.limit === null ? "∞" : row.limit}
+                        </span>
+                      </div>
+                      <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-card">
+                        <div
+                          className={`h-full rounded-full ${row.limit !== null && row.remaining === 0 ? "bg-danger" : "bg-cyan"}`}
+                          style={{ width: `${row.limit ? Math.min(100, Math.round((row.used / row.limit) * 100)) : 8}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <Link href="/plans" className="mt-5 inline-block text-[13px] font-semibold text-cyan hover:underline">Compare plans →</Link>
               </div>
             </div>
           </div>

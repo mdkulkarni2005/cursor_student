@@ -1,5 +1,5 @@
 import "server-only";
-import { prisma, parsePlanLimits, emptyPlanLimits } from "@studentos/db";
+import { prisma, parsePlanLimits, emptyPlanLimits, usdCentsToCredits } from "@studentos/db";
 import type { Recruiter, RecruiterUsageKind, PlanLimits } from "@studentos/db";
 
 /**
@@ -75,4 +75,60 @@ export async function assertRecruiterWithinQuota(recruiter: Recruiter, kind: Rec
 
 export async function recordRecruiterUsage(recruiterId: string, kind: RecruiterUsageKind): Promise<void> {
   await prisma.recruiterUsageEvent.create({ data: { recruiterId, kind } });
+}
+
+const COST_CAP_SETTING_KEY = "MAX_MONTHLY_AI_COST_CENTS"; // same global admin key the student side uses
+const DEFAULT_MAX_MONTHLY_AI_COST_CENTS = 300; // $3.00/recruiter/month, only when a tier doesn't set its own
+
+export class RecruiterCostBudgetExceededError extends Error {
+  constructor(public readonly capCents: number) {
+    super(
+      `You've reached this month's AI usage limit ($${(capCents / 100).toFixed(2)}) for candidate matching. It resets on the 1st.`,
+    );
+    this.name = "RecruiterCostBudgetExceededError";
+  }
+}
+
+async function getMaxMonthlyAiCostCents(): Promise<number> {
+  const row = await prisma.platformSetting.findUnique({ where: { key: COST_CAP_SETTING_KEY } });
+  const n = row ? Number(row.value) : NaN;
+  return Number.isFinite(n) && n >= 0 ? n : DEFAULT_MAX_MONTHLY_AI_COST_CENTS;
+}
+
+export async function recruiterAiCostCentsThisPeriod(recruiterId: string): Promise<number> {
+  const agg = await prisma.recruiterAiSpend.aggregate({
+    _sum: { costCents: true },
+    where: { recruiterId, createdAt: { gte: periodStart() } },
+  });
+  return agg._sum.costCents ?? 0;
+}
+
+/** Hard $ backstop on recruiter-side AI spend (candidate matching) — previously completely
+ *  unmetered, unlike every student-side AI action. Tier's own `maxMonthlyAiCostCents` wins if
+ *  set, else the same global admin default the student side falls back to. */
+export async function assertRecruiterWithinCostBudget(recruiterId: string): Promise<void> {
+  const tier = await getActiveRecruiterPlanTier(recruiterId);
+  const cap = tier.limits.maxMonthlyAiCostCents ?? (await getMaxMonthlyAiCostCents());
+  const used = await recruiterAiCostCentsThisPeriod(recruiterId);
+  if (used >= cap) throw new RecruiterCostBudgetExceededError(cap);
+}
+
+export async function recordRecruiterAiSpend(recruiterId: string, costCents: number, jobPostingId?: string): Promise<void> {
+  if (costCents <= 0) return;
+  await prisma.recruiterAiSpend.create({ data: { recruiterId, costCents, jobPostingId } });
+}
+
+/** Recruiter-side mirror of apps/web/lib/entitlements.ts's creditStatus — same ₹-credit balance
+ *  concept, backed by RecruiterAiSpend instead of GenerationJob.costCents. */
+export type RecruiterCreditStatus = { limit: number | null; used: number; remaining: number | null };
+
+export async function recruiterCreditStatus(recruiterId: string): Promise<RecruiterCreditStatus> {
+  const tier = await getActiveRecruiterPlanTier(recruiterId);
+  const [capCents, usedCents] = await Promise.all([
+    tier.limits.maxMonthlyAiCostCents ?? getMaxMonthlyAiCostCents(),
+    recruiterAiCostCentsThisPeriod(recruiterId),
+  ]);
+  const limit = tier.limits.maxMonthlyAiCostCents === null ? null : usdCentsToCredits(capCents);
+  const used = usdCentsToCredits(usedCents);
+  return { limit, used, remaining: limit === null ? null : Math.max(0, limit - used) };
 }
