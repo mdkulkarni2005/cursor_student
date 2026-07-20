@@ -1,8 +1,8 @@
-import { SignIn } from "@clerk/nextjs";
+import { SignUp } from "@clerk/nextjs";
 import { Logo } from "@/components/logo";
 import { BadgeCheckIcon, BarChartIcon, VideoIcon, ChatIcon } from "@/components/icons";
 
-export default function SignInPage() {
+export default function SignUpPage() {
   return (
     <main className="flex min-h-screen bg-canvas">
       <div className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 lg:w-1/2">
@@ -10,9 +10,9 @@ export default function SignInPage() {
           <div className="mb-8">
             <Logo size={28} suffix="Recruiter" />
           </div>
-          <h1 className="font-display text-[28px] font-bold tracking-tight text-ink">Welcome Back</h1>
-          <p className="mb-6 mt-1.5 text-[14px] text-muted">Sign in to discover and connect with verified student talent.</p>
-          <SignIn fallbackRedirectUrl="/" signUpUrl="/sign-up" />
+          <h1 className="font-display text-[28px] font-bold tracking-tight text-ink">Create your account</h1>
+          <p className="mb-6 mt-1.5 text-[14px] text-muted">Start discovering and hiring top student talent.</p>
+          <SignUp fallbackRedirectUrl="/" signInUrl="/sign-in" />
         </div>
       </div>
       <aside className="relative hidden w-1/2 overflow-hidden bg-[#1a2d3d] p-12 text-on-accent lg:flex lg:flex-col lg:justify-center">

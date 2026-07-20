@@ -80,7 +80,7 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
       <div className="w-full max-w-[440px]">
         <div className="mb-6 flex items-center justify-between gap-2.5">
           <div className="flex items-center gap-2.5">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-accent-gradient shadow-[0_0_18px_rgba(246,146,30,0.4)]">
+            <span className="flex size-9 items-center justify-center rounded-xl bg-accent-gradient shadow-[0_0_18px_rgba(254,127,45,0.4)]">
               <Sparkle size={18} className="text-on-accent" />
             </span>
             <span className="font-display text-lg font-bold text-ink">krackit</span>
@@ -287,7 +287,7 @@ export function OnboardingForm({ firstName }: { firstName: string | null }) {
           <button
             type="submit"
             disabled={pending || !accepted}
-            className="w-full rounded-xl bg-accent-gradient py-3 text-[14px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(246,146,30,0.3)] transition-transform hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
+            className="w-full rounded-xl bg-accent-gradient py-3 text-[14px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(254,127,45,0.3)] transition-transform hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
           >
             {pending ? "Setting up your workspace…" : "Enter krackit →"}
           </button>

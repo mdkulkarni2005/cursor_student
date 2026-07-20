@@ -17,7 +17,7 @@ export function ComingSoon({
   return (
     <div className="mx-auto max-w-[560px] pt-6">
       <div className="rounded-2xl border border-line bg-card p-8 text-center sm:p-10">
-        <span className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-accent-gradient shadow-[0_0_20px_rgba(246,146,30,0.35)]">
+        <span className="mx-auto mb-4 flex size-12 items-center justify-center rounded-2xl bg-accent-gradient shadow-[0_0_20px_rgba(254,127,45,0.35)]">
           <Sparkle size={22} className="text-on-accent" />
         </span>
         <span className="mb-3 inline-block rounded-full border border-cyan/25 bg-cyan/10 px-3 py-1 text-[11.5px] font-semibold tracking-wide text-cyan">

@@ -156,7 +156,7 @@ export function ResumeEditor({ docId, resume }: { docId: string; resume: Resume 
 
       <SubmitButton
         loadingText="Saving…"
-        className="w-full rounded-xl bg-cyan py-3 text-[14px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(246,146,30,0.25)] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
+        className="w-full rounded-xl bg-cyan py-3 text-[14px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(254,127,45,0.25)] transition-transform hover:-translate-y-0.5 disabled:opacity-60"
       >
         ✦ Optimize &amp; Save →
       </SubmitButton>

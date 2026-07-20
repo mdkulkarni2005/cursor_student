@@ -63,7 +63,7 @@ function parseDoc(root: HTMLElement): ReportData {
 function SaveButton() {
   const { pending } = useFormStatus();
   return (
-    <Button type="submit" loading={pending} loadingText="Saving…" className="rounded-lg bg-accent-gradient px-4 py-2 text-[13px] font-semibold text-on-accent shadow-[0_4px_14px_rgba(246,146,30,0.3)]">
+    <Button type="submit" loading={pending} loadingText="Saving…" className="rounded-lg bg-accent-gradient px-4 py-2 text-[13px] font-semibold text-on-accent shadow-[0_4px_14px_rgba(254,127,45,0.3)]">
       Save to template
     </Button>
   );

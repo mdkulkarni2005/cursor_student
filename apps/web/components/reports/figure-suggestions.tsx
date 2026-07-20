@@ -74,7 +74,7 @@ export function FigureSuggestions({ docId }: { docId: string }) {
                   <button
                     onClick={() => approve(i, c)}
                     disabled={c.state === "generating"}
-                    className="rounded-lg bg-accent-gradient px-3 py-1.5 text-[12px] font-semibold text-on-accent shadow-[0_4px_14px_rgba(246,146,30,0.3)] disabled:opacity-60"
+                    className="rounded-lg bg-accent-gradient px-3 py-1.5 text-[12px] font-semibold text-on-accent shadow-[0_4px_14px_rgba(254,127,45,0.3)] disabled:opacity-60"
                   >
                     {c.state === "generating" ? "Generating…" : "✦ Approve & generate"}
                   </button>

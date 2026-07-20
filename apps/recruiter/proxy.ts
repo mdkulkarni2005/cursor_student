@@ -6,7 +6,7 @@ import { NextResponse } from "next/server";
 // routes signed-in users through the guard as before). Application-status checking
 // (requireRecruiter()) happens per-page, not here, so a signed-in but not-yet-approved
 // recruiter gets a clear status page instead of a silent redirect loop.
-const isPublicRoute = createRouteMatcher(["/", "/sign-in(.*)"]);
+const isPublicRoute = createRouteMatcher(["/", "/sign-in(.*)", "/sign-up(.*)"]);
 
 export default clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {

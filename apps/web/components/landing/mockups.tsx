@@ -70,7 +70,7 @@ export function InterviewMockup() {
           <span className="size-1.5 animate-pulse-ring rounded-full bg-white" />
           REC
         </div>
-        <div className="relative flex size-24 items-center justify-center rounded-full bg-accent-gradient text-[13px] font-bold text-on-accent shadow-[0_0_40px_rgba(246,146,30,0.4)]">
+        <div className="relative flex size-24 items-center justify-center rounded-full bg-accent-gradient text-[13px] font-bold text-on-accent shadow-[0_0_40px_rgba(254,127,45,0.4)]">
           AI
           <span className="voice-ring absolute inset-0 rounded-full border-2 border-cyan/60" />
           <span

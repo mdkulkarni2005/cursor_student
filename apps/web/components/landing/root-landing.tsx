@@ -56,6 +56,13 @@ const STUDENT_POINTS = [
   "ATS-ready resumes and a proof-of-work profile",
 ];
 
+const PROFESSIONAL_POINTS = [
+  "AI-powered resume optimization for every career level",
+  "Mock interviews tailored to your target role and industry",
+  "DSA & coding skill assessments to keep your edge",
+  "Shareable profile to showcase your verified work and scores",
+];
+
 const RECRUITER_POINTS = [
   "Students with verified projects, not just resumes",
   "Real DSA scores and interview performance",
@@ -283,46 +290,49 @@ export function RootLanding() {
   return (
     <div className="min-h-screen overflow-hidden bg-canvas">
       {/* NAV */}
-      <header className="animate-fade-in-up fixed inset-x-0 top-0 z-50 border-b border-line bg-base/80 backdrop-blur-lg">
-        <div className="mx-auto flex h-[64px] max-w-[1440px] items-center justify-between px-5 sm:px-8 lg:px-12 xl:px-16">
+      <header className="animate-fade-in-up fixed inset-x-0 top-0 z-50 border-b border-line bg-base/70 backdrop-blur-xl">
+        <div className="mx-auto flex h-[64px] max-w-7xl items-center justify-between px-5">
           <Logo size={30} />
-          <div className="flex items-center gap-2">
-            <a href={`${APP_URL}/sign-in`} className="hidden rounded-xl px-4 py-2 text-[13px] font-semibold text-soft transition-colors hover:bg-surface sm:block">
+          <div className="flex items-center gap-4 sm:gap-6">
+            <a href={APP_URL} className="hidden text-[13px] font-medium text-soft transition-colors hover:text-ink sm:block">
               Students
             </a>
-            <a href={`${RECRUITER_URL}/sign-in`} className="hidden rounded-xl px-4 py-2 text-[13px] font-semibold text-soft transition-colors hover:bg-surface sm:block">
+            <a href={`${APP_URL}/for-professionals`} className="hidden text-[13px] font-medium text-soft transition-colors hover:text-ink lg:block">
+              Professionals
+            </a>
+            <a href={RECRUITER_URL} className="hidden text-[13px] font-medium text-soft transition-colors hover:text-ink sm:block">
               Recruiters
             </a>
-            <a href="#contact" className="hidden rounded-xl px-4 py-2 text-[13px] font-semibold text-soft transition-colors hover:bg-surface sm:block">
+            <a href="#contact" className="hidden text-[13px] font-medium text-soft transition-colors hover:text-ink sm:block">
               Contact
             </a>
-            <ThemeToggle compact className="!px-2.5" />
-            {/* One login for both audiences — an already-signed-in recruiter lands straight
-                back on recruiter.krackit.in with no second sign-in (route-after-login). */}
-            <a
-              href={`${APP_URL}/sign-in`}
-              className="rounded-xl px-4 py-2 text-[13px] font-semibold text-soft transition-colors hover:bg-surface"
-            >
-              Login
-            </a>
-            <a
-              href={`${APP_URL}/sign-up`}
-              className="rounded-xl bg-accent-gradient px-4 py-2 text-[13px] font-semibold text-on-accent transition-transform hover:-translate-y-0.5"
-            >
-              Get started
-            </a>
+            <div className="flex items-center gap-3">
+              <a
+                href={`${APP_URL}/sign-in`}
+                className="text-[13px] font-medium text-soft transition-colors hover:text-ink"
+              >
+                Sign in
+              </a>
+              <a
+                href={`${APP_URL}/sign-up`}
+                className="rounded-xl bg-accent-gradient px-4 py-2 text-[13px] font-semibold text-on-accent shadow-[0_4px_16px_rgba(254,127,45,0.25)] transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(254,127,45,0.35)]"
+              >
+                Get started
+              </a>
+              <ThemeToggle compact className="!px-2" />
+            </div>
           </div>
         </div>
       </header>
 
       {/* HERO */}
-      <section className="relative mx-auto flex max-w-[1440px] flex-col items-center justify-center px-5 pb-16 pt-28 text-center sm:px-8 lg:min-h-screen lg:px-12 xl:px-16">
-        <div className="pointer-events-none absolute -top-40 left-1/2 size-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(246,146,30,0.08),transparent_70%)] animate-float-drift" />
+      <section className="relative mx-auto flex max-w-7xl flex-col items-center justify-center px-5 pb-16 pt-28 text-center lg:min-h-screen">
+        <div className="pointer-events-none absolute -top-40 left-1/2 size-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(254,127,45,0.08),transparent_70%)] animate-float-drift" />
 
         <div className="relative w-full">
           <div className="animate-fade-in-up mb-6 inline-block rounded-full border border-cyan/20 bg-cyan/8 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-cyan">
             <span className="mr-2 inline-block size-1.5 animate-pulse-ring rounded-full bg-cyan" />
-            The career operating system for students
+            The career platform for everyone
           </div>
 
           <h1 className="font-display text-[40px] font-bold leading-[1.08] tracking-tight text-ink sm:text-[54px] lg:text-[62px] xl:text-[70px]">
@@ -335,7 +345,7 @@ export function RootLanding() {
           </h1>
 
           <p className="animate-fade-in-up stagger-3 mx-auto mt-5 max-w-[600px] text-[16px] leading-relaxed text-muted">
-            One platform where students create, practice, and prove their work — and recruiters hire
+            One platform where students create, professionals upskill, and recruiters hire
             on evidence, not buzzwords. Whichever side you&apos;re on, krackit gets you there faster.
           </p>
 
@@ -343,14 +353,14 @@ export function RootLanding() {
             <ClutterToClarityVisual />
           </div>
 
-          {/* THE CHOICE — the whole point of this page */}
-          <div className="animate-fade-in-up stagger-5 mx-auto mt-10 grid w-full max-w-5xl gap-5 text-left md:grid-cols-2 xl:max-w-6xl">
+          {/* THE CHOICE — three audiences */}
+          <div className="animate-fade-in-up stagger-5 mx-auto mt-10 grid w-full max-w-6xl gap-5 text-left md:grid-cols-3">
             <a
-              href={`${APP_URL}/sign-in`}
-              className="group relative overflow-hidden rounded-3xl border border-line bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-cyan/40 hover:shadow-[0_18px_50px_rgba(246,146,30,0.18)]"
+              href={APP_URL}
+              className="group relative overflow-hidden rounded-3xl border border-line bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-cyan/40 hover:shadow-[0_18px_50px_rgba(254,127,45,0.18)]"
             >
-              <div className="pointer-events-none absolute -right-12 -top-12 size-40 rounded-full bg-[radial-gradient(circle,rgba(246,146,30,0.14),transparent_70%)] transition-transform duration-500 group-hover:scale-125" />
-              <span className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-accent-gradient text-on-accent shadow-[0_8px_20px_rgba(246,146,30,0.3)]">
+              <div className="pointer-events-none absolute -right-12 -top-12 size-40 rounded-full bg-[radial-gradient(circle,rgba(254,127,45,0.14),transparent_70%)] transition-transform duration-500 group-hover:scale-125" />
+              <span className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-accent-gradient text-on-accent shadow-[0_8px_20px_rgba(254,127,45,0.3)]">
                 <GraduationCapIcon size={22} />
               </span>
               <h2 className="font-display text-[22px] font-bold text-ink">I&apos;m a student</h2>
@@ -369,17 +379,17 @@ export function RootLanding() {
             </a>
 
             <a
-              href={`${RECRUITER_URL}/sign-in`}
-              className="group relative overflow-hidden rounded-3xl border border-line bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-indigo/40 hover:shadow-[0_18px_50px_rgba(129,140,248,0.18)]"
+              href={`${APP_URL}/for-professionals`}
+              className="group relative overflow-hidden rounded-3xl border border-line bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-indigo/40 hover:shadow-[0_18px_50px_rgba(247,193,49,0.18)]"
             >
-              <div className="pointer-events-none absolute -right-12 -top-12 size-40 rounded-full bg-[radial-gradient(circle,rgba(129,140,248,0.14),transparent_70%)] transition-transform duration-500 group-hover:scale-125" />
-              <span className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo/80 to-violet/70 text-white shadow-[0_8px_20px_rgba(129,140,248,0.3)]">
+              <div className="pointer-events-none absolute -right-12 -top-12 size-40 rounded-full bg-[radial-gradient(circle,rgba(247,193,49,0.14),transparent_70%)] transition-transform duration-500 group-hover:scale-125" />
+              <span className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo/80 to-violet/70 text-white shadow-[0_8px_20px_rgba(247,193,49,0.3)]">
                 <BriefcaseIcon size={22} />
               </span>
-              <h2 className="font-display text-[22px] font-bold text-ink">I&apos;m a recruiter</h2>
-              <p className="mt-1 text-[13.5px] text-muted">Hire on proof, not promises.</p>
+              <h2 className="font-display text-[22px] font-bold text-ink">I&apos;m a professional</h2>
+              <p className="mt-1 text-[13.5px] text-muted">Upskill, showcase, and advance.</p>
               <ul className="mt-4 space-y-2">
-                {RECRUITER_POINTS.map((p) => (
+                {PROFESSIONAL_POINTS.map((p) => (
                   <li key={p} className="flex items-start gap-2 text-[13px] leading-relaxed text-soft">
                     <span className="mt-0.5 text-indigo">✓</span>
                     {p}
@@ -387,6 +397,29 @@ export function RootLanding() {
                 ))}
               </ul>
               <span className="mt-6 inline-flex items-center gap-1.5 rounded-xl border border-indigo/40 bg-indigo/10 px-5 py-2.5 text-[13.5px] font-semibold text-ink transition-transform group-hover:translate-x-1">
+                Enter as a professional →
+              </span>
+            </a>
+
+            <a
+              href={RECRUITER_URL}
+              className="group relative overflow-hidden rounded-3xl border border-line bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-amber/40 hover:shadow-[0_18px_50px_rgba(247,193,49,0.18)]"
+            >
+              <div className="pointer-events-none absolute -right-12 -top-12 size-40 rounded-full bg-[radial-gradient(circle,rgba(247,193,49,0.14),transparent_70%)] transition-transform duration-500 group-hover:scale-125" />
+              <span className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber/80 to-yellow/60 text-white shadow-[0_8px_20px_rgba(247,193,49,0.3)]">
+                <span className="text-[20px]">💼</span>
+              </span>
+              <h2 className="font-display text-[22px] font-bold text-ink">I&apos;m a recruiter</h2>
+              <p className="mt-1 text-[13.5px] text-muted">Hire on proof, not promises.</p>
+              <ul className="mt-4 space-y-2">
+                {RECRUITER_POINTS.map((p) => (
+                  <li key={p} className="flex items-start gap-2 text-[13px] leading-relaxed text-soft">
+                    <span className="mt-0.5 text-amber">✓</span>
+                    {p}
+                  </li>
+                ))}
+              </ul>
+              <span className="mt-6 inline-flex items-center gap-1.5 rounded-xl border border-amber/40 bg-amber/10 px-5 py-2.5 text-[13.5px] font-semibold text-ink transition-transform group-hover:translate-x-1">
                 Enter as a recruiter →
               </span>
             </a>
@@ -749,19 +782,77 @@ export function RootLanding() {
       </section>
 
       {/* FOOTER */}
-      <Reveal>
-        <footer className="border-t border-line">
-          <div className="mx-auto flex max-w-[1440px] flex-wrap items-center justify-between gap-4 px-5 py-6 sm:px-8 lg:px-12 xl:px-16">
-            <Logo size={24} />
-            <div className="flex gap-5 text-[12.5px] text-faint">
+      <footer className="border-t border-line bg-base/80">
+        <div className="mx-auto max-w-7xl px-5 pt-16 pb-8">
+          <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="lg:col-span-2">
+              <Logo size={28} />
+              <p className="mt-3 max-w-[320px] text-[13px] leading-relaxed text-muted">
+                krackit is the career acceleration platform where students create, professionals
+                upskill, and recruiters hire on proof of work — not buzzwords.
+              </p>
+              <div className="mt-5 flex gap-3">
+                <a href="mailto:support@krackit.in" className="flex size-9 items-center justify-center rounded-lg border border-line bg-surface text-[13px] text-muted transition-colors hover:border-cyan/30 hover:text-cyan">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg>
+                </a>
+                <a href="#" className="flex size-9 items-center justify-center rounded-lg border border-line bg-surface text-[13px] text-muted transition-colors hover:border-cyan/30 hover:text-cyan">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.24 2.5H5.76A3.26 3.26 0 002.5 5.76v12.48a3.26 3.26 0 003.26 3.26h6.3v-7.2h-2.4v-2.8h2.4V9.1a3.35 3.35 0 013.58-3.68c.72 0 1.46.06 2.18.18v2.4h-1.24c-1.18 0-1.42.56-1.42 1.38v1.82h2.6l-.42 2.8h-2.18V21.5h3.88a3.26 3.26 0 003.26-3.26V5.76a3.26 3.26 0 00-3.26-3.26z"/></svg>
+                </a>
+                <a href="#" className="flex size-9 items-center justify-center rounded-lg border border-line bg-surface text-[13px] text-muted transition-colors hover:border-cyan/30 hover:text-cyan">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M22.16 5.66a8.58 8.58 0 01-2.47.68 4.32 4.32 0 001.9-2.38 8.62 8.62 0 01-2.73 1.04 4.3 4.3 0 00-7.34 3.93A12.22 12.22 0 013.15 4.28a4.3 4.3 0 001.33 5.74 4.27 4.27 0 01-1.95-.54v.05a4.3 4.3 0 003.45 4.22 4.3 4.3 0 01-1.94.07 4.31 4.31 0 004.02 2.99 8.65 8.65 0 01-5.35 1.84A8.7 8.7 0 012 18.6a12.2 12.2 0 0018.98-10.24c0-.19 0-.37-.01-.56a8.72 8.72 0 002.19-2.14z"/></svg>
+                </a>
+                <a href="#" className="flex size-9 items-center justify-center rounded-lg border border-line bg-surface text-[13px] text-muted transition-colors hover:border-cyan/30 hover:text-cyan">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.04c-5.52 0-10 4.48-10 10 0 4.42 2.87 8.17 6.84 9.5.5.09.68-.22.68-.48 0-.24-.01-.88-.01-1.73-2.78.6-3.37-1.34-3.37-1.34-.45-1.15-1.11-1.46-1.11-1.46-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.35 1.09 2.92.83.09-.65.35-1.09.64-1.34-2.22-.25-4.56-1.11-4.56-4.95 0-1.09.39-1.99 1.03-2.69-.1-.26-.45-1.28.1-2.66 0 0 .84-.27 2.75 1.02.8-.22 1.65-.33 2.5-.34.85.01 1.7.12 2.5.34 1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.66.64.7 1.03 1.6 1.03 2.69 0 3.84-2.34 4.7-4.57 4.95.36.31.68.92.68 1.86 0 1.34-.01 2.42-.01 2.75 0 .27.18.58.69.48 3.97-1.33 6.84-5.08 6.84-9.5 0-5.52-4.48-10-10-10z"/></svg>
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <h4 className="text-[12px] font-semibold uppercase tracking-[0.12em] text-ink">Product</h4>
+              <ul className="mt-4 space-y-2.5">
+                <li><a href={`${APP_URL}/sign-up`} className="text-[13px] text-muted transition-colors hover:text-ink">For Students</a></li>
+                <li><a href={`${APP_URL}/for-professionals`} className="text-[13px] text-muted transition-colors hover:text-ink">For Professionals</a></li>
+                <li><a href={RECRUITER_URL} className="text-[13px] text-muted transition-colors hover:text-ink">For Recruiters</a></li>
+                <li><a href={`${APP_URL}/pricing`} className="text-[13px] text-muted transition-colors hover:text-ink">Pricing</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="text-[12px] font-semibold uppercase tracking-[0.12em] text-ink">Company</h4>
+              <ul className="mt-4 space-y-2.5">
+                <li><a href={`mailto:support@krackit.in`} className="text-[13px] text-muted transition-colors hover:text-ink">Contact</a></li>
+                <li><a href={`${APP_URL}/support`} className="text-[13px] text-muted transition-colors hover:text-ink">Support</a></li>
+                <li><a href={`${APP_URL}/privacy`} className="text-[13px] text-muted transition-colors hover:text-ink">Privacy Policy</a></li>
+                <li><a href={`${APP_URL}/terms`} className="text-[13px] text-muted transition-colors hover:text-ink">Terms of Service</a></li>
+              </ul>
+            </div>
+
+            <div className="sm:col-span-2 lg:col-span-1">
+              <h4 className="text-[12px] font-semibold uppercase tracking-[0.12em] text-ink">Get started</h4>
+              <p className="mt-3 text-[13px] leading-relaxed text-muted">
+                Create your free account today. No credit card needed.
+              </p>
+              <a
+                href={`${APP_URL}/sign-up`}
+                className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-accent-gradient px-5 py-2.5 text-[13px] font-semibold text-on-accent shadow-[0_4px_12px_rgba(254,127,45,0.25)] transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(254,127,45,0.35)]"
+              >
+                Start free →
+              </a>
+            </div>
+          </div>
+
+          <div className="mt-14 flex flex-col items-center justify-between gap-3 border-t border-line pt-6 sm:flex-row">
+            <p className="text-[12px] text-faint">
+              &copy; {new Date().getFullYear()} Quorium Technologies. All rights reserved.
+            </p>
+            <div className="flex gap-5 text-[12px] text-faint">
               <a href={`${APP_URL}/privacy`} className="transition-colors hover:text-soft">Privacy</a>
               <a href={`${APP_URL}/terms`} className="transition-colors hover:text-soft">Terms</a>
-              <a href={`mailto:${CONTACT_EMAIL}`} className="transition-colors hover:text-soft">{CONTACT_EMAIL}</a>
+              <a href={`mailto:support@krackit.in`} className="transition-colors hover:text-soft">support@krackit.in</a>
             </div>
-            <p className="text-[12px] text-faint">© {new Date().getFullYear()} Quorium Technologies</p>
           </div>
-        </footer>
-      </Reveal>
+        </div>
+      </footer>
     </div>
   );
 }

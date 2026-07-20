@@ -104,7 +104,7 @@ export default async function PlannerPage() {
                       <div
                         key={i}
                         className={`flex h-32 flex-col rounded-xl border p-3 ${
-                          today ? "border-2 border-cyan bg-card shadow-[0_8px_24px_rgba(246,146,30,0.15)]" : "border-line bg-surface"
+                          today ? "border-2 border-cyan bg-card shadow-[0_8px_24px_rgba(254,127,45,0.15)]" : "border-line bg-surface"
                         }`}
                       >
                         <span className={`text-[12px] font-bold ${today ? "text-cyan" : "text-ink"}`}>{d.day}</span>
@@ -127,7 +127,7 @@ export default async function PlannerPage() {
                   <div className="relative mb-4 flex size-24 items-center justify-center">
                     <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100">
                       <circle cx="50" cy="50" r="42" fill="transparent" stroke="var(--color-surface)" strokeWidth="8" />
-                      <circle cx="50" cy="50" r="42" fill="transparent" stroke="#f6921e" strokeWidth="8" strokeLinecap="round" strokeDasharray="264" strokeDashoffset={264 - (264 * plan.readiness) / 100} />
+                      <circle cx="50" cy="50" r="42" fill="transparent" stroke="#FE7F2D" strokeWidth="8" strokeLinecap="round" strokeDasharray="264" strokeDashoffset={264 - (264 * plan.readiness) / 100} />
                     </svg>
                     <span className="font-display text-[22px] font-bold text-ink">{plan.readiness}%</span>
                   </div>

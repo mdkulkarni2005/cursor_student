@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f7f7f7",
+  themeColor: "#ffffff",
   width: "device-width",
   initialScale: 1,
 };
@@ -43,12 +43,12 @@ export default function RootLayout({
       signUpFallbackRedirectUrl="/dashboard"
       appearance={{
         variables: {
-          colorPrimary: "#f6921e",
+          colorPrimary: "#FE7F2D",
           colorBackground: "#ffffff",
-          colorInputBackground: "#f2f4f6",
-          colorText: "#152241",
+          colorInputBackground: "#f5f5f5",
+          colorText: "#233D4D",
           colorTextSecondary: "#5c5555",
-          colorInputText: "#152241",
+          colorInputText: "#233D4D",
           borderRadius: "0.75rem",
         },
       }}
