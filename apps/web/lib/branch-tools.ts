@@ -1,5 +1,5 @@
 import type { ComponentType, SVGProps } from "react";
-import { CodeIcon, HelpIcon, LayersIcon, ChipIcon, WaveformIcon, OpAmpIcon, FlaskIcon, PipelineIcon, ChartIcon, BeamIcon, CubeIcon } from "@/components/icons";
+import { CodeIcon, HelpIcon, LayersIcon, ChipIcon, WaveformIcon, OpAmpIcon, FlaskIcon, PipelineIcon, ChartIcon, BeamIcon, CubeIcon, NetworkIcon, TableIcon, LayeredNetworkIcon } from "@/components/icons";
 
 export type BranchToolCard = {
   feature: string;
@@ -136,5 +136,45 @@ export const BRANCH_TOOL_CARDS: BranchToolCard[] = [
     icon: ChartIcon,
     blurb: "Pick a compound and explore boiling point, density, molarity & concentration on live interactive charts.",
     cta: "Look Up a Compound",
+  },
+  {
+    feature: "ai-ml-solver",
+    label: "AI/ML Numerical Solver",
+    href: "/solve/ai-ml-solver",
+    icon: CodeIcon,
+    blurb: "Step-by-step worked solutions for linear algebra, probability, backprop gradients & evaluation metrics.",
+    cta: "Solve a Problem",
+  },
+  {
+    feature: "transformer-visualizer",
+    label: "Transformer Attention Visualizer",
+    href: "/transformer-visualizer",
+    icon: NetworkIcon,
+    blurb: "Type a sentence and watch self-attention compute live — see which tokens attend to which, head by head.",
+    cta: "Visualize Attention",
+  },
+  {
+    feature: "neural-network-visualizer",
+    label: "Neural Network Visualizer",
+    href: "/neural-network-visualizer",
+    icon: LayeredNetworkIcon,
+    blurb: "Drag the inputs and watch a real feedforward network light up and compute its output, layer by layer.",
+    cta: "Run the Network",
+  },
+  {
+    feature: "data-science-solver",
+    label: "Data Science Numerical Solver",
+    href: "/solve/data-science-solver",
+    icon: CodeIcon,
+    blurb: "Step-by-step worked solutions for stats, hypothesis testing, regression & A/B test analysis.",
+    cta: "Solve a Problem",
+  },
+  {
+    feature: "csv-profiler",
+    label: "CSV Auto-Profiler",
+    href: "/csv-profiler",
+    icon: TableIcon,
+    blurb: "Upload a CSV and instantly get column stats, missing-value map, distributions & a correlation heatmap.",
+    cta: "Profile a Dataset",
   },
 ];

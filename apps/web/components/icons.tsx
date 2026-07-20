@@ -302,6 +302,40 @@ export const CubeIcon = (p: IconProps) => (
   </Base>
 );
 
+/** Three connected nodes — neural network / AI-ML tools. */
+export const NetworkIcon = (p: IconProps) => (
+  <Base {...p}>
+    <circle cx="5" cy="6" r="2.5" />
+    <circle cx="5" cy="18" r="2.5" />
+    <circle cx="14" cy="12" r="2.5" />
+    <circle cx="21" cy="6" r="2" />
+    <circle cx="21" cy="18" r="2" />
+    <path d="M7.2 7.2l4.8 3.6M7.2 16.8l4.8-3.6M16.3 10.8L19.2 7.4M16.3 13.2l2.9 3.4" />
+  </Base>
+);
+
+/** Layered nodes — feedforward neural network visualizer. */
+export const LayeredNetworkIcon = (p: IconProps) => (
+  <Base {...p}>
+    <circle cx="4" cy="7" r="2" />
+    <circle cx="4" cy="17" r="2" />
+    <circle cx="12" cy="4" r="2" />
+    <circle cx="12" cy="12" r="2" />
+    <circle cx="12" cy="20" r="2" />
+    <circle cx="20" cy="9" r="2" />
+    <circle cx="20" cy="15" r="2" />
+    <path d="M6 7.5l4 -2M6 6.5l4 4M6 16.5l4 -4M6 17.5l4 2M14 4.5l4 3.5M14 11.5l4 -1.5M14 12.5l4 1.5M14 19.5l4 -3.5" />
+  </Base>
+);
+
+/** Table with a highlighted column — dataset profiling / Data Science tools. */
+export const TableIcon = (p: IconProps) => (
+  <Base {...p}>
+    <rect x="3" y="4" width="18" height="16" rx="1.5" />
+    <path d="M3 9h18M3 14h18M9 4v16" />
+  </Base>
+);
+
 /** Sidebar collapse/expand toggle — a panel with a divider, arrow flips per direction via CSS. */
 export const PanelToggleIcon = (p: IconProps) => (
   <Base {...p}>

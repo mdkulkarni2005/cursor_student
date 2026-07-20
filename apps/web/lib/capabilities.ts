@@ -6,7 +6,12 @@
  * Gating is applied to DEFAULT navigation only (hide from nav/home grid, don't auto-select the
  * coding round). It FAILS OPEN: a missing/unknown value shows everything.
  */
-export const CODING_DEPARTMENTS = ["Computer Engineering", "Information Technology"];
+export const CODING_DEPARTMENTS = [
+  "Computer Engineering",
+  "Information Technology",
+  "Artificial Intelligence & Machine Learning",
+  "Data Science",
+];
 
 /** The default coding-track value to pre-tick at onboarding for a department. */
 export function defaultCodingForDepartment(dept?: string | null): boolean {
@@ -31,6 +36,8 @@ export const BRANCH_FEATURES: Record<string, string[]> = {
   "Electrical Engineering": ["ee-solver", "circuit-builder", "fault-finder"],
   "Electronics & Telecommunication": ["ece-solver", "digital-logic-sim", "signal-playground", "opamp-trainer"],
   "Chemical Engineering": ["chem-solver", "reaction-lab", "process-flow-builder", "property-lookup"],
+  "Artificial Intelligence & Machine Learning": ["ai-ml-solver", "transformer-visualizer", "neural-network-visualizer"],
+  "Data Science": ["data-science-solver", "csv-profiler"],
 };
 
 /** All branch-specific feature slugs a department unlocks. Fails open to an empty list. */

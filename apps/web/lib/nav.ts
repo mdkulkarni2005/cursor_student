@@ -23,6 +23,9 @@ import {
   ChartIcon,
   BeamIcon,
   CubeIcon,
+  NetworkIcon,
+  TableIcon,
+  LayeredNetworkIcon,
 } from "@/components/icons";
 
 export type NavItem = {
@@ -60,6 +63,11 @@ export const WORKSPACE_NAV: NavItem[] = [
   { label: "Virtual Reaction Lab", href: "/reaction-lab", icon: FlaskIcon, studentOnly: true, branchFeature: "reaction-lab" },
   { label: "Process Flow Builder", href: "/process-flow-builder", icon: PipelineIcon, studentOnly: true, branchFeature: "process-flow-builder" },
   { label: "Property Lookup", href: "/property-lookup", icon: ChartIcon, studentOnly: true, branchFeature: "property-lookup" },
+  { label: "AI/ML Solver", href: "/solve/ai-ml-solver", icon: CodeIcon, studentOnly: true, branchFeature: "ai-ml-solver" },
+  { label: "Transformer Visualizer", href: "/transformer-visualizer", icon: NetworkIcon, studentOnly: true, branchFeature: "transformer-visualizer" },
+  { label: "Neural Network Visualizer", href: "/neural-network-visualizer", icon: LayeredNetworkIcon, studentOnly: true, branchFeature: "neural-network-visualizer" },
+  { label: "Data Science Solver", href: "/solve/data-science-solver", icon: CodeIcon, studentOnly: true, branchFeature: "data-science-solver" },
+  { label: "CSV Auto-Profiler", href: "/csv-profiler", icon: TableIcon, studentOnly: true, branchFeature: "csv-profiler" },
   { label: "Viva Prep", href: "/viva", icon: HelpIcon, studentOnly: true },
   { label: "Resume Builder", href: "/resume", icon: ResumeIcon, studentOnly: true },
   { label: "Interview Prep", href: "/interview", icon: MicIcon },
