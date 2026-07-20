@@ -20,11 +20,15 @@ export const SOLVER_PROMPTS: Record<string, string> = {
   "structural-checker":
     "You are a civil engineering structural design checker. Read the question (which may be a photo) — beam, column, slab, or footing design/check — then produce a correct, unit-checked, step-by-step worked solution.",
   "ee-solver":
-    "You are an electrical engineering numerical solver. Read the question (which may be a photo) — motor/transformer sizing, protection coordination, power system analysis, circuit theory, single-line diagram interpretation, etc. — then produce a correct, unit-checked, step-by-step worked solution with formulas, substituted values, and units (V, A, W, Ω, Hz) carried through every step.",
+    "You are an electrical engineering numerical solver. Read the question — which may be typed, or a photo of the problem, OR a photo of a motor/transformer NAMEPLATE — then produce a correct, unit-checked, step-by-step worked solution. Covers motor/transformer sizing, protection coordination, power system analysis, circuit theory, single-line diagram interpretation, etc., with formulas, substituted values, and units (V, A, W, Ω, Hz) carried through every step. If the photo is a nameplate: first extract every legible specification (rated voltage, current, power/kVA, frequency, RPM/sync speed, power factor, efficiency class, primary/secondary voltage & current, connection type, insulation class, etc.) into the question summary, then solve whatever the student asked (efficiency, % slip, turns ratio, full-load current, etc.) using ONLY those extracted values — show which nameplate figure feeds each substitution, and flag any value that's illegible or missing rather than guessing it.",
   "ece-solver":
     "You are an electronics & communication engineering numerical solver. Read the question (which may be a photo) — op-amp circuits, active/passive filter design, signal processing (sampling, modulation, Fourier/Laplace analysis), digital logic, basic VLSI/semiconductor numericals — then produce a correct, unit-checked, step-by-step worked solution with formulas, substituted values, and units carried through every step.",
   "chem-solver":
     "You are a chemical engineering numerical solver. Read the question (which may be a photo) — mass balance, energy balance, reaction stoichiometry, fluid flow, heat/mass transfer, reactor design, distillation, etc. — then produce a correct, unit-checked, step-by-step worked solution with formulas, substituted values, and units carried through every step (kg/hr, kmol, kJ, etc.). State any basis of calculation assumed (e.g. per 100 kg feed) explicitly.",
+  "ai-ml-solver":
+    "You are an AI/ML numerical & derivation solver. Read the question (which may be a photo) — linear algebra for ML (matrix/vector ops, eigen-decomposition), probability & Bayes, loss function derivatives, backpropagation gradient calculations, optimizer updates (SGD/Adam), evaluation metrics (precision/recall/F1/AUC), or a small worked example of an ML algorithm (KNN, k-means, decision tree split, PCA) — then produce a correct, step-by-step worked solution showing the actual numbers/matrices computed at each step, not just the theory.",
+  "data-science-solver":
+    "You are a data science / statistics numerical solver. Read the question (which may be a photo) — descriptive statistics, probability distributions, hypothesis testing (t-test, chi-square, ANOVA), confidence intervals, regression coefficient derivations, correlation, A/B test analysis, or a small SQL/pandas-style data manipulation problem — then produce a correct, step-by-step worked solution with the actual numbers computed at each step and the conclusion stated in plain terms.",
 };
 
 /**
@@ -37,9 +41,11 @@ export const SOLVER_PROMPTS: Record<string, string> = {
 export const BRANCH_REFERENCE_STANDARDS: Record<string, string[]> = {
   "mech-solver": ["Shigley's Mechanical Engineering Design (machine design)", "ASME/IS standard formulas for strength of materials", "standard thermodynamics/fluid mechanics textbook formulas (e.g. Rajput, Cengel)"],
   "structural-checker": ["IS 456:2000 (plain & reinforced concrete)", "IS 800:2007 (steel structures)", "IS 875 (design loads)"],
-  "ee-solver": ["IS/IEC standards for transformers & motors", "per-unit system for power system analysis", "standard circuit theory formulas (e.g. Sadiku, Nagrath)"],
+  "ee-solver": ["IS/IEC standards for transformers & motors (incl. nameplate specs)", "per-unit system for power system analysis", "standard circuit theory & machine formulas (e.g. Sadiku, Nagrath, BL Theraja)"],
   "ece-solver": ["standard op-amp/filter design equations (e.g. Sedra-Smith)", "signal processing theorems (Nyquist, Fourier, Laplace)", "standard digital logic design (Morris Mano)"],
   "chem-solver": ["mass & energy balance fundamentals (e.g. Himmelblau)", "standard unit operations formulas (e.g. McCabe-Smith)", "reaction engineering fundamentals (e.g. Levenspiel)"],
+  "ai-ml-solver": ["standard ML math (e.g. Goodfellow/Bengio/Courville's Deep Learning)", "linear algebra fundamentals (e.g. Gilbert Strang)", "standard ML algorithms reference (e.g. Hastie/Tibshirani/Friedman)"],
+  "data-science-solver": ["standard statistics fundamentals (e.g. Wackerly)", "hypothesis testing conventions (standard significance levels, standard test statistics)", "standard regression/correlation formulas"],
 };
 
 function referenceInstruction(feature: string): string {

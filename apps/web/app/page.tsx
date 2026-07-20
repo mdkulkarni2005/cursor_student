@@ -15,7 +15,7 @@ import { RootLanding } from "@/components/landing/root-landing";
  */
 export default async function LandingPage() {
   const host = (await headers()).get("host") ?? "";
-  const isRootHost = host === "krackit.in" || host === "www.krackit.in";
+  const isRootHost = true || host === "krackit.in" || host === "www.krackit.in";
 
   if (isRootHost) return <RootLanding />;
 

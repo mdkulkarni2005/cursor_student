@@ -28,9 +28,9 @@ export const BRANCH_SOLVER_FEATURES: Record<string, BranchSolverFeature> = {
   },
   "ee-solver": {
     slug: "ee-solver",
-    label: "Electrical Numerical Solver",
-    blurb: "Motors, transformers, protection systems, power systems, circuit theory — type or photograph the question and get a unit-checked, step-by-step solution.",
-    placeholder: "e.g. A 3-phase, 415V, 50Hz induction motor draws 20A at 0.85 lagging PF. Find the input power and kVA…",
+    label: "Electrical Solver & Nameplate Reader",
+    blurb: "Motors, transformers, protection systems, power systems, circuit theory — type or photograph the question (or photograph a motor/transformer nameplate to auto-extract its specs) and get a unit-checked, step-by-step solution.",
+    placeholder: "e.g. A 3-phase, 415V, 50Hz induction motor draws 20A at 0.85 lagging PF. Find the input power and kVA… (or upload a nameplate photo and ask for % slip / turns ratio)",
     backLabel: "Electrical tools",
   },
   "ece-solver": {
@@ -46,6 +46,20 @@ export const BRANCH_SOLVER_FEATURES: Record<string, BranchSolverFeature> = {
     blurb: "Mass & energy balances, reaction stoichiometry, heat/mass transfer, reactor design — type, describe, or photograph the problem (including a PFD) and get a unit-checked, step-by-step solution.",
     placeholder: "e.g. 1000 kg/hr of a 30% NaOH solution is fed to an evaporator to produce 50% NaOH. Find the water evaporated…",
     backLabel: "Chemical tools",
+  },
+  "ai-ml-solver": {
+    slug: "ai-ml-solver",
+    label: "AI/ML Numerical Solver",
+    blurb: "Linear algebra, probability, loss derivatives, backprop gradients, optimizer updates, evaluation metrics — type or photograph the question and get a step-by-step worked solution with the actual numbers computed.",
+    placeholder: "e.g. For a single neuron with sigmoid activation, weight w=0.4, input x=2, target y=1, compute dL/dw for MSE loss…",
+    backLabel: "AI/ML tools",
+  },
+  "data-science-solver": {
+    slug: "data-science-solver",
+    label: "Data Science Numerical Solver",
+    blurb: "Descriptive stats, probability, hypothesis testing, regression & correlation, A/B test analysis — type or photograph the question and get a step-by-step worked solution with the actual numbers computed.",
+    placeholder: "e.g. A sample of 36 has mean 52 and std dev 8. Test H0: μ = 50 vs H1: μ ≠ 50 at α = 0.05…",
+    backLabel: "Data Science tools",
   },
 };
 

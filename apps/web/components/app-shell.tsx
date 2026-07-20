@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { UserButton, useClerk } from "@clerk/nextjs";
 import { WORKSPACE_NAV, YOU_NAV, ALL_NAV, type NavItem } from "@/lib/nav";
-import { SearchIcon, LogOutIcon } from "@/components/icons";
-import { Logo } from "@/components/logo";
+import { SearchIcon, LogOutIcon, PanelToggleIcon } from "@/components/icons";
+import { Logo, LogoMark } from "@/components/logo";
 import { AssistantPanel } from "@/components/assistant/assistant-panel";
 import { FeedbackWidget } from "@/components/feedback/feedback-widget";
 import { InstallPrompt } from "@/components/install-prompt";
@@ -37,45 +38,86 @@ function visibleNav(items: NavItem[], user: ShellUser): NavItem[] {
   );
 }
 
-function NavRow({ item, active }: { item: NavItem; active: boolean }) {
+function NavRow({ item, active, collapsed }: { item: NavItem; active: boolean; collapsed: boolean }) {
   const Icon = item.icon;
   return (
     <Link
       href={item.href}
+      title={collapsed ? item.label : undefined}
       className={[
         "mb-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13.5px] font-medium transition-colors",
+        collapsed ? "justify-center" : "",
         active
           ? "border border-cyan/20 bg-gradient-to-br from-cyan/15 to-indigo/10 font-semibold text-ink"
           : "text-muted hover:bg-surface hover:text-soft",
       ].join(" ")}
     >
       <Icon size={17} className={active ? "text-cyan" : ""} />
-      {item.label}
+      {collapsed ? null : item.label}
     </Link>
   );
 }
 
+const SIDEBAR_COLLAPSED_KEY = "krackit-sidebar-collapsed";
+
 function Sidebar({ pathname, user }: { pathname: string; user: ShellUser }) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Read the saved preference after mount (localStorage isn't available during SSR) — a brief
+  // flash from expanded to collapsed on load is the standard, accepted tradeoff for this pattern.
+  useEffect(() => {
+    if (localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true") setCollapsed(true);
+  }, []);
+
+  function toggle() {
+    setCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(next));
+      return next;
+    });
+  }
+
   return (
-    <aside className="hidden h-screen w-[256px] shrink-0 flex-col border-r border-line bg-base px-4 py-6 lg:flex">
-      <Link href="/dashboard" className="mb-7 block px-2">
-        <Logo size={28} />
-        <span className="mt-1.5 block text-[10px] font-bold uppercase tracking-[0.18em] text-faint">
-          Academic Intelligence
-        </span>
-      </Link>
+    <aside
+      className={[
+        "hidden h-screen shrink-0 flex-col border-r border-line bg-base py-6 transition-[width] duration-150 lg:flex",
+        collapsed ? "w-[76px] px-2.5" : "w-[256px] px-4",
+      ].join(" ")}
+    >
+      <div className={`mb-7 flex items-center ${collapsed ? "flex-col gap-3" : "justify-between px-2"}`}>
+        <Link href="/dashboard" className="block">
+          {collapsed ? (
+            <LogoMark size={28} />
+          ) : (
+            <>
+              <Logo size={28} />
+              <span className="mt-1.5 block text-[10px] font-bold uppercase tracking-[0.18em] text-faint">
+                Academic Intelligence
+              </span>
+            </>
+          )}
+        </Link>
+        <button
+          type="button"
+          onClick={toggle}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className="flex size-7 shrink-0 items-center justify-center rounded-lg text-faint transition-colors hover:bg-surface hover:text-soft"
+        >
+          <PanelToggleIcon size={16} className={collapsed ? "rotate-180" : ""} />
+        </button>
+      </div>
 
       <nav className="flex-1 overflow-y-auto">
         {visibleNav(WORKSPACE_NAV, user).map((item) => (
-          <NavRow key={item.href} item={item} active={pathname === item.href} />
+          <NavRow key={item.href} item={item} active={pathname === item.href} collapsed={collapsed} />
         ))}
       </nav>
 
       <div className="my-3 h-px bg-line" />
       {YOU_NAV.map((item) => (
-        <NavRow key={item.href} item={item} active={pathname === item.href} />
+        <NavRow key={item.href} item={item} active={pathname === item.href} collapsed={collapsed} />
       ))}
-      <FeedbackWidget variant="row" />
+      {collapsed ? null : <FeedbackWidget variant="row" />}
     </aside>
   );
 }

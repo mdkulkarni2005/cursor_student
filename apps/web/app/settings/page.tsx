@@ -15,11 +15,12 @@ const USAGE_LABEL: Record<UsageKind, string> = {
   BRANCH_SOLVER: "Branch-solver tools",
   INTERVIEW: "Mock interviews",
   DSA: "DSA submissions",
+  SYSTEM_DESIGN: "System design reviews",
 };
 
 // Document-generation kinds are student-only tools (nav-gated); professionals only ever get
 // interview + DSA quotas, per apps/web/components/app-shell.tsx.
-const STUDENT_KINDS: UsageKind[] = ["ASSIGNMENT", "REPORT", "LAB_REPORT", "PPT", "BRANCH_SOLVER", "INTERVIEW", "DSA"];
+const STUDENT_KINDS: UsageKind[] = ["ASSIGNMENT", "REPORT", "LAB_REPORT", "PPT", "BRANCH_SOLVER", "INTERVIEW", "DSA", "SYSTEM_DESIGN"];
 const PROFESSIONAL_KINDS: UsageKind[] = ["INTERVIEW", "DSA"];
 
 export default async function SettingsPage() {

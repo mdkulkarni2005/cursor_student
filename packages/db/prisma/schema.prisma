@@ -116,6 +116,9 @@ enum UsageKind {
   // One count per DSA problem submission (submitAttemptAction) — each call also triggers an AI
   // review, so this doubles as the previously-missing cost gate on that path.
   DSA
+  // One count per system-design canvas submission (submitDesignAction) — each call triggers an
+  // AI architecture review.
+  SYSTEM_DESIGN
 }
 
 // Recruiter onboarding lifecycle. DRAFT = still filling the multi-step form (resumable on
@@ -248,6 +251,12 @@ model User {
   payments           Payment[]
   usageEvents        UsageEvent[]
   dsaAttempts        DsaAttempt[]
+  systemDesignAttempts SystemDesignAttempt[]
+  systemDesignDrafts SystemDesignDraft[]
+  circuitDraft CircuitDraft?
+  faultFinderAttempts FaultFinderAttempt[]
+  logicSimDraft LogicSimDraft?
+  processFlowDraft ProcessFlowDraft?
   assistantThread    AssistantThread?
   deadlines          Deadline[]
   studyPlans         StudyPlan[]
@@ -633,6 +642,80 @@ model DsaAttempt {
 
   @@index([userId, createdAt])
   @@index([userId, problemSlug])
+}
+
+model SystemDesignAttempt {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scenarioSlug String
+  canvas       Json // { nodes: [...], edges: [...] } — React Flow state
+  review       Json? // AI review: { bottlenecks[], missingComponents[], strengths[], suggestions[] }
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, scenarioSlug])
+}
+
+// In-progress canvas autosave — one row per (user, scenario), overwritten on every save (not
+// append-only like SystemDesignAttempt). No AI review, no quota cost: purely so a reload/crash
+// doesn't lose un-submitted work. Not a permanent record — safe to purge on a TTL job later.
+model SystemDesignDraft {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scenarioSlug String
+  canvas       Json
+  updatedAt    DateTime @updatedAt
+
+  @@unique([userId, scenarioSlug])
+}
+
+// Circuit Builder is a freeform sandbox (no scenario catalog, no grading) — one autosaved canvas
+// per user, same "overwritten, not append-only" shape as SystemDesignDraft.
+model CircuitDraft {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  canvas    Json
+  updatedAt DateTime @updatedAt
+}
+
+// Fault Finder attempts (append-only, like DsaAttempt) — scenarios/faults live in code (static
+// catalog), referenced by slug. No AI cost: the correct fault is known data, so scoring is
+// deterministic (see lib/fault-finder/practice.ts).
+model FaultFinderAttempt {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scenarioSlug    String
+  guessComponentId String
+  guessFaultType  String // "open" | "short"
+  correct         Boolean
+  createdAt       DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([userId, scenarioSlug])
+}
+
+// Digital Logic Simulator is a freeform sandbox (no scenario catalog, no grading) — one
+// autosaved bench per user, same "overwritten, not append-only" shape as CircuitDraft.
+model LogicSimDraft {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  canvas    Json
+  updatedAt DateTime @updatedAt
+}
+
+// Process Flow Builder is a freeform sandbox (no scenario catalog, no grading) — one autosaved
+// flowsheet per user, same shape as CircuitDraft/LogicSimDraft.
+model ProcessFlowDraft {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  canvas    Json
+  updatedAt DateTime @updatedAt
 }
 
 // ----------------------------- Semester planning --------------------------

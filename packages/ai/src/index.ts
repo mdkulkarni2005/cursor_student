@@ -16,6 +16,7 @@ export * from "./real-interview-judgment";
 export * from "./job-match";
 export * from "./live-suggestions";
 export * from "./dsa";
+export * from "./system-design";
 export * from "./image";
 export * from "./cache";
 export * from "./retry";

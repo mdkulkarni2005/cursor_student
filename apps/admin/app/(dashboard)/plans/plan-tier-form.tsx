@@ -6,7 +6,7 @@ import { useState } from "react";
 // since that package's index also instantiates PrismaClient, which must never end up in a client
 // bundle. Keep these lists in sync with the Prisma schema's UsageKind/RecruiterUsageKind and
 // packages/db/src/plan-limits.ts's FEATURE_KEYS.
-const USAGE_KINDS = ["ASSIGNMENT", "REPORT", "PPT", "LAB_REPORT", "BRANCH_SOLVER", "INTERVIEW", "DSA"] as const;
+const USAGE_KINDS = ["ASSIGNMENT", "REPORT", "PPT", "LAB_REPORT", "BRANCH_SOLVER", "INTERVIEW", "DSA", "SYSTEM_DESIGN"] as const;
 const RECRUITER_USAGE_KINDS = ["JOB_POSTING", "CANDIDATE_CONTACT"] as const;
 const FEATURE_KEYS = ["priorityQueue", "mentorReview", "earlyAccess"] as const;
 // Keep in sync with packages/db/src/plan-limits.ts USD_TO_INR_RATE.
@@ -41,6 +41,7 @@ const USAGE_LABEL: Record<string, string> = {
   BRANCH_SOLVER: "Branch-solver tools / month",
   INTERVIEW: "Mock interview sessions / month",
   DSA: "DSA problem submissions / month",
+  SYSTEM_DESIGN: "System design reviews / month",
 };
 
 const RECRUITER_USAGE_LABEL: Record<string, string> = {

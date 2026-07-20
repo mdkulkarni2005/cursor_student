@@ -30,6 +30,20 @@
   /* Teal secondary for variety on new screens */
   --color-teal: #006a61;
   --color-teal-soft: #86f2e4;
+  /* Phosphor scope-green — ECE branch tools (Digital Logic Sim, Signal Playground, Op-Amp
+     Trainer) get an oscilloscope/lab-bench accent, distinct from Electrical's cyan schematic
+     sheet and the app's orange/gold default. */
+  --color-scope: #7cff6b;
+  --color-scope-amber: #ffb02e;
+  /* Copper/flame lab-bench accent — Chemical branch tools (Reaction Lab, Process Flow Builder,
+     Property Lookup). Distinct from ECE's scope-green and Electrical's cyan schematic sheet. */
+  --color-flask: #ff7a45;
+  --color-flask-violet: #b57bff;
+  /* Blueprint-blue accent — Civil branch tools (Load Diagram Visualizer, Material Test
+     Simulator). Distinct from ECE's scope-green, Chemical's flask-orange, and Electrical's
+     cyan schematic sheet. */
+  --color-blueprint: #2f6fed;
+  --color-concrete: #94a3b8;
   /* Light text/icons sitting ON the accent gradient. */
   --color-on-accent: #ffffff;
 
@@ -64,6 +78,14 @@
   --animate-pulse-ring: pulseRing 2.6s infinite;
   --animate-flame: flameWobble 1.6s ease-in-out infinite;
   --animate-dash-grow: dashGrow 0.6s ease both;
+  --animate-bubble-rise: bubbleRise 1.6s ease-in infinite;
+  --animate-screen-shake: screenShake 0.5s ease-in-out 2;
+  --animate-smoke-puff: smokePuff 1.4s ease-out infinite;
+  --animate-precipitate-fall: precipitateFall 1.1s cubic-bezier(0.4, 0, 1, 1) both;
+  --animate-mfg-drip: mfgDrip 2.2s ease-in infinite;
+  --animate-mfg-chip: mfgChip 0.9s ease-out infinite;
+  --animate-mfg-spark: mfgSpark 0.35s steps(2) infinite;
+  --animate-mfg-spin: mfgSpin 1.4s linear infinite;
 }
 
 @keyframes aurora {
@@ -125,6 +147,101 @@
   to {
     transform: scaleY(1);
     opacity: 1;
+  }
+}
+
+@keyframes bubbleRise {
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-120px) scale(1.1);
+    opacity: 0;
+  }
+}
+@keyframes screenShake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(-6px, 4px);
+  }
+  40% {
+    transform: translate(6px, -4px);
+  }
+  60% {
+    transform: translate(-4px, -3px);
+  }
+  80% {
+    transform: translate(4px, 3px);
+  }
+}
+@keyframes smokePuff {
+  0% {
+    transform: scale(0.3) translateY(0);
+    opacity: 0.85;
+  }
+  100% {
+    transform: scale(2.4) translateY(-60px);
+    opacity: 0;
+  }
+}
+@keyframes precipitateFall {
+  0% {
+    transform: translateY(-30px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes mfgDrip {
+  0%, 40% {
+    transform: translateY(0) scaleY(0.4);
+    opacity: 0;
+  }
+  55% {
+    opacity: 1;
+  }
+  85% {
+    transform: translateY(38px) scaleY(1.4);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(46px) scaleY(1.4);
+    opacity: 0;
+  }
+}
+@keyframes mfgChip {
+  0% {
+    transform: translate(0, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(18px, -22px) rotate(140deg);
+    opacity: 0;
+  }
+}
+@keyframes mfgSpark {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.7);
+  }
+}
+@keyframes mfgSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -289,6 +406,83 @@
 .animate-gradient-shift {
   background-size: 200% 200%;
   animation: gradientShift 6s ease infinite;
+}
+
+/* Branch-ladder centerpiece animations (always-on, not hover-triggered) */
+@keyframes gearSpin {
+  to { transform: rotate(360deg); }
+}
+@keyframes blueprintDraw {
+  0%, 6%   { stroke-dashoffset: 220; opacity: 0.25; }
+  38%, 72% { stroke-dashoffset: 0; opacity: 1; }
+  96%, 100% { stroke-dashoffset: -220; opacity: 0.25; }
+}
+@keyframes currentFlow {
+  to { stroke-dashoffset: -28; }
+}
+@keyframes bulbGlow {
+  0%, 100% { opacity: 0.55; filter: drop-shadow(0 0 2px currentColor); }
+  50%      { opacity: 1; filter: drop-shadow(0 0 7px currentColor); }
+}
+@keyframes chipPulse {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1; }
+}
+@keyframes bubbleRise {
+  0%   { transform: translateY(0) scale(0.6); opacity: 0; }
+  15%  { opacity: 0.9; }
+  85%  { opacity: 0.7; }
+  100% { transform: translateY(-88px) scale(1); opacity: 0; }
+}
+@keyframes liquidSway {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(2px); }
+}
+@keyframes codeScroll {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-50%); }
+}
+@keyframes caretBlink {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0; }
+}
+@keyframes voicePulse {
+  0%   { transform: scale(0.6); opacity: 0.5; }
+  100% { transform: scale(1.9); opacity: 0; }
+}
+@keyframes barBounce {
+  0%, 100% { transform: scaleY(0.25); }
+  50%      { transform: scaleY(1); }
+}
+@keyframes checkPop {
+  0%       { transform: scale(0); opacity: 0; }
+  8%       { transform: scale(1.25); opacity: 1; }
+  14%, 88% { transform: scale(1); opacity: 1; }
+  100%     { transform: scale(0); opacity: 0; }
+}
+@keyframes scanSweep {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  10%  { opacity: 1; }
+  90%  { opacity: 1; }
+  100% { transform: translateY(700%); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gear-rotor,
+  .blueprint-path,
+  .current-flow,
+  .bulb-glow,
+  .chip-pulse,
+  .bubble,
+  .liquid-sway,
+  .code-scroll,
+  .caret-blink,
+  .voice-pulse,
+  .bar-bounce,
+  .check-pop,
+  .scan-sweep,
+  .anim-motion {
+    animation: none !important;
+  }
 }
 
 .stagger-1 { animation-delay: 0.1s; }

@@ -11,9 +11,10 @@ const USAGE_LABEL: Record<UsageKind, string> = {
   BRANCH_SOLVER: "Branch-solver tools",
   INTERVIEW: "Mock interviews",
   DSA: "DSA submissions",
+  SYSTEM_DESIGN: "System design reviews",
 };
 // Document-generation kinds are student-only tools; professionals only ever get interview + DSA.
-const STUDENT_KINDS: UsageKind[] = ["ASSIGNMENT", "REPORT", "LAB_REPORT", "PPT", "BRANCH_SOLVER", "INTERVIEW", "DSA"];
+const STUDENT_KINDS: UsageKind[] = ["ASSIGNMENT", "REPORT", "LAB_REPORT", "PPT", "BRANCH_SOLVER", "INTERVIEW", "DSA", "SYSTEM_DESIGN"];
 const PROFESSIONAL_KINDS: UsageKind[] = ["INTERVIEW", "DSA"];
 
 /** Plan tiers available to this user's audience (STUDENT/PROFESSIONAL), their current tier, this
