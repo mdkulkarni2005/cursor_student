@@ -45,9 +45,9 @@ export default async function FaultFinderScenarioPage({ params }: { params: Prom
 
         <div className="mb-4 rounded-xl border border-cyan/25 bg-cyan/5 px-4 py-3">
           <p className="text-[12.5px] leading-relaxed text-soft">
-            <span className="font-semibold text-cyan">How to find it:</span> the numbers on each component (e.g. "100Ω") are its <em>rated</em> value —
+            <span className="font-semibold text-cyan">How to find it:</span> the numbers on each component (e.g. &ldquo;100Ω&rdquo;) are its <em>rated</em> value —
             printed on the part, always correct, never changes. The fault is invisible on the diagram itself. Click (or Tab to, then press Enter on)
-            each component to take a <span className="font-semibold text-ink">multimeter reading</span> — that's the <em>actual</em> current/voltage in
+            each component to take a <span className="font-semibold text-ink">multimeter reading</span> — that&apos;s the <em>actual</em> current/voltage in
             the real circuit right now. Compare readings against what the rated values predict; wherever they disagree is your fault.
           </p>
         </div>

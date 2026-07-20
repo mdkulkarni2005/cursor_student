@@ -12,7 +12,7 @@ export function BalanceReport({ result }: { result: BalanceResult | null }) {
   }
 
   if (result.balanced) {
-    return <p className="rounded-xl border border-success/30 bg-success/10 px-3 py-2.5 text-[12.5px] text-success">Balanced — every unit's inflow equals its outflow.</p>;
+    return <p className="rounded-xl border border-success/30 bg-success/10 px-3 py-2.5 text-[12.5px] text-success">Balanced — every unit&apos;s inflow equals its outflow.</p>;
   }
 
   return (

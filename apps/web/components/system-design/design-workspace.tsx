@@ -129,7 +129,7 @@ export function DesignWorkspace({
   useEffect(() => {
     if (canvasPayload === initialCanvasPayloadRef.current) return;
     if (canvasPayload.nodes.length === 0) return;
-    setSaveStatus("saving");
+    const savingId = requestAnimationFrame(() => setSaveStatus("saving"));
     const timer = setTimeout(() => {
       fetch("/api/system-design/draft", {
         method: "POST",
@@ -139,7 +139,10 @@ export function DesignWorkspace({
         .then((res) => setSaveStatus(res.ok ? "saved" : "idle"))
         .catch(() => setSaveStatus("idle"));
     }, 1200);
-    return () => clearTimeout(timer);
+    return () => {
+      cancelAnimationFrame(savingId);
+      clearTimeout(timer);
+    };
   }, [canvasPayload, scenario.slug]);
 
   const review = submitState.review ?? initialReview ?? null;

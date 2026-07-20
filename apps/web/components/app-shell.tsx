@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { UserButton, useClerk } from "@clerk/nextjs";
 import { WORKSPACE_NAV, YOU_NAV, ALL_NAV, type NavItem } from "@/lib/nav";
 import { SearchIcon, LogOutIcon, PanelToggleIcon } from "@/components/icons";
@@ -61,13 +61,12 @@ function NavRow({ item, active, collapsed }: { item: NavItem; active: boolean; c
 const SIDEBAR_COLLAPSED_KEY = "krackit-sidebar-collapsed";
 
 function Sidebar({ pathname, user }: { pathname: string; user: ShellUser }) {
-  const [collapsed, setCollapsed] = useState(false);
-
-  // Read the saved preference after mount (localStorage isn't available during SSR) — a brief
-  // flash from expanded to collapsed on load is the standard, accepted tradeoff for this pattern.
-  useEffect(() => {
-    if (localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true") setCollapsed(true);
-  }, []);
+  // Lazy initializer reads the saved preference on first client render (localStorage isn't
+  // available during SSR, hence the guard) — a brief flash from expanded to collapsed on load
+  // is the standard, accepted tradeoff for this pattern.
+  const [collapsed, setCollapsed] = useState(
+    () => typeof window !== "undefined" && localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === "true",
+  );
 
   function toggle() {
     setCollapsed((prev) => {
