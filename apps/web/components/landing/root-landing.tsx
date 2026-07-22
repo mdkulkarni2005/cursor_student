@@ -765,9 +765,9 @@ export function RootLanding() {
                     {/* Image container with animation */}
                     <div
                       className="relative grid overflow-hidden"
-                      style={{
-                        height: 180,
-                        borderRadius: "0.5rem 2rem",
+                    style={{
+                      height: 220,
+                      borderRadius: "0.5rem 2rem",
                         background: isEven
                           ? `linear-gradient(135deg, rgba(${rgb}, 0.1), rgba(${rgb}, 0.3))`
                           : `linear-gradient(135deg, rgba(${rgb}, 0.08), rgba(${rgb}, 0.15))`,
