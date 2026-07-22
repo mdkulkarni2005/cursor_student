@@ -4,7 +4,7 @@
  * code editor palette) rather than generic stock icons. Content is illustrative, not live data.
  */
 
-function BrowserFrame({
+export function BrowserFrame({
   title,
   children,
   className = "",

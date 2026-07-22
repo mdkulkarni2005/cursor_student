@@ -1,22 +1,37 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { usePrefersReducedMotion, AnimationPanel, type CardAnimationProps } from "./animation-shell";
-
-/**
- * Always-on, per-branch centerpiece animations for the branch ladder — these REPLACE the
- * static department icon entirely, not decorate it. Each one fills the same panel the icon used
- * to occupy, so swapping branches in `root-landing.tsx` is a drop-in. Built as inline SVG driven
- * by CSS transforms/SMIL wherever the effect is a clean geometric motion — crisper at any size,
- * and cheap enough to run continuously rather than only on hover. Shares `AnimationPanel` (see
- * `animation-shell.tsx`) with the professional-ladder animations so both sections read as one
- * coherent system.
- */
 
 type BranchAnimationProps = CardAnimationProps;
 
+const B_MUTED = "#64748b";
+const B_BG = "#0f172a";
+
 /* ---------------------------------------------------------------------------------------------
- * Mechanical: three interlocking gears turning at matched relative speed — the big one slow and
- * deliberate, the small ones quick — reads as machinery under load, not decoration for its own sake.
+ * Code-editor window shell with three dots and centered filename
+ * ------------------------------------------------------------------------------------------- */
+
+function WindowShell({ filename, children }: { filename: string; children: React.ReactNode }) {
+  return (
+    <div className="relative w-full rounded-xl p-2 font-mono text-[11px] leading-[1.7]" style={{ background: B_BG }}>
+      <div className="relative flex items-center">
+        <div className="flex pl-3 pt-3">
+          <span className="mr-1.5 h-3 w-3 rounded-full" style={{ background: "#ef4444" }} />
+          <span className="mr-1.5 h-3 w-3 rounded-full" style={{ background: "#a3a329" }} />
+          <span className="h-3 w-3 rounded-full" style={{ background: "#22c55e" }} />
+        </div>
+        <span className="absolute inset-x-0 top-2.5 text-center text-[9px]" style={{ color: B_MUTED }}>
+          {filename}
+        </span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------------------------------
+ * Mechanical: animated gears only
  * ------------------------------------------------------------------------------------------- */
 
 type Point = { x: number; y: number };
@@ -52,19 +67,9 @@ function Gear({ spec, rgb, baseDuration, opacity }: { spec: GearSpec; rgb: strin
   return (
     <g
       className="gear-rotor"
-      style={{
-        transformBox: "fill-box",
-        transformOrigin: "center",
-        animation: `gearSpin ${duration.toFixed(2)}s linear infinite ${spec.speed < 0 ? "reverse" : "normal"}`,
-      }}
+      style={{ transformBox: "fill-box", transformOrigin: "center", animation: `gearSpin ${duration.toFixed(2)}s linear infinite ${spec.speed < 0 ? "reverse" : "normal"}` }}
     >
-      <path
-        d={gearPath(spec.cx, spec.cy, spec.teeth, spec.outerR, spec.innerR)}
-        fill={`rgba(${rgb}, ${opacity})`}
-        stroke={`rgba(${rgb}, 1)`}
-        strokeWidth={1.4}
-        strokeLinejoin="round"
-      />
+      <path d={gearPath(spec.cx, spec.cy, spec.teeth, spec.outerR, spec.innerR)} fill={`rgba(${rgb}, ${opacity})`} stroke={`rgba(${rgb}, 1)`} strokeWidth={1.4} strokeLinejoin="round" />
       <circle cx={spec.cx} cy={spec.cy} r={spec.innerR * 0.42} fill="none" stroke={`rgba(${rgb}, 0.9)`} strokeWidth={2.5} />
     </g>
   );
@@ -73,18 +78,21 @@ function Gear({ spec, rgb, baseDuration, opacity }: { spec: GearSpec; rgb: strin
 export function MechanicalAnimation({ rgb, className }: BranchAnimationProps) {
   return (
     <AnimationPanel rgb={rgb} className={className}>
-      <svg viewBox="20 20 160 160" className="relative size-full max-w-[220px]" aria-hidden="true">
-        <Gear spec={MECHANICAL_GEARS[0]!} rgb={rgb} baseDuration={18} opacity={0.22} />
-        <Gear spec={MECHANICAL_GEARS[1]!} rgb={rgb} baseDuration={18} opacity={0.9} />
-        <Gear spec={MECHANICAL_GEARS[2]!} rgb={rgb} baseDuration={18} opacity={0.9} />
-      </svg>
+      <WindowShell filename="gear-sim.ts">
+        <div className="mt-4 flex items-center justify-center px-4 pb-5" style={{ height: 130, overflow: "hidden" }}>
+          <svg viewBox="20 20 160 160" className="opacity-30" style={{ width: "100%", height: "100%" }}>
+            <Gear spec={MECHANICAL_GEARS[0]!} rgb={rgb} baseDuration={18} opacity={0.6} />
+            <Gear spec={MECHANICAL_GEARS[1]!} rgb={rgb} baseDuration={18} opacity={0.6} />
+            <Gear spec={MECHANICAL_GEARS[2]!} rgb={rgb} baseDuration={18} opacity={0.6} />
+          </svg>
+        </div>
+      </WindowShell>
     </AnimationPanel>
   );
 }
 
 /* ---------------------------------------------------------------------------------------------
- * Civil: a wireframe structure (foundation → columns → slabs → roof truss) that draws itself in,
- * holds, then erases and redraws — a blueprint under continuous construction.
+ * Civil: blueprint drawing only
  * ------------------------------------------------------------------------------------------- */
 
 const CIVIL_PATHS = [
@@ -100,32 +108,22 @@ const CIVIL_PATHS = [
 export function CivilAnimation({ rgb, className }: BranchAnimationProps) {
   return (
     <AnimationPanel rgb={rgb} className={className}>
-      <svg viewBox="20 30 160 150" className="relative size-full max-w-[220px]" aria-hidden="true">
-        {CIVIL_PATHS.map((p, i) => (
-          <path
-            key={i}
-            d={p.d}
-            className="blueprint-path"
-            fill="none"
-            stroke={`rgba(${rgb}, 1)`}
-            strokeWidth={3}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{
-              strokeDasharray: 220,
-              animation: `blueprintDraw 5.2s ease-in-out infinite`,
-              animationDelay: `${p.delay}s`,
-            }}
-          />
-        ))}
-      </svg>
+      <WindowShell filename="structural.py">
+        <div className="mt-4 flex items-center justify-center px-4 pb-5" style={{ height: 130, overflow: "hidden" }}>
+          <svg viewBox="20 30 160 150" className="opacity-25" style={{ width: "100%", height: "100%" }}>
+            {CIVIL_PATHS.map((p, i) => (
+              <path key={i} d={p.d} className="blueprint-path" fill="none" stroke={`rgb(${rgb})`} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
+                style={{ strokeDasharray: 220, animation: `blueprintDraw 5.2s ease-in-out infinite`, animationDelay: `${p.delay}s` }} />
+            ))}
+          </svg>
+        </div>
+      </WindowShell>
     </AnimationPanel>
   );
 }
 
 /* ---------------------------------------------------------------------------------------------
- * Electrical: current flowing through a wire (marching dashes) into a bulb that glows on the
- * same rhythm, plus pulse-dots physically travelling the wire — power flowing, not sparking.
+ * Electrical: circuit with current flow only
  * ------------------------------------------------------------------------------------------- */
 
 const ELECTRICAL_WIRE = "M20 130 C 55 60, 85 200, 120 100 S 165 40, 190 90";
@@ -134,36 +132,25 @@ export function ElectricalAnimation({ rgb, className }: BranchAnimationProps) {
   const reducedMotion = usePrefersReducedMotion();
   return (
     <AnimationPanel rgb={rgb} className={className}>
-      <svg viewBox="10 20 190 160" className="relative size-full max-w-[220px]" aria-hidden="true">
-        <path
-          d={ELECTRICAL_WIRE}
-          className="current-flow"
-          fill="none"
-          stroke={`rgba(${rgb}, 0.9)`}
-          strokeWidth={3}
-          strokeLinecap="round"
-          style={{ strokeDasharray: "10 8", animation: "currentFlow 0.7s linear infinite" }}
-        />
-        {!reducedMotion &&
-          [0, 0.9].map((offset, i) => (
-            <circle key={i} r={4} fill={`rgba(${rgb}, 1)`}>
-              <animateMotion dur="2.4s" begin={`${offset}s`} repeatCount="indefinite" path={ELECTRICAL_WIRE} />
-            </circle>
-          ))}
-        <g transform="translate(150, 118)" className="bulb-glow" style={{ color: `rgb(${rgb})`, animation: "bulbGlow 1.8s ease-in-out infinite" }}>
-          <circle r={16} fill="none" stroke="currentColor" strokeWidth={2.5} />
-          <path d="M-6 -8 L-2 -2 L2 -8 L6 -2" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-          <path d="M-2 -2 V6" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
-          <path d="M-5 16 L5 16 M-4 21 L4 21" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
-        </g>
-      </svg>
+      <WindowShell filename="circuit.js">
+        <div className="mt-4 flex items-center justify-center px-4 pb-5" style={{ height: 130, overflow: "hidden" }}>
+          <svg viewBox="10 20 190 160" className="opacity-25" style={{ width: "100%", height: "100%" }}>
+            <path d={ELECTRICAL_WIRE} fill="none" stroke={`rgb(${rgb})`} strokeWidth={3} strokeLinecap="round"
+              style={{ strokeDasharray: "10 8", animation: "currentFlow 0.7s linear infinite" }} />
+            {!reducedMotion && [0, 0.9].map((offset, i) => (
+              <circle key={i} r={4} fill={`rgb(${rgb})`}>
+                <animateMotion dur="2.4s" begin={`${offset}s`} repeatCount="indefinite" path={ELECTRICAL_WIRE} />
+              </circle>
+            ))}
+          </svg>
+        </div>
+      </WindowShell>
     </AnimationPanel>
   );
 }
 
 /* ---------------------------------------------------------------------------------------------
- * Electronics & Telecom: right-angle PCB traces carrying pulses inward to a central chip, which
- * pulses in turn — a live circuit board rather than a lightning motif.
+ * Electronics: PCB traces with signal dots only
  * ------------------------------------------------------------------------------------------- */
 
 const CIRCUIT_TRACES = [
@@ -177,33 +164,26 @@ export function ElectronicsAnimation({ rgb, className }: BranchAnimationProps) {
   const reducedMotion = usePrefersReducedMotion();
   return (
     <AnimationPanel rgb={rgb} className={className}>
-      <svg viewBox="10 20 190 160" className="relative size-full max-w-[220px]" aria-hidden="true">
-        {CIRCUIT_TRACES.map((d, i) => (
-          <path key={i} d={d} fill="none" stroke={`rgba(${rgb}, 0.35)`} strokeWidth={2.5} strokeLinecap="round" />
-        ))}
-        {!reducedMotion &&
-          CIRCUIT_TRACES.map((d, i) => (
-            <circle key={i} r={3.5} fill={`rgba(${rgb}, 1)`}>
-              <animateMotion dur="2.2s" begin={`${i * 0.35}s`} repeatCount="indefinite" path={d} />
-            </circle>
-          ))}
-        <g transform="translate(100, 100)">
-          <rect x={-24} y={-24} width={48} height={48} rx={6} fill={`rgba(${rgb}, 0.16)`} stroke={`rgba(${rgb}, 1)`} strokeWidth={2} className="chip-pulse" style={{ animation: "chipPulse 2.2s ease-in-out infinite" }} />
-          {[-14, 0, 14].map((o) => (
-            <g key={o}>
-              <line x1={-24} y1={o} x2={-30} y2={o} stroke={`rgba(${rgb}, 0.7)`} strokeWidth={2} />
-              <line x1={24} y1={o} x2={30} y2={o} stroke={`rgba(${rgb}, 0.7)`} strokeWidth={2} />
-            </g>
-          ))}
-        </g>
-      </svg>
+      <WindowShell filename="firmware.c">
+        <div className="mt-4 flex items-center justify-center px-4 pb-5" style={{ height: 130, overflow: "hidden" }}>
+          <svg viewBox="10 20 190 160" className="opacity-25" style={{ width: "100%", height: "100%" }}>
+            {CIRCUIT_TRACES.map((d, i) => (
+              <path key={i} d={d} fill="none" stroke={`rgb(${rgb})`} strokeWidth={2.5} strokeLinecap="round" />
+            ))}
+            {!reducedMotion && CIRCUIT_TRACES.map((d, i) => (
+              <circle key={i} r={3.5} fill={`rgb(${rgb})`}>
+                <animateMotion dur="2.2s" begin={`${i * 0.35}s`} repeatCount="indefinite" path={d} />
+              </circle>
+            ))}
+          </svg>
+        </div>
+      </WindowShell>
     </AnimationPanel>
   );
 }
 
 /* ---------------------------------------------------------------------------------------------
- * Chemical: a flask with a gently swaying liquid line and bubbles rising and popping through it —
- * a reaction in progress.
+ * Chemical: flask with bubbles only
  * ------------------------------------------------------------------------------------------- */
 
 const CHEMICAL_BUBBLES = [
@@ -216,74 +196,91 @@ const CHEMICAL_BUBBLES = [
 export function ChemicalAnimation({ rgb, className }: BranchAnimationProps) {
   return (
     <AnimationPanel rgb={rgb} className={className}>
-      <svg viewBox="20 20 160 160" className="relative size-full max-w-[220px]" aria-hidden="true">
-        <clipPath id="flask-clip">
-          <path d="M92 40 H108 V78 L138 148 Q142 165 124 165 H76 Q58 165 62 148 L92 78 Z" />
-        </clipPath>
-        <path
-          d="M92 40 H108 V78 L138 148 Q142 165 124 165 H76 Q58 165 62 148 L92 78 Z"
-          fill={`rgba(${rgb}, 0.06)`}
-          stroke={`rgba(${rgb}, 1)`}
-          strokeWidth={3}
-          strokeLinejoin="round"
-        />
-        <path d="M84 38 H116" stroke={`rgba(${rgb}, 1)`} strokeWidth={3} strokeLinecap="round" />
-        <g clipPath="url(#flask-clip)">
-          <rect x={55} y={110} width={90} height={60} fill={`rgba(${rgb}, 0.28)`} className="liquid-sway" style={{ animation: "liquidSway 2.4s ease-in-out infinite" }} />
-          {CHEMICAL_BUBBLES.map((b, i) => (
-            <circle
-              key={i}
-              cx={b.x}
-              cy={155}
-              r={4}
-              fill={`rgba(${rgb}, 0.8)`}
-              className="bubble"
-              style={{ animation: `bubbleRise ${b.duration}s ease-in infinite`, animationDelay: `${b.delay}s` }}
-            />
-          ))}
-        </g>
-      </svg>
+      <WindowShell filename="reaction.py">
+        <div className="mt-4 flex items-center justify-center px-4 pb-5" style={{ height: 130, overflow: "hidden" }}>
+          <svg viewBox="20 20 160 160" className="opacity-25" style={{ width: "100%", height: "100%" }}>
+            <path d="M92 40 H108 V78 L138 148 Q142 165 124 165 H76 Q58 165 62 148 L92 78 Z" fill={`rgba(${rgb}, 0.06)`} stroke={`rgb(${rgb})`} strokeWidth={3} strokeLinejoin="round" />
+            <path d="M84 38 H116" stroke={`rgb(${rgb})`} strokeWidth={3} strokeLinecap="round" />
+            <rect x={55} y={110} width={90} height={60} fill={`rgba(${rgb}, 0.28)`} className="liquid-sway" style={{ animation: "liquidSway 2.4s ease-in-out infinite" }} />
+            {CHEMICAL_BUBBLES.map((b, i) => (
+              <circle key={i} cx={b.x} cy={155} r={4} fill={`rgba(${rgb}, 0.8)`} className="bubble"
+                style={{ animation: `bubbleRise ${b.duration}s ease-in infinite`, animationDelay: `${b.delay}s` }} />
+            ))}
+          </svg>
+        </div>
+      </WindowShell>
     </AnimationPanel>
   );
 }
 
 /* ---------------------------------------------------------------------------------------------
- * Computer Engineering & IT: a terminal window with code lines scrolling past and a blinking
- * caret — the one motif that's genuinely clearer as styled text than as an SVG illustration.
+ * Computer: terminal output only
  * ------------------------------------------------------------------------------------------- */
 
-const CODE_LINES = [
-  "> const proof = build();",
-  "> run(tests) // 12 passed",
-  "> git commit -m \"ship\"",
-  "> score: 98/100",
-  "> const proof = build();",
-  "> run(tests) // 12 passed",
-  "> git commit -m \"ship\"",
-  "> score: 98/100",
+const COMP_LINES = [
+  "const proof = build();",
+  "run(tests) // 12 passed",
+  'git commit -m "ship"',
+  "score: 98/100",
 ];
+const COMP_TOTAL_CHARS = COMP_LINES.reduce((s, l) => s + l.length + 1, 0);
+const COMP_TYPE_SPEED = 40;
+const COMP_PAUSE = 2000;
+const COMP_ERASE = 12;
 
 export function ComputerAnimation({ rgb, className }: BranchAnimationProps) {
+  const [typed, setTyped] = useState(0);
+  const [typing, setTyping] = useState(true);
+
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout>;
+    if (typing) {
+      if (typed < COMP_TOTAL_CHARS) {
+        t = setTimeout(() => setTyped((c) => c + 1), COMP_TYPE_SPEED);
+      } else {
+        t = setTimeout(() => setTyping(false), COMP_PAUSE);
+      }
+    } else {
+      if (typed > 0) {
+        t = setTimeout(() => setTyped((c) => c - 1), COMP_ERASE);
+      } else {
+        t = setTimeout(() => setTyping(true), 400);
+      }
+    }
+    return () => clearTimeout(t);
+  }, [typed, typing]);
+
+  const flat: { char: string; color: string }[] = [];
+  for (const line of COMP_LINES) {
+    for (const ch of line) flat.push({ char: ch, color: "#86efac" });
+    flat.push({ char: "\n", color: "" });
+  }
+
+  const visible = flat.slice(0, typed);
+  const lines: string[] = [""];
+  for (const s of visible) {
+    if (s.char === "\n") lines.push("");
+    else lines[lines.length - 1] += s.char;
+  }
+  const onLine = lines.length - 1;
+
   return (
     <AnimationPanel rgb={rgb} className={className}>
-      <div
-        className="relative w-full max-w-[240px] overflow-hidden rounded-xl border p-3 font-mono text-[11px] leading-[1.9]"
-        style={{ borderColor: `rgba(${rgb}, 0.35)`, background: `rgba(${rgb}, 0.06)`, height: 132 }}
-      >
-        <div className="mb-1.5 flex gap-1.5">
-          <span className="size-2 rounded-full" style={{ background: `rgba(${rgb}, 0.5)` }} />
-          <span className="size-2 rounded-full" style={{ background: `rgba(${rgb}, 0.35)` }} />
-          <span className="size-2 rounded-full" style={{ background: `rgba(${rgb}, 0.25)` }} />
+      <WindowShell filename="terminal.sh">
+        <div className="mt-4 px-4 pb-5" style={{ height: 130, overflow: "hidden" }}>
+          <div style={{ color: "#86efac" }}>
+            {lines.map((line, i) => (
+              <div key={i} className="whitespace-pre">
+                <span style={{ color: B_MUTED }}>{"> "}</span>
+                <span>{line}</span>
+                {i === onLine && (
+                  <span className="caret-blink" style={{ animation: "caretBlink 1s step-end infinite", color: "#fff" }}>▌</span>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="code-scroll" style={{ animation: "codeScroll 9s linear infinite", color: `rgba(${rgb}, 0.9)` }}>
-          {CODE_LINES.map((line, i) => (
-            <div key={i} className="whitespace-nowrap">
-              {line}
-              {i === 3 && <span className="caret-blink" style={{ animation: "caretBlink 1s step-end infinite" }}>▌</span>}
-            </div>
-          ))}
-        </div>
-      </div>
+      </WindowShell>
     </AnimationPanel>
   );
 }

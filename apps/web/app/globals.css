@@ -406,6 +406,14 @@
   animation: gradientShift 6s ease infinite;
 }
 
+/* Animated gradient border for cards */
+@keyframes borderRotate {
+  to { transform: rotate(360deg); }
+}
+.animate-border-rotate {
+  animation: borderRotate 6s linear infinite;
+}
+
 /* Branch-ladder centerpiece animations (always-on, not hover-triggered) */
 @keyframes gearSpin {
   to { transform: rotate(360deg); }

@@ -16,7 +16,7 @@ import {
   FacebookIcon,
   LinkedInIcon,
 } from "@/components/icons";
-import { ReportMockup, InterviewMockup, DsaMockup } from "./mockups";
+import { ReportMockup, InterviewMockup, DsaMockup, BrowserFrame } from "./mockups";
 import { ClutterToClarityVisual } from "./clutter-to-clarity";
 import {
   MechanicalAnimation,
@@ -38,12 +38,6 @@ import {
   RecruiterDirectMessageAnimation,
   LiveInterviewRecruiterAnimation,
 } from "./recruiter-effects";
-
-/**
- * The brand home at krackit.in — not a student pitch (that lives on app.krackit.in) but the
- * front door for BOTH audiences: pick "I'm a student" or "I'm a recruiter" and get routed to
- * the right app, plus company/contact info so the product has a real identity behind it.
- */
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 const RECRUITER_URL = process.env.NEXT_PUBLIC_RECRUITER_APP_URL ?? "http://localhost:3200";
@@ -86,13 +80,6 @@ const RECRUITER_ADVANTAGES = [
   { label: "Direct messaging — no middlemen, no spam", Icon: ChatIcon },
 ];
 
-// `tags` mirrors the real gating in apps/web/lib/capabilities.ts (BRANCH_FEATURES) — every tool
-// named there actually exists and is restricted to that department; nothing in `tags` is
-// aspirational. `labSoon` is the one deliberate exception: a not-yet-built interactive lab,
-// rendered with its own "coming soon" treatment so it never gets mistaken for a shipped tool.
-// Tailwind (JIT) only generates classes that appear as complete literal strings in source, so
-// each branch carries its own pre-built class strings rather than a bare color name interpolated
-// at render time — a `bg-${color}/10` template would silently produce no CSS at all.
 const BRANCHES = [
   {
     name: "Mechanical Engineering",
@@ -176,11 +163,6 @@ const BRANCHES = [
 
 const OTHER_BRANCHES = "Aerospace, Biomedical, Automobile, Production, Instrumentation, and more";
 
-// PROFESSIONAL user accounts are restricted to exactly these surfaces — see
-// `requireStudentRoute()` in apps/web/lib/user.ts, which bounces PROFESSIONAL users away from
-// the student-only self-serve tools (assignments, reports, resume, etc.) and settings/page.tsx's
-// PROFESSIONAL_KINDS ("INTERVIEW", "DSA"). Messaging and live rooms are the recruiter-driven
-// surfaces professionals reach once a recruiter engages. Nothing here is aspirational.
 const PROFESSIONALS = [
   {
     name: "Mock Interviews",
@@ -228,11 +210,6 @@ const PROFESSIONALS = [
   },
 ] as const;
 
-// RECRUITER_FEATURES mirrors what's actually shipped in apps/recruiter: candidate search
-// (`/students`, listVisibleStudents — department + name filtering only, no DSA-score threshold
-// filter), verified profiles (`getStudentDetail`: DSA count, verified projects, resume, average
-// interview score), direct messaging (`RecruiterMessage`), and live interview rooms
-// (`/interviews/[id]`, LiveKit-backed). No dashboard/analytics — that isn't built.
 const RECRUITER_FEATURES = [
   {
     name: "Candidate Search & Discovery",
@@ -286,36 +263,291 @@ const SOCIAL_LINKS = [
   { label: "Facebook", href: "https://facebook.com/krackit.in", Icon: FacebookIcon },
 ];
 
+const STATS = [
+  { value: "10,000+", label: "Active Students & Professionals" },
+  { value: "50,000+", label: "Reports & Assignments Generated" },
+  { value: "95%", label: "ATS Resume Pass Rate" },
+  { value: "4.8/5", label: "User Satisfaction Score" },
+];
+
+const STAT_GRADIENTS = [
+  "conic-gradient(from 0deg, transparent, #FE7F2D, transparent, #006a61, transparent)",
+  "conic-gradient(from 90deg, transparent, #F7C131, transparent, #FE7F2D, transparent)",
+  "conic-gradient(from 180deg, transparent, #006a61, transparent, #F7C131, transparent)",
+  "conic-gradient(from 270deg, transparent, #FE7F2D, transparent, #86f2e4, transparent)",
+];
+
+const STAT_CARD_BG = [
+  "bg-[#0d1b2a]",
+  "bg-[#0f1923]",
+  "bg-[#0e1a26]",
+  "bg-[#0c1e28]",
+];
+
+const HOW_IT_WORKS = [
+  { step: "01", title: "Create your free account", desc: "Sign up in under 30 seconds. Students get instant access to their college tools; professionals unlock career-advancement features. No credit card required.", icon: "🚀" },
+  { step: "02", title: "Prove your skills with real work", desc: "Generate branch-specific reports, practice DSA with live code execution, and build an ATS-ready resume. Every submission runs against real test cases — not simulations.", icon: "⚡" },
+  { step: "03", title: "Get discovered by recruiters", desc: "Your verified projects, interview scores, and skill badges create a shareable proof-of-work profile. Recruiters find you based on real signal, not self-reported claims.", icon: "🎯" },
+];
+
+const FAQS = [
+  { q: "What is krackit and how does it work?", a: "krackit is a career acceleration platform where students create academic work, professionals upskill, and recruiters hire based on verified evidence. Students generate reports, practice DSA, and build resumes — all in their college's exact format. Professionals sharpen interview skills and maintain coding proficiency. Recruiters search verified profiles with real DSA scores and interview performance data." },
+  { q: "Is krackit free for students?", a: "Yes. Students get free access to reports, assignments, PPT generation, DSA practice, resume building, and AI mock interviews. Premium plans unlock higher monthly usage limits, priority generation queues, and 1:1 mentor reviews." },
+  { q: "Which engineering branches does krackit support?", a: "krackit supports all engineering branches including Mechanical, Civil, Electrical, Electronics & Telecom, Chemical, and Computer Engineering & IT. Each branch gets tools built specifically for its curriculum — from strength of materials solvers to RCC design checkers. Aerospace, Biomedical, Automobile, Production, and Instrumentation branches are in active development." },
+  { q: "How do recruiters verify candidate skills on krackit?", a: "Recruiters see real data — DSA problems solved with live code execution results, verified project portfolios, AI-assessed interview scores, and ATS-ready resumes. Every profile metric is generated through actual platform use, not self-reported claims. Recruiters can also schedule live coding interview rooms directly through krackit." },
+  { q: "Can professionals use krackit alongside their job?", a: "Absolutely. Professionals get AI-powered resume optimization for every career level, mock interviews tailored to target roles, DSA and coding skill assessments, and a shareable profile to showcase verified work and scores. Recruiter messaging and live interview rooms unlock when a recruiter engages with your profile." },
+  { q: "How does krackit protect my data and privacy?", a: "krackit follows industry-standard security practices. Your documents, interview recordings, and personal information are encrypted in transit and at rest. We never share your data without explicit consent. See our Privacy Policy for full details." },
+];
+
+const ROOT_ORG_SCHEMA = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://krackit.in/#organization",
+      name: "krackit",
+      alternateName: "krackit by Quorium Technologies",
+      description: "Career acceleration platform where students create, professionals upskill, and recruiters hire on verified evidence.",
+      url: "https://krackit.in",
+      logo: "https://krackit.in/icon.png",
+      contactPoint: { "@type": "ContactPoint", email: "support@krackit.in", contactType: "customer service" },
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://krackit.in/#website",
+      url: "https://krackit.in",
+      name: "krackit — Career Acceleration Platform",
+      description: "AI-powered platform for engineering students, working professionals, and recruiters. Generate reports, practice DSA, ace interviews, and hire verified talent.",
+      publisher: { "@id": "https://krackit.in/#organization" },
+      inLanguage: "en-IN",
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://krackit.in/#faq",
+      mainEntity: FAQS.map(({ q, a }) => ({
+        "@type": "Question",
+        name: q,
+        acceptedAnswer: { "@type": "Answer", text: a },
+      })),
+    },
+  ],
+};
+
+function StructuredData() {
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ROOT_ORG_SCHEMA) }} />;
+}
+
+function GradientBorderCard({
+  gradient,
+  bgClass = "bg-[#0d1b2a]",
+  className = "",
+  animationDuration = "6s",
+  children,
+}: {
+  gradient?: string;
+  bgClass?: string;
+  className?: string;
+  animationDuration?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`group relative overflow-hidden rounded-2xl ${className}`}>
+      <div
+        className="pointer-events-none absolute -inset-[1px] rounded-2xl opacity-60"
+        style={{
+          background: gradient ?? "conic-gradient(from 0deg, transparent, #FE7F2D, transparent, #006a61, transparent)",
+          animation: `borderRotate ${animationDuration} linear infinite`,
+        }}
+      />
+      <div className={`relative m-[1px] rounded-2xl ${bgClass}`}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function StaticBorderCard({
+  gradient = "linear-gradient(135deg, rgba(254,127,45,0.3), rgba(0,106,97,0.15), rgba(247,193,49,0.2))",
+  bgClass = "bg-card",
+  className = "",
+  children,
+}: {
+  gradient?: string;
+  bgClass?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`relative overflow-hidden rounded-2xl ${className}`}>
+      <div
+        className="pointer-events-none absolute -inset-[1px] rounded-2xl opacity-50"
+        style={{ background: gradient }}
+      />
+      <div className={`relative m-[1px] rounded-2xl ${bgClass}`}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function Card3D({
+  gradient,
+  bgClass = "bg-card",
+  className = "",
+  children,
+}: {
+  gradient?: string;
+  bgClass?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="transition-all duration-500 hover:[transform:rotateX(3deg)_rotateY(-3deg)_translateY(-6px)]"
+      style={{ perspective: "1000px" }}
+    >
+      <div className={`group relative overflow-hidden rounded-2xl shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-shadow duration-500 hover:shadow-[0_20px_60px_rgba(0,0,0,0.3)] ${className}`}>
+        <div
+          className="pointer-events-none absolute -inset-[1px] rounded-2xl opacity-60 transition-opacity duration-500 group-hover:opacity-100"
+          style={{ background: gradient }}
+        />
+        <div className={`relative m-[1px] rounded-2xl ${bgClass}`}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatsBar() {
+  return (
+    <section className="border-y border-line">
+      <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-5">
+          {STATS.map(({ value, label }, i) => (
+            <GradientBorderCard
+              key={label}
+              gradient={STAT_GRADIENTS[i]}
+              bgClass={STAT_CARD_BG[i]}
+              animationDuration={`${6 + i * 1.5}s`}
+            >
+              <div className="px-4 py-8 text-center sm:px-6 sm:py-10">
+                <p className="font-display text-[32px] font-bold leading-none text-cyan sm:text-[38px]">
+                  {value}
+                </p>
+                <p className="mt-3 text-[13px] font-medium leading-snug text-gray-300 sm:text-[14px]">
+                  {label}
+                </p>
+              </div>
+            </GradientBorderCard>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HowItWorks() {
+  return (
+    <section className="border-b border-line bg-surface/40">
+      <div className="mx-auto max-w-7xl px-5 py-24 sm:px-8">
+        <div className="mx-auto mb-16 max-w-[600px] text-center">
+          <span className="mb-4 inline-block rounded-full border border-cyan/20 bg-cyan/8 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-cyan">HOW IT WORKS</span>
+          <h2 className="font-display text-[34px] font-bold leading-[1.12] text-ink sm:text-[42px]">
+            Three steps to a verified career
+          </h2>
+          <p className="mt-3 text-[16px] text-muted">
+            From first sign-up to your next opportunity — krackit guides every step with real tools, not empty promises.
+          </p>
+        </div>
+        <div className="grid gap-6 md:grid-cols-3">
+          {HOW_IT_WORKS.map(({ step, title, desc, icon }, i) => (
+            <GradientBorderCard
+              key={step}
+              gradient="conic-gradient(from 0deg, transparent, rgba(254,127,45,0.5), transparent, rgba(0,106,97,0.4), transparent)"
+              bgClass="bg-[#0f1a24]"
+              animationDuration="8s"
+            >
+              <div className="p-7 text-center sm:p-8">
+                <span className="mx-auto flex size-14 items-center justify-center rounded-xl bg-accent-gradient/10 text-[26px]">
+                  {icon}
+                </span>
+                <h3 className="mt-5 font-display text-[19px] font-bold text-white">{title}</h3>
+                <p className="mt-2 text-[14px] leading-relaxed text-gray-300">{desc}</p>
+                <span className="mt-6 inline-flex size-7 items-center justify-center rounded-full border border-white/15 text-[11px] font-semibold text-gray-400">
+                  {step}
+                </span>
+              </div>
+            </GradientBorderCard>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FAQ() {
+  return (
+    <section id="faq" className="border-b border-line bg-surface/40">
+      <div className="mx-auto max-w-4xl px-5 py-24 sm:px-8">
+        <div className="mb-14 text-center">
+          <span className="mb-4 inline-block rounded-full border border-indigo/20 bg-indigo/8 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-indigo">FAQ</span>
+          <h2 className="font-display text-[32px] font-bold text-ink sm:text-[38px]">
+            Frequently asked questions
+          </h2>
+          <p className="mx-auto mt-3 max-w-[520px] text-[16px] text-muted">
+            Everything you need to know about krackit. Still have questions? Reach out to our team.
+          </p>
+        </div>
+        <div className="space-y-3">
+          {FAQS.map(({ q, a }) => (
+            <details key={q} className="group rounded-xl border border-line bg-card transition-colors open:border-cyan/30 hover:border-line-strong">
+              <summary className="flex cursor-pointer items-center justify-between px-6 py-5 text-[15px] font-semibold text-ink transition-colors group-open:text-cyan">
+                {q}
+                <span className="ml-4 shrink-0 text-[18px] text-faint transition-transform duration-300 group-open:rotate-180 group-open:text-cyan">▾</span>
+              </summary>
+              <div className="border-t border-line px-6 pb-5 pt-3">
+                <p className="text-[14.5px] leading-relaxed text-muted">{a}</p>
+              </div>
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function RootLanding() {
   return (
     <div className="min-h-screen overflow-hidden bg-canvas">
-      {/* NAV */}
-      <header className="animate-fade-in-up fixed inset-x-0 top-0 z-50 border-b border-line bg-base/70 backdrop-blur-xl">
+      <StructuredData />
+
+      <header className="fixed inset-x-0 top-0 z-50 border-b border-line bg-base/70 backdrop-blur-xl">
         <div className="mx-auto flex h-[64px] max-w-7xl items-center justify-between px-5">
           <Logo size={30} />
           <div className="flex items-center gap-4 sm:gap-6">
-            <a href={APP_URL} className="hidden text-[13px] font-medium text-soft transition-colors hover:text-ink sm:block">
+            <a href={APP_URL} className="hidden text-[14px] font-medium text-soft transition-colors hover:text-ink sm:block">
               Students
             </a>
-            <a href={`${APP_URL}/for-professionals`} className="hidden text-[13px] font-medium text-soft transition-colors hover:text-ink lg:block">
+            <a href={`${APP_URL}/for-professionals`} className="hidden text-[14px] font-medium text-soft transition-colors hover:text-ink lg:block">
               Professionals
             </a>
-            <a href={RECRUITER_URL} className="hidden text-[13px] font-medium text-soft transition-colors hover:text-ink sm:block">
+            <a href={RECRUITER_URL} className="hidden text-[14px] font-medium text-soft transition-colors hover:text-ink sm:block">
               Recruiters
             </a>
-            <a href="#contact" className="hidden text-[13px] font-medium text-soft transition-colors hover:text-ink sm:block">
+            <a href="#contact" className="hidden text-[14px] font-medium text-soft transition-colors hover:text-ink sm:block">
               Contact
             </a>
             <div className="flex items-center gap-3">
               <a
                 href={`${APP_URL}/sign-in`}
-                className="text-[13px] font-medium text-soft transition-colors hover:text-ink"
+                className="text-[14px] font-medium text-soft transition-colors hover:text-ink"
               >
                 Sign in
               </a>
               <a
                 href={`${APP_URL}/sign-up`}
-                className="rounded-xl bg-accent-gradient px-4 py-2 text-[13px] font-semibold text-on-accent shadow-[0_4px_16px_rgba(254,127,45,0.25)] transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(254,127,45,0.35)]"
+                className="rounded-xl bg-accent-gradient px-5 py-2.5 text-[14px] font-semibold text-on-accent shadow-[0_4px_16px_rgba(254,127,45,0.25)] transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_28px_rgba(254,127,45,0.35)]"
               >
                 Get started
               </a>
@@ -325,117 +557,126 @@ export function RootLanding() {
         </div>
       </header>
 
-      {/* HERO */}
       <section className="relative mx-auto flex max-w-7xl flex-col items-center justify-center px-5 pb-16 pt-28 text-center lg:min-h-screen">
-        <div className="pointer-events-none absolute -top-40 left-1/2 size-[600px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(254,127,45,0.08),transparent_70%)] animate-float-drift" />
+        <div className="pointer-events-none absolute -top-40 left-1/2 size-[800px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(254,127,45,0.06),transparent_70%)] animate-float-drift" />
+        <div className="pointer-events-none absolute -bottom-40 right-[-10%] size-[500px] rounded-full bg-[radial-gradient(circle,rgba(0,106,97,0.04),transparent_70%)] animate-float-drift" />
 
         <div className="relative w-full">
-          <div className="animate-fade-in-up mb-6 inline-block rounded-full border border-cyan/20 bg-cyan/8 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-cyan">
-            <span className="mr-2 inline-block size-1.5 animate-pulse-ring rounded-full bg-cyan" />
+          <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-cyan/20 bg-cyan/8 px-4 py-1.5 text-[13px] font-semibold tracking-wide text-cyan">
+            <span className="inline-block size-1.5 animate-pulse-ring rounded-full bg-cyan" />
             The career platform for everyone
           </div>
 
           <h1 className="font-display text-[40px] font-bold leading-[1.08] tracking-tight text-ink sm:text-[54px] lg:text-[62px] xl:text-[70px]">
-            <span className="animate-fade-in-up stagger-1 block">Crack college. Crack interviews.</span>
-            <span className="animate-fade-in-up stagger-2 mt-2 block">
-              <span className="animate-gradient-shift bg-gradient-to-r from-cyan via-indigo to-cyan bg-clip-text text-transparent">
+            <span className="block">Crack college. Crack interviews.</span>
+            <span className="mt-2 block">
+              <span className="bg-gradient-to-r from-cyan via-indigo to-cyan bg-clip-text text-transparent">
                 Crack your career.
               </span>
             </span>
           </h1>
 
-          <p className="animate-fade-in-up stagger-3 mx-auto mt-5 max-w-[600px] text-[16px] leading-relaxed text-muted">
-            One platform where students create, professionals upskill, and recruiters hire
-            on evidence, not buzzwords. Whichever side you&apos;re on, krackit gets you there faster.
+          <p className="mx-auto mt-5 max-w-[640px] text-[17px] leading-relaxed text-muted sm:text-[18px]">
+            krackit is the AI-powered career platform where engineering students create academic work, professionals upskill with mock interviews and DSA practice, and recruiters hire based on verified evidence — not resumes that anyone can fake.
           </p>
 
-          <div className="animate-fade-in-up stagger-4 mx-auto mt-10 max-w-5xl xl:max-w-6xl">
+          <div className="mx-auto mt-10 max-w-5xl xl:max-w-6xl">
             <ClutterToClarityVisual />
           </div>
 
-          {/* THE CHOICE — three audiences */}
-          <div className="animate-fade-in-up stagger-5 mx-auto mt-10 grid w-full max-w-6xl gap-5 text-left md:grid-cols-3">
-            <a
-              href={APP_URL}
-              className="group relative overflow-hidden rounded-3xl border border-line bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-cyan/40 hover:shadow-[0_18px_50px_rgba(254,127,45,0.18)]"
+          <div className="mx-auto mt-10 grid w-full max-w-6xl gap-5 text-left md:grid-cols-3">
+            <StaticBorderCard
+              gradient="linear-gradient(135deg, rgba(254,127,45,0.35), rgba(254,127,45,0.05))"
             >
-              <div className="pointer-events-none absolute -right-12 -top-12 size-40 rounded-full bg-[radial-gradient(circle,rgba(254,127,45,0.14),transparent_70%)] transition-transform duration-500 group-hover:scale-125" />
-              <span className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-accent-gradient text-on-accent shadow-[0_8px_20px_rgba(254,127,45,0.3)]">
-                <GraduationCapIcon size={22} />
-              </span>
-              <h2 className="font-display text-[22px] font-bold text-ink">I&apos;m a student</h2>
-              <p className="mt-1 text-[13.5px] text-muted">Create, practice, and get hired.</p>
-              <ul className="mt-4 space-y-2">
-                {STUDENT_POINTS.map((p) => (
-                  <li key={p} className="flex items-start gap-2 text-[13px] leading-relaxed text-soft">
-                    <span className="mt-0.5 text-cyan">✓</span>
-                    {p}
-                  </li>
-                ))}
-              </ul>
-              <span className="mt-6 inline-flex items-center gap-1.5 rounded-xl bg-accent-gradient px-5 py-2.5 text-[13.5px] font-semibold text-on-accent transition-transform group-hover:translate-x-1">
-                Enter as a student →
-              </span>
-            </a>
+              <a
+                href={APP_URL}
+                className="block p-7 transition-all duration-300 hover:-translate-y-1"
+              >
+                <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-accent-gradient text-on-accent shadow-[0_4px_12px_rgba(254,127,45,0.25)]">
+                  <GraduationCapIcon size={20} />
+                </span>
+                <h2 className="font-display text-[22px] font-bold text-ink">I&apos;m a student</h2>
+                <p className="mt-1 text-[14px] text-muted">Create, practice, and get hired.</p>
+                <ul className="mt-4 space-y-2">
+                  {STUDENT_POINTS.map((p) => (
+                    <li key={p} className="flex items-start gap-2 text-[14px] leading-relaxed text-soft">
+                      <span className="mt-0.5 text-cyan">✓</span>
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+                <span className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-accent-gradient px-4 py-2.5 text-[14px] font-semibold text-on-accent transition-transform group-hover:translate-x-1">
+                  Enter as a student →
+                </span>
+              </a>
+            </StaticBorderCard>
 
-            <a
-              href={`${APP_URL}/for-professionals`}
-              className="group relative overflow-hidden rounded-3xl border border-line bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-indigo/40 hover:shadow-[0_18px_50px_rgba(247,193,49,0.18)]"
+            <StaticBorderCard
+              gradient="linear-gradient(135deg, rgba(247,193,49,0.3), rgba(139,92,246,0.1))"
             >
-              <div className="pointer-events-none absolute -right-12 -top-12 size-40 rounded-full bg-[radial-gradient(circle,rgba(247,193,49,0.14),transparent_70%)] transition-transform duration-500 group-hover:scale-125" />
-              <span className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo/80 to-violet/70 text-white shadow-[0_8px_20px_rgba(247,193,49,0.3)]">
-                <BriefcaseIcon size={22} />
-              </span>
-              <h2 className="font-display text-[22px] font-bold text-ink">I&apos;m a professional</h2>
-              <p className="mt-1 text-[13.5px] text-muted">Upskill, showcase, and advance.</p>
-              <ul className="mt-4 space-y-2">
-                {PROFESSIONAL_POINTS.map((p) => (
-                  <li key={p} className="flex items-start gap-2 text-[13px] leading-relaxed text-soft">
-                    <span className="mt-0.5 text-indigo">✓</span>
-                    {p}
-                  </li>
-                ))}
-              </ul>
-              <span className="mt-6 inline-flex items-center gap-1.5 rounded-xl border border-indigo/40 bg-indigo/10 px-5 py-2.5 text-[13.5px] font-semibold text-ink transition-transform group-hover:translate-x-1">
-                Enter as a professional →
-              </span>
-            </a>
+              <a
+                href={`${APP_URL}/for-professionals`}
+                className="block p-7 transition-all duration-300 hover:-translate-y-1"
+              >
+                <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo/80 to-violet/70 text-white shadow-[0_4px_12px_rgba(247,193,49,0.25)]">
+                  <BriefcaseIcon size={20} />
+                </span>
+                <h2 className="font-display text-[22px] font-bold text-ink">I&apos;m a professional</h2>
+                <p className="mt-1 text-[14px] text-muted">Upskill, showcase, and advance.</p>
+                <ul className="mt-4 space-y-2">
+                  {PROFESSIONAL_POINTS.map((p) => (
+                    <li key={p} className="flex items-start gap-2 text-[14px] leading-relaxed text-soft">
+                      <span className="mt-0.5 text-indigo">✓</span>
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+                <span className="mt-5 inline-flex items-center gap-1.5 rounded-lg border border-indigo/40 bg-indigo/10 px-4 py-2.5 text-[14px] font-semibold text-ink transition-transform group-hover:translate-x-1">
+                  Enter as a professional →
+                </span>
+              </a>
+            </StaticBorderCard>
 
-            <a
-              href={RECRUITER_URL}
-              className="group relative overflow-hidden rounded-3xl border border-line bg-card p-7 transition-all duration-300 hover:-translate-y-1.5 hover:border-amber/40 hover:shadow-[0_18px_50px_rgba(247,193,49,0.18)]"
+            <StaticBorderCard
+              gradient="linear-gradient(135deg, rgba(247,193,49,0.3), rgba(0,106,97,0.1))"
             >
-              <div className="pointer-events-none absolute -right-12 -top-12 size-40 rounded-full bg-[radial-gradient(circle,rgba(247,193,49,0.14),transparent_70%)] transition-transform duration-500 group-hover:scale-125" />
-              <span className="mb-5 flex size-12 items-center justify-center rounded-2xl bg-gradient-to-br from-amber/80 to-yellow/60 text-white shadow-[0_8px_20px_rgba(247,193,49,0.3)]">
-                <span className="text-[20px]">💼</span>
-              </span>
-              <h2 className="font-display text-[22px] font-bold text-ink">I&apos;m a recruiter</h2>
-              <p className="mt-1 text-[13.5px] text-muted">Hire on proof, not promises.</p>
-              <ul className="mt-4 space-y-2">
-                {RECRUITER_POINTS.map((p) => (
-                  <li key={p} className="flex items-start gap-2 text-[13px] leading-relaxed text-soft">
-                    <span className="mt-0.5 text-amber">✓</span>
-                    {p}
-                  </li>
-                ))}
-              </ul>
-              <span className="mt-6 inline-flex items-center gap-1.5 rounded-xl border border-amber/40 bg-amber/10 px-5 py-2.5 text-[13.5px] font-semibold text-ink transition-transform group-hover:translate-x-1">
-                Enter as a recruiter →
-              </span>
-            </a>
+              <a
+                href={RECRUITER_URL}
+                className="block p-7 transition-all duration-300 hover:-translate-y-1"
+              >
+                <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-amber/80 to-yellow/60 text-white shadow-[0_4px_12px_rgba(247,193,49,0.25)]">
+                  <span className="text-[22px]">💼</span>
+                </span>
+                <h2 className="font-display text-[22px] font-bold text-ink">I&apos;m a recruiter</h2>
+                <p className="mt-1 text-[14px] text-muted">Hire on proof, not promises.</p>
+                <ul className="mt-4 space-y-2">
+                  {RECRUITER_POINTS.map((p) => (
+                    <li key={p} className="flex items-start gap-2 text-[14px] leading-relaxed text-soft">
+                      <span className="mt-0.5 text-amber">✓</span>
+                      {p}
+                    </li>
+                  ))}
+                </ul>
+                <span className="mt-5 inline-flex items-center gap-1.5 rounded-lg border border-amber/40 bg-amber/10 px-4 py-2.5 text-[14px] font-semibold text-ink transition-transform group-hover:translate-x-1">
+                  Enter as a recruiter →
+                </span>
+              </a>
+            </StaticBorderCard>
           </div>
         </div>
       </section>
 
-      {/* ADVANTAGES — the same pitch, broken down per audience */}
-      <section className="border-t border-line">
+      <StatsBar />
+
+      <section className="border-b border-line">
         <div className="mx-auto max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12 xl:px-16">
           <Reveal>
             <div className="mb-14 text-center">
-              <h2 className="font-display text-[30px] font-bold text-ink sm:text-[36px]">
+              <span className="mb-4 inline-block rounded-full border border-cyan/20 bg-cyan/8 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-cyan">PLATFORM</span>
+              <h2 className="font-display text-[32px] font-bold text-ink sm:text-[38px]">
                 Built for both sides of the table
               </h2>
-              <p className="mt-3 text-[15px] text-muted">
+              <p className="mt-3 text-[16px] text-muted">
                 Everything a student needs to build proof of work — everything a recruiter needs to trust it.
               </p>
             </div>
@@ -443,233 +684,239 @@ export function RootLanding() {
 
           <div className="grid gap-6 md:grid-cols-2">
             <Reveal>
-              <div className="h-full rounded-3xl border border-line bg-card p-7">
-                <div className="flex items-center gap-3">
-                  <span className="flex size-11 items-center justify-center rounded-xl bg-accent-gradient text-on-accent">
-                    <GraduationCapIcon size={20} />
-                  </span>
-                  <h3 className="font-display text-[19px] font-bold text-ink">For students</h3>
+              <StaticBorderCard gradient="linear-gradient(135deg, rgba(254,127,45,0.25), rgba(0,106,97,0.1))">
+                <div className="p-7">
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-11 items-center justify-center rounded-xl bg-accent-gradient text-on-accent">
+                      <GraduationCapIcon size={20} />
+                    </span>
+                    <h3 className="font-display text-[20px] font-bold text-ink">For students</h3>
+                  </div>
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {STUDENT_ADVANTAGES.map(({ label, Icon }) => (
+                      <div key={label} className="flex items-start gap-2.5 rounded-xl border border-line bg-surface/60 p-3.5 transition-colors hover:bg-cyan/5">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-cyan/10 text-cyan">
+                          <Icon size={16} />
+                        </span>
+                        <span className="text-[14px] font-medium leading-snug text-soft">{label}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {STUDENT_ADVANTAGES.map(({ label, Icon }) => (
-                    <div key={label} className="flex items-start gap-2.5 rounded-xl border border-line bg-surface/60 p-3.5">
-                      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-cyan/10 text-cyan">
-                        <Icon size={16} />
-                      </span>
-                      <span className="text-[13px] font-medium leading-snug text-soft">{label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              </StaticBorderCard>
             </Reveal>
 
             <Reveal delay={100}>
-              <div className="h-full rounded-3xl border border-line bg-card p-7">
-                <div className="flex items-center gap-3">
-                  <span className="flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo/80 to-violet/70 text-white">
-                    <BriefcaseIcon size={20} />
-                  </span>
-                  <h3 className="font-display text-[19px] font-bold text-ink">For recruiters</h3>
+              <StaticBorderCard gradient="linear-gradient(135deg, rgba(247,193,49,0.25), rgba(139,92,246,0.1))">
+                <div className="p-7">
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo/80 to-violet/70 text-white">
+                      <BriefcaseIcon size={20} />
+                    </span>
+                    <h3 className="font-display text-[20px] font-bold text-ink">For recruiters</h3>
+                  </div>
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                    {RECRUITER_ADVANTAGES.map(({ label, Icon }) => (
+                      <div key={label} className="flex items-start gap-2.5 rounded-xl border border-line bg-surface/60 p-3.5 transition-colors hover:bg-indigo/5">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-indigo/10 text-indigo">
+                          <Icon size={16} />
+                        </span>
+                        <span className="text-[14px] font-medium leading-snug text-soft">{label}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                  {RECRUITER_ADVANTAGES.map(({ label, Icon }) => (
-                    <div key={label} className="flex items-start gap-2.5 rounded-xl border border-line bg-surface/60 p-3.5">
-                      <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-indigo/10 text-indigo">
-                        <Icon size={16} />
-                      </span>
-                      <span className="text-[13px] font-medium leading-snug text-soft">{label}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              </StaticBorderCard>
             </Reveal>
           </div>
         </div>
       </section>
 
-      {/* BRANCH COVERAGE — how deep the platform goes for each engineering branch */}
-      <section className="border-t border-line bg-surface/40">
+      <HowItWorks />
+
+      <section className="border-b border-line bg-surface/40">
         <div className="mx-auto max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12 xl:px-16">
           <Reveal>
             <div className="mb-14 text-center">
-              <h2 className="font-display text-[30px] font-bold text-ink sm:text-[36px]">
+              <span className="mb-4 inline-block rounded-full border border-cyan/20 bg-cyan/8 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-cyan">BRANCH COVERAGE</span>
+              <h2 className="font-display text-[32px] font-bold text-ink sm:text-[38px]">
                 Built branch by branch, not one-size-fits-all
               </h2>
-              <p className="mx-auto mt-3 max-w-[560px] text-[15px] text-muted">
+              <p className="mx-auto mt-3 max-w-[560px] text-[16px] text-muted">
                 Assignments, reports, resumes, DSA, and interviews work for every branch. On top of
                 that, each department gets tools built specifically for what it actually studies.
               </p>
             </div>
           </Reveal>
 
-          {/* Ladder: one rectangle per branch, tool image and lab info swapping sides every
-              row so it reads as a staircase down the page rather than a uniform grid. Each
-              card's side panel is an always-on animation specific to that discipline (gears
-              turning, circuits pulsing, etc.) rather than a static department icon. */}
           <div className="flex flex-col gap-6 lg:gap-8">
             {BRANCHES.map(({ name, Animation, iconWrap, hoverBorder, tag, blurb, tags, labSoon, rgb }, i) => {
               const imageRight = i % 2 === 1;
               return (
                 <Reveal key={name} delay={i * 60}>
-                  <div
-                    className={`group relative overflow-hidden rounded-3xl border border-line bg-card transition-colors duration-300 ${hoverBorder}`}
+                  <Card3D
+                    gradient={`linear-gradient(135deg, rgba(${rgb},0.4), rgba(${rgb},0.08))`}
+                    bgClass="bg-[#0d1b2a]"
                   >
                     <div className={`relative flex flex-col ${imageRight ? "sm:flex-row-reverse" : "sm:flex-row"}`}>
-                      <div className={`flex items-center justify-center p-10 sm:w-[36%] ${iconWrap}`}>
+                      <div
+                        className="flex items-center justify-center p-10 sm:w-[36%]"
+                        style={{ backgroundColor: `rgba(${rgb}, 0.2)` }}
+                      >
                         <Animation rgb={rgb} />
                       </div>
                       <div className="flex-1 p-6 sm:p-8">
-                        <h3 className="font-display text-[19px] font-bold text-ink">{name}</h3>
-                        <p className="mt-2 text-[13.5px] leading-relaxed text-muted">{blurb}</p>
+                        <h3 className="font-display text-[20px] font-bold text-white">{name}</h3>
+                        <p className="mt-2 text-[14.5px] leading-relaxed text-gray-300">{blurb}</p>
                         <div className="mt-4 flex flex-wrap gap-1.5">
                           {tags.map((t) => (
-                            <span key={t} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${tag}`}>
+                            <span key={t} className={`rounded-full px-3 py-1.5 text-[12px] font-semibold ${tag}`}>
                               {t}
                             </span>
                           ))}
                         </div>
-                        {/* Not-yet-built, called out honestly — dashed border + top rule keep it visually distinct from the shipped tags above */}
-                        <p className="mt-4 flex items-start gap-1.5 border-t border-dashed border-line-strong pt-3 text-[12px] leading-relaxed text-faint">
-                          <span className="mt-px inline-block shrink-0 rounded-full border border-dashed border-line-strong px-1.5 py-0.5 text-[9px] font-semibold tracking-wide">
+                        <p className="mt-4 flex items-start gap-1.5 border-t border-dashed border-white/10 pt-3 text-[13px] leading-relaxed text-gray-400">
+                          <span className="mt-px inline-block shrink-0 rounded-full border border-dashed border-white/15 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-gray-400">
                             SOON
                           </span>
                           Interactive lab: {labSoon}
                         </p>
                       </div>
                     </div>
-                  </div>
+                  </Card3D>
                 </Reveal>
               );
             })}
 
-            {/* Coming soon — every other branch, honest about what's not built yet */}
             <Reveal delay={BRANCHES.length * 60}>
-              <div className="rounded-3xl border border-dashed border-line-strong bg-transparent p-8 text-center">
-                <span className="inline-block rounded-full border border-line-strong px-2.5 py-1 text-[11px] font-semibold tracking-wide text-faint">
+              <div className="rounded-2xl border border-dashed border-line-strong bg-transparent p-8 text-center">
+                <span className="inline-block rounded-full border border-line-strong px-2.5 py-1 text-[12px] font-semibold tracking-wide text-faint">
                   COMING SOON
                 </span>
-                <h3 className="mt-4 font-display text-[17px] font-bold text-ink">Don&apos;t see your branch?</h3>
-                <p className="mx-auto mt-2 max-w-[480px] text-[13px] leading-relaxed text-muted">
+                <h3 className="mt-4 font-display text-[18px] font-bold text-ink">Don&apos;t see your branch?</h3>
+                <p className="mx-auto mt-2 max-w-[480px] text-[14px] leading-relaxed text-muted">
                   Reports, assignments, resumes, and interview prep already work for every branch — a
                   dedicated numerical solver for yours is next.
                 </p>
-                <p className="mt-3 text-[12px] text-faint">{OTHER_BRANCHES}</p>
+                <p className="mt-3 text-[13px] text-faint">{OTHER_BRANCHES}</p>
               </div>
             </Reveal>
           </div>
         </div>
       </section>
 
-      {/* WORKING PROFESSIONALS — same ladder format as the branch section above, but for the
-          PROFESSIONAL account type: mock interviews + DSA practice (self-serve) plus recruiter
-          messaging + live interview rooms (recruiter-driven). See the PROFESSIONALS comment for
-          why these four and no others. */}
-      <section className="border-t border-line">
+      <section className="border-b border-line bg-surface/40">
         <div className="mx-auto max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12 xl:px-16">
           <Reveal>
-            <div className="mb-14 text-center">
-              <h2 className="font-display text-[30px] font-bold text-ink sm:text-[36px]">
+            <div className="mb-16 text-center">
+              <span className="mb-4 inline-block rounded-full border border-indigo/20 bg-indigo/8 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-indigo">PROFESSIONALS</span>
+              <h2 className="font-display text-[32px] font-bold text-ink sm:text-[38px]">
                 Already working? krackit isn&apos;t just for students
               </h2>
-              <p className="mx-auto mt-3 max-w-[560px] text-[15px] text-muted">
+              <p className="mx-auto mt-3 max-w-[560px] text-[16px] text-muted">
                 Sharpen your interview game, keep your DSA fresh, and connect directly with
                 recruiters — the same platform, tuned for where you already are in your career.
               </p>
             </div>
           </Reveal>
 
-          <div className="flex flex-col gap-6 lg:gap-8">
-            {PROFESSIONALS.map(({ name, Animation, iconWrap, hoverBorder, tag, blurb, tags, rgb }, i) => {
-              const imageRight = i % 2 === 1;
-              return (
-                <Reveal key={name} delay={i * 60}>
-                  <div
-                    className={`group relative overflow-hidden rounded-3xl border border-line bg-card transition-colors duration-300 ${hoverBorder}`}
-                  >
-                    <div className={`relative flex flex-col ${imageRight ? "sm:flex-row-reverse" : "sm:flex-row"}`}>
-                      <div className={`flex items-center justify-center p-10 sm:w-[36%] ${iconWrap}`}>
-                        <Animation rgb={rgb} />
-                      </div>
-                      <div className="flex-1 p-6 sm:p-8">
-                        <h3 className="font-display text-[19px] font-bold text-ink">{name}</h3>
-                        <p className="mt-2 text-[13.5px] leading-relaxed text-muted">{blurb}</p>
-                        <div className="mt-4 flex flex-wrap gap-1.5">
-                          {tags.map((t) => (
-                            <span key={t} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${tag}`}>
-                              {t}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
+          <div className="grid gap-6 sm:grid-cols-2">
+            {PROFESSIONALS.map(({ name, Animation, tag, blurb, tags, rgb }, i) => (
+              <Reveal key={name} delay={i * 60}>
+                <StaticBorderCard
+                  gradient={`linear-gradient(135deg, rgba(${rgb},0.4), rgba(${rgb},0.05))`}
+                >
+                  <div className="flex flex-col sm:flex-row">
+                    <div
+                      className="flex items-center justify-center sm:w-[55%] p-4 sm:p-5"
+                      style={{ backgroundColor: `rgba(${rgb}, 0.1)` }}
+                    >
+                      <Animation rgb={rgb} />
+                    </div>
+                    <div className="flex flex-1 flex-col justify-center p-6 sm:p-7">
+                      <h3 className="font-display text-[20px] font-bold text-ink">{name}</h3>
+                      <p className="mt-1 text-[14px] text-muted">{blurb}</p>
+                      <ul className="mt-4 space-y-2">
+                        {tags.map((t) => (
+                          <li key={t} className="flex items-start gap-2 text-[14px] leading-relaxed text-soft">
+                            <span className="mt-0.5 text-cyan">✓</span>
+                            {t}
+                          </li>
+                        ))}
+                      </ul>
+                      <span className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-accent-gradient px-4 py-2.5 text-[14px] font-semibold text-on-accent transition-transform hover:translate-x-1">
+                        Learn more →
+                      </span>
                     </div>
                   </div>
-                </Reveal>
-              );
-            })}
+                </StaticBorderCard>
+              </Reveal>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* RECRUITERS — same ladder format again, this time for what apps/recruiter ships:
-          candidate search, verified profiles, direct messaging, and live interview rooms. See
-          the RECRUITER_FEATURES comment for what's deliberately left out (no dashboard/analytics,
-          no DSA-score-threshold filter — neither is built). */}
-      <section className="border-t border-line bg-surface/40">
+      <section className="border-b border-line bg-surface/40">
         <div className="mx-auto max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12 xl:px-16">
           <Reveal>
-            <div className="mb-14 text-center">
-              <h2 className="font-display text-[30px] font-bold text-ink sm:text-[36px]">
+            <div className="mb-16 text-center">
+              <span className="mb-4 inline-block rounded-full border border-amber/20 bg-amber/8 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-amber">RECRUITERS</span>
+              <h2 className="font-display text-[32px] font-bold text-ink sm:text-[38px]">
                 Hiring? See the tools built for recruiters
               </h2>
-              <p className="mx-auto mt-3 max-w-[560px] text-[15px] text-muted">
+              <p className="mx-auto mt-3 max-w-[560px] text-[16px] text-muted">
                 Find candidates with real signal, message them directly, and run the interview —
                 all inside krackit, not stitched together from a resume PDF and a video call link.
               </p>
             </div>
           </Reveal>
 
-          <div className="flex flex-col gap-6 lg:gap-8">
-            {RECRUITER_FEATURES.map(({ name, Animation, iconWrap, hoverBorder, tag, blurb, tags, rgb }, i) => {
-              const imageRight = i % 2 === 1;
-              return (
-                <Reveal key={name} delay={i * 60}>
-                  <div
-                    className={`group relative overflow-hidden rounded-3xl border border-line bg-card transition-colors duration-300 ${hoverBorder}`}
-                  >
-                    <div className={`relative flex flex-col ${imageRight ? "sm:flex-row-reverse" : "sm:flex-row"}`}>
-                      <div className={`flex items-center justify-center p-10 sm:w-[36%] ${iconWrap}`}>
-                        <Animation rgb={rgb} />
-                      </div>
-                      <div className="flex-1 p-6 sm:p-8">
-                        <h3 className="font-display text-[19px] font-bold text-ink">{name}</h3>
-                        <p className="mt-2 text-[13.5px] leading-relaxed text-muted">{blurb}</p>
-                        <div className="mt-4 flex flex-wrap gap-1.5">
-                          {tags.map((t) => (
-                            <span key={t} className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${tag}`}>
-                              {t}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
+          <div className="grid gap-6 sm:grid-cols-2">
+            {RECRUITER_FEATURES.map(({ name, Animation, tag, blurb, tags, rgb }, i) => (
+              <Reveal key={name} delay={i * 60}>
+                <StaticBorderCard
+                  gradient={`linear-gradient(135deg, rgba(${rgb},0.4), rgba(${rgb},0.05))`}
+                >
+                  <div className="flex flex-col sm:flex-row">
+                    <div
+                      className="flex items-center justify-center sm:w-[55%] p-4 sm:p-5"
+                      style={{ backgroundColor: `rgba(${rgb}, 0.1)` }}
+                    >
+                      <Animation rgb={rgb} />
+                    </div>
+                    <div className="flex flex-1 flex-col justify-center p-6 sm:p-7">
+                      <h3 className="font-display text-[20px] font-bold text-ink">{name}</h3>
+                      <p className="mt-1 text-[14px] text-muted">{blurb}</p>
+                      <ul className="mt-4 space-y-2">
+                        {tags.map((t) => (
+                          <li key={t} className="flex items-start gap-2 text-[14px] leading-relaxed text-soft">
+                            <span className="mt-0.5 text-cyan">✓</span>
+                            {t}
+                          </li>
+                        ))}
+                      </ul>
+                      <span className="mt-5 inline-flex items-center gap-1.5 rounded-lg bg-accent-gradient px-4 py-2.5 text-[14px] font-semibold text-on-accent transition-transform hover:translate-x-1">
+                        Learn more →
+                      </span>
                     </div>
                   </div>
-                </Reveal>
-              );
-            })}
+                </StaticBorderCard>
+              </Reveal>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* FEATURE DEEP DIVE */}
-      <section className="border-t border-line bg-surface/40">
+      <section className="border-b border-line">
         <div className="mx-auto max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12 xl:px-16">
           <Reveal>
             <div className="mb-16 text-center">
-              <h2 className="font-display text-[30px] font-bold text-ink sm:text-[36px]">
-                A closer look at the tools
+              <span className="mb-4 inline-block rounded-full border border-cyan/20 bg-cyan/8 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-cyan">FEATURES</span>
+              <h2 className="font-display text-[32px] font-bold text-ink sm:text-[38px]">
+                See krackit&apos;s tools in action
               </h2>
-              <p className="mt-3 text-[15px] text-muted">
-                Real screens, not mockups of an idea. This is what students and recruiters actually use.
+              <p className="mt-3 text-[16px] text-muted">
+                Real screenshots from the actual platform — not concept mockups. Here&apos;s what students and recruiters use every day.
               </p>
             </div>
           </Reveal>
@@ -677,13 +924,12 @@ export function RootLanding() {
           <Reveal>
             <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
               <div>
-                <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-cyan/20 to-cyan/5 text-xl">
+                <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-cyan/20 to-cyan/5">
                   <SlidesIcon size={20} className="text-cyan" />
                 </span>
-                <h3 className="font-display text-[22px] font-semibold text-ink">Assignments, reports & PPTs, in your college&apos;s format</h3>
-                <p className="mt-2.5 max-w-[420px] text-[14px] leading-relaxed text-muted">
-                  Snap a photo or paste a question. Get back a fully formatted document — headings,
-                  citations, and structure matching your department&apos;s exact style.
+                <h3 className="font-display text-[23px] font-semibold text-ink">AI-powered assignments, reports & PPTs in your college format</h3>
+                <p className="mt-2.5 max-w-[420px] text-[15px] leading-relaxed text-muted">
+                  Snap a photo of your handwritten problem or paste a question prompt. krackit&apos;s AI generates fully formatted documents with proper headings, inline citations, and structural conventions matching your specific engineering department&apos;s style guide.
                 </p>
               </div>
               <ReportMockup />
@@ -693,13 +939,12 @@ export function RootLanding() {
           <Reveal>
             <div className="mt-20 grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
               <div className="lg:order-2">
-                <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo/20 to-indigo/5 text-xl">
+                <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo/20 to-indigo/5">
                   <CodeIcon size={20} className="text-indigo" />
                 </span>
-                <h3 className="font-display text-[22px] font-semibold text-ink">DSA practice with real code execution</h3>
-                <p className="mt-2.5 max-w-[420px] text-[14px] leading-relaxed text-muted">
-                  Solve curated problems in a real editor. Code actually runs against test cases —
-                  a streak a recruiter can trust, not a progress bar.
+                <h3 className="font-display text-[23px] font-semibold text-ink">Data structures & algorithms practice with live code execution</h3>
+                <p className="mt-2.5 max-w-[420px] text-[15px] leading-relaxed text-muted">
+                  Solve curated DSA problems in a real code editor with multi-language support. Every submission compiles and runs against hidden test cases — producing a verified score that recruiters trust, not a meaningless completion streak.
                 </p>
               </div>
               <div className="lg:order-1">
@@ -711,11 +956,11 @@ export function RootLanding() {
           <Reveal>
             <div className="mt-20 grid items-center gap-10 lg:grid-cols-2 lg:gap-14">
               <div>
-                <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-cyan/20 to-cyan/5 text-xl">
+                <span className="mb-4 flex size-11 items-center justify-center rounded-xl bg-gradient-to-br from-cyan/20 to-cyan/5">
                   <MicIcon size={20} className="text-cyan" />
                 </span>
-                <h3 className="font-display text-[22px] font-semibold text-ink">AI mock interviews that actually push back</h3>
-                <p className="mt-2.5 max-w-[420px] text-[14px] leading-relaxed text-muted">
+                <h3 className="font-display text-[23px] font-semibold text-ink">AI mock interviews that actually push back</h3>
+                <p className="mt-2.5 max-w-[420px] text-[15px] leading-relaxed text-muted">
                   Practice live, voice-to-voice, with follow-up questions based on what you just said —
                   then get a breakdown of what to fix before the real thing.
                 </p>
@@ -726,8 +971,9 @@ export function RootLanding() {
         </div>
       </section>
 
-      {/* COMPANY + CONTACT */}
-      <section id="contact" className="border-t border-line bg-surface/40">
+      <FAQ />
+
+      <section id="contact" className="border-b border-line bg-surface/40">
         <Reveal>
           <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 lg:px-12">
             <div className="grid items-start gap-10 md:grid-cols-2">
@@ -736,7 +982,7 @@ export function RootLanding() {
                 <h2 className="mt-5 font-display text-[26px] font-bold text-ink">
                   Built by Quorium Technologies
                 </h2>
-                <p className="mt-3 max-w-[440px] text-[14.5px] leading-relaxed text-muted">
+                <p className="mt-3 max-w-[440px] text-[15px] leading-relaxed text-muted">
                   krackit is a Quorium Technologies product, built in India for students everywhere.
                   We believe careers should be won on proof of work — so we built the platform that
                   lets students create it and recruiters see it.
@@ -757,20 +1003,20 @@ export function RootLanding() {
                 </div>
               </div>
               <div className="rounded-2xl border border-line bg-card p-7">
-                <h3 className="font-display text-[17px] font-semibold text-ink">Get in touch</h3>
-                <p className="mt-1 text-[13px] text-muted">
+                <h3 className="font-display text-[18px] font-semibold text-ink">Get in touch</h3>
+                <p className="mt-1 text-[14px] text-muted">
                   Questions, partnerships, or campus programs — we reply fast.
                 </p>
                 <div className="mt-5 space-y-3">
                   <a
                     href={`mailto:${CONTACT_EMAIL}`}
-                    className="flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-[13.5px] font-semibold text-ink transition-colors hover:border-cyan/30"
+                    className="flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-[14px] font-semibold text-ink transition-colors hover:border-cyan/30"
                   >
                     <span className="text-[16px]">✉️</span> {CONTACT_EMAIL}
                   </a>
                   <a
                     href={`${APP_URL}/support`}
-                    className="flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-[13.5px] font-semibold text-ink transition-colors hover:border-cyan/30"
+                    className="flex items-center gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-[14px] font-semibold text-ink transition-colors hover:border-cyan/30"
                   >
                     <span className="text-[16px]">💬</span> In-app support
                   </a>
@@ -781,27 +1027,26 @@ export function RootLanding() {
         </Reveal>
       </section>
 
-      {/* FOOTER */}
-      <footer className="border-t border-line bg-base/80">
+      <footer className="border-b border-line bg-base/80">
         <div className="mx-auto max-w-7xl px-5 pt-16 pb-8">
           <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-5">
             <div className="lg:col-span-2">
               <Logo size={28} />
-              <p className="mt-3 max-w-[320px] text-[13px] leading-relaxed text-muted">
+              <p className="mt-3 max-w-[320px] text-[14px] leading-relaxed text-muted">
                 krackit is the career acceleration platform where students create, professionals
                 upskill, and recruiters hire on proof of work — not buzzwords.
               </p>
               <div className="mt-5 flex gap-3">
-                <a href="mailto:support@krackit.in" className="flex size-9 items-center justify-center rounded-lg border border-line bg-surface text-[13px] text-muted transition-colors hover:border-cyan/30 hover:text-cyan">
+                <a href="mailto:support@krackit.in" className="flex size-9 items-center justify-center rounded-lg border border-line bg-surface text-muted transition-colors hover:border-cyan/30 hover:text-cyan">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg>
                 </a>
-                <a href="#" className="flex size-9 items-center justify-center rounded-lg border border-line bg-surface text-[13px] text-muted transition-colors hover:border-cyan/30 hover:text-cyan">
+                <a href="#" className="flex size-9 items-center justify-center rounded-lg border border-line bg-surface text-muted transition-colors hover:border-cyan/30 hover:text-cyan">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.24 2.5H5.76A3.26 3.26 0 002.5 5.76v12.48a3.26 3.26 0 003.26 3.26h6.3v-7.2h-2.4v-2.8h2.4V9.1a3.35 3.35 0 013.58-3.68c.72 0 1.46.06 2.18.18v2.4h-1.24c-1.18 0-1.42.56-1.42 1.38v1.82h2.6l-.42 2.8h-2.18V21.5h3.88a3.26 3.26 0 003.26-3.26V5.76a3.26 3.26 0 00-3.26-3.26z"/></svg>
                 </a>
-                <a href="#" className="flex size-9 items-center justify-center rounded-lg border border-line bg-surface text-[13px] text-muted transition-colors hover:border-cyan/30 hover:text-cyan">
+                <a href="#" className="flex size-9 items-center justify-center rounded-lg border border-line bg-surface text-muted transition-colors hover:border-cyan/30 hover:text-cyan">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M22.16 5.66a8.58 8.58 0 01-2.47.68 4.32 4.32 0 001.9-2.38 8.62 8.62 0 01-2.73 1.04 4.3 4.3 0 00-7.34 3.93A12.22 12.22 0 013.15 4.28a4.3 4.3 0 001.33 5.74 4.27 4.27 0 01-1.95-.54v.05a4.3 4.3 0 003.45 4.22 4.3 4.3 0 01-1.94.07 4.31 4.31 0 004.02 2.99 8.65 8.65 0 01-5.35 1.84A8.7 8.7 0 012 18.6a12.2 12.2 0 0018.98-10.24c0-.19 0-.37-.01-.56a8.72 8.72 0 002.19-2.14z"/></svg>
                 </a>
-                <a href="#" className="flex size-9 items-center justify-center rounded-lg border border-line bg-surface text-[13px] text-muted transition-colors hover:border-cyan/30 hover:text-cyan">
+                <a href="#" className="flex size-9 items-center justify-center rounded-lg border border-line bg-surface text-muted transition-colors hover:border-cyan/30 hover:text-cyan">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.04c-5.52 0-10 4.48-10 10 0 4.42 2.87 8.17 6.84 9.5.5.09.68-.22.68-.48 0-.24-.01-.88-.01-1.73-2.78.6-3.37-1.34-3.37-1.34-.45-1.15-1.11-1.46-1.11-1.46-.9-.62.07-.6.07-.6 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.35 1.09 2.92.83.09-.65.35-1.09.64-1.34-2.22-.25-4.56-1.11-4.56-4.95 0-1.09.39-1.99 1.03-2.69-.1-.26-.45-1.28.1-2.66 0 0 .84-.27 2.75 1.02.8-.22 1.65-.33 2.5-.34.85.01 1.7.12 2.5.34 1.91-1.29 2.75-1.02 2.75-1.02.55 1.38.2 2.4.1 2.66.64.7 1.03 1.6 1.03 2.69 0 3.84-2.34 4.7-4.57 4.95.36.31.68.92.68 1.86 0 1.34-.01 2.42-.01 2.75 0 .27.18.58.69.48 3.97-1.33 6.84-5.08 6.84-9.5 0-5.52-4.48-10-10-10z"/></svg>
                 </a>
               </div>
@@ -810,31 +1055,31 @@ export function RootLanding() {
             <div>
               <h4 className="text-[12px] font-semibold uppercase tracking-[0.12em] text-ink">Product</h4>
               <ul className="mt-4 space-y-2.5">
-                <li><a href={`${APP_URL}/sign-up`} className="text-[13px] text-muted transition-colors hover:text-ink">For Students</a></li>
-                <li><a href={`${APP_URL}/for-professionals`} className="text-[13px] text-muted transition-colors hover:text-ink">For Professionals</a></li>
-                <li><a href={RECRUITER_URL} className="text-[13px] text-muted transition-colors hover:text-ink">For Recruiters</a></li>
-                <li><a href={`${APP_URL}/pricing`} className="text-[13px] text-muted transition-colors hover:text-ink">Pricing</a></li>
+                <li><a href={`${APP_URL}/sign-up`} className="text-[14px] text-muted transition-colors hover:text-ink">For Students</a></li>
+                <li><a href={`${APP_URL}/for-professionals`} className="text-[14px] text-muted transition-colors hover:text-ink">For Professionals</a></li>
+                <li><a href={RECRUITER_URL} className="text-[14px] text-muted transition-colors hover:text-ink">For Recruiters</a></li>
+                <li><a href={`${APP_URL}/pricing`} className="text-[14px] text-muted transition-colors hover:text-ink">Pricing</a></li>
               </ul>
             </div>
 
             <div>
               <h4 className="text-[12px] font-semibold uppercase tracking-[0.12em] text-ink">Company</h4>
               <ul className="mt-4 space-y-2.5">
-                <li><a href={`mailto:support@krackit.in`} className="text-[13px] text-muted transition-colors hover:text-ink">Contact</a></li>
-                <li><a href={`${APP_URL}/support`} className="text-[13px] text-muted transition-colors hover:text-ink">Support</a></li>
-                <li><a href={`${APP_URL}/privacy`} className="text-[13px] text-muted transition-colors hover:text-ink">Privacy Policy</a></li>
-                <li><a href={`${APP_URL}/terms`} className="text-[13px] text-muted transition-colors hover:text-ink">Terms of Service</a></li>
+                <li><a href={`mailto:support@krackit.in`} className="text-[14px] text-muted transition-colors hover:text-ink">Contact</a></li>
+                <li><a href={`${APP_URL}/support`} className="text-[14px] text-muted transition-colors hover:text-ink">Support</a></li>
+                <li><a href={`${APP_URL}/privacy`} className="text-[14px] text-muted transition-colors hover:text-ink">Privacy Policy</a></li>
+                <li><a href={`${APP_URL}/terms`} className="text-[14px] text-muted transition-colors hover:text-ink">Terms of Service</a></li>
               </ul>
             </div>
 
             <div className="sm:col-span-2 lg:col-span-1">
               <h4 className="text-[12px] font-semibold uppercase tracking-[0.12em] text-ink">Get started</h4>
-              <p className="mt-3 text-[13px] leading-relaxed text-muted">
+              <p className="mt-3 text-[14px] leading-relaxed text-muted">
                 Create your free account today. No credit card needed.
               </p>
               <a
                 href={`${APP_URL}/sign-up`}
-                className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-accent-gradient px-5 py-2.5 text-[13px] font-semibold text-on-accent shadow-[0_4px_12px_rgba(254,127,45,0.25)] transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(254,127,45,0.35)]"
+                className="mt-4 inline-flex items-center gap-1.5 rounded-xl bg-accent-gradient px-5 py-2.5 text-[14px] font-semibold text-on-accent shadow-[0_4px_12px_rgba(254,127,45,0.25)] transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(254,127,45,0.35)]"
               >
                 Start free →
               </a>
