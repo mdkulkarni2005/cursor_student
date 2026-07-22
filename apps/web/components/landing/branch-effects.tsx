@@ -54,7 +54,7 @@ export function MechanicalAnimation({ rgb, className }: BranchAnimationProps) {
   return (
     <AnimationPanel rgb={rgb} className={className}>
       <div className="flex size-full items-center justify-center" style={{ maxWidth: 120, maxHeight: 120, marginTop: -50 }}>
-        <svg viewBox="20 20 160 160" className="opacity-30" style={{ width: "100%", height: "100%" }}>
+        <svg viewBox="20 20 160 160" className="opacity-60" style={{ width: "100%", height: "100%" }}>
           <Gear spec={MECHANICAL_GEARS[0]!} rgb={rgb} baseDuration={18} opacity={0.6} />
           <Gear spec={MECHANICAL_GEARS[1]!} rgb={rgb} baseDuration={18} opacity={0.6} />
           <Gear spec={MECHANICAL_GEARS[2]!} rgb={rgb} baseDuration={18} opacity={0.6} />
@@ -82,7 +82,7 @@ export function CivilAnimation({ rgb, className }: BranchAnimationProps) {
   return (
     <AnimationPanel rgb={rgb} className={className}>
       <div className="flex size-full items-center justify-center" style={{ maxWidth: 120, maxHeight: 120, marginTop: -50 }}>
-        <svg viewBox="20 30 160 150" className="opacity-25" style={{ width: "100%", height: "100%" }}>
+        <svg viewBox="20 30 160 150" className="opacity-50" style={{ width: "100%", height: "100%" }}>
           {CIVIL_PATHS.map((p, i) => (
             <path key={i} d={p.d} className="blueprint-path" fill="none" stroke={`rgb(${rgb})`} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
               style={{ strokeDasharray: 220, animation: `blueprintDraw 5.2s ease-in-out infinite`, animationDelay: `${p.delay}s` }} />
@@ -104,7 +104,7 @@ export function ElectricalAnimation({ rgb, className }: BranchAnimationProps) {
   return (
     <AnimationPanel rgb={rgb} className={className}>
       <div className="flex size-full items-center justify-center" style={{ maxWidth: 120, maxHeight: 120, marginTop: -50 }}>
-        <svg viewBox="10 20 190 160" className="opacity-25" style={{ width: "100%", height: "100%" }}>
+        <svg viewBox="10 20 190 160" className="opacity-50" style={{ width: "100%", height: "100%" }}>
           <path d={ELECTRICAL_WIRE} fill="none" stroke={`rgb(${rgb})`} strokeWidth={3} strokeLinecap="round"
             style={{ strokeDasharray: "10 8", animation: "currentFlow 0.7s linear infinite" }} />
           {!reducedMotion && [0, 0.9].map((offset, i) => (
@@ -134,7 +134,7 @@ export function ElectronicsAnimation({ rgb, className }: BranchAnimationProps) {
   return (
     <AnimationPanel rgb={rgb} className={className}>
       <div className="flex size-full items-center justify-center" style={{ maxWidth: 120, maxHeight: 120, marginTop: -50 }}>
-        <svg viewBox="10 20 190 160" className="opacity-25" style={{ width: "100%", height: "100%" }}>
+        <svg viewBox="10 20 190 160" className="opacity-50" style={{ width: "100%", height: "100%" }}>
           {CIRCUIT_TRACES.map((d, i) => (
             <path key={i} d={d} fill="none" stroke={`rgb(${rgb})`} strokeWidth={2.5} strokeLinecap="round" />
           ))}
@@ -164,7 +164,7 @@ export function ChemicalAnimation({ rgb, className }: BranchAnimationProps) {
   return (
     <AnimationPanel rgb={rgb} className={className}>
       <div className="flex size-full items-center justify-center" style={{ maxWidth: 120, maxHeight: 120, marginTop: -50 }}>
-        <svg viewBox="20 20 160 160" className="opacity-25" style={{ width: "100%", height: "100%" }}>
+        <svg viewBox="20 20 160 160" className="opacity-50" style={{ width: "100%", height: "100%" }}>
           <path d="M92 40 H108 V78 L138 148 Q142 165 124 165 H76 Q58 165 62 148 L92 78 Z" fill={`rgba(${rgb}, 0.06)`} stroke={`rgb(${rgb})`} strokeWidth={3} strokeLinejoin="round" />
           <path d="M84 38 H116" stroke={`rgb(${rgb})`} strokeWidth={3} strokeLinecap="round" />
           <rect x={55} y={110} width={90} height={60} fill={`rgba(${rgb}, 0.28)`} className="liquid-sway" style={{ animation: "liquidSway 2.4s ease-in-out infinite" }} />
