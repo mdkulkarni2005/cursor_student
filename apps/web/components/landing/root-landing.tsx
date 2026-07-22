@@ -40,17 +40,11 @@ import {
 } from "./recruiter-effects";
 
 function KrackitText({ text }: { text: string }) {
-  const parts = text.split("krackit");
-  return (
-    <>
-      {parts.map((part, i) => (
-        <span key={i}>
-          {part}
-          {i < parts.length - 1 && <Krackit />}
-        </span>
-      ))}
-    </>
+  const html = text.replace(
+    /krackit/gi,
+    () => `<span style="color:var(--color-cyan)">krackIT</span>`
   );
+  return <span dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
@@ -464,9 +458,9 @@ function StatsBar() {
 function HowItWorks() {
   return (
     <section className="border-b border-line bg-surface/40">
-      <div className="mx-auto max-w-7xl px-5 py-24 sm:px-8">
+        <div className="mx-auto max-w-7xl px-5 py-28 sm:px-8">
         <div className="mx-auto mb-16 max-w-[600px] text-center">
-          <span className="mb-4 inline-block rounded-full border border-cyan/20 bg-cyan/8 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-cyan">HOW IT WORKS</span>
+          <span className="mb-4 inline-block rounded-full bg-cyan px-5 py-2 text-[16px] font-bold tracking-wider text-white shadow-[0_4px_12px_rgba(254,127,45,0.3)]">HOW IT WORKS</span>
           <h2 className="font-display text-[34px] font-bold leading-[1.12] text-ink sm:text-[42px]">
             Three steps to a <Krackit />-powered career
           </h2>
@@ -503,9 +497,9 @@ function HowItWorks() {
 function FAQ() {
   return (
     <section id="faq" className="border-b border-line bg-surface/40">
-      <div className="mx-auto max-w-4xl px-5 py-24 sm:px-8">
+      <div className="mx-auto max-w-3xl px-5 py-28 sm:px-8">
         <div className="mb-14 text-center">
-          <span className="mb-4 inline-block rounded-full border border-indigo/20 bg-indigo/8 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-indigo">FAQ</span>
+          <span className="mb-4 inline-block rounded-full bg-cyan px-5 py-2 text-[16px] font-bold tracking-wider text-white shadow-[0_4px_12px_rgba(254,127,45,0.3)]">FAQ</span>
           <h2 className="font-display text-[32px] font-bold text-ink sm:text-[38px]">
             <Krackit /> questions, answered
           </h2>
@@ -513,15 +507,15 @@ function FAQ() {
             Everything you need to know about <Krackit />. Still have questions? Reach out to our team.
           </p>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-2">
           {FAQS.map(({ q, a }) => (
             <details key={q} className="group rounded-xl border border-line bg-card transition-colors open:border-cyan/30 hover:border-line-strong">
-              <summary className="flex cursor-pointer items-center justify-between px-6 py-5 text-[15px] font-semibold text-ink transition-colors group-open:text-cyan">
+              <summary className="flex cursor-pointer items-center justify-between gap-3 px-5 py-4 text-[14px] font-semibold leading-snug text-ink transition-colors group-open:text-cyan">
                 <KrackitText text={q} />
-                <span className="ml-4 shrink-0 text-[18px] text-faint transition-transform duration-300 group-open:rotate-180 group-open:text-cyan">▾</span>
+                <span className="shrink-0 text-[16px] text-faint transition-transform duration-300 group-open:rotate-180 group-open:text-cyan">▾</span>
               </summary>
-              <div className="border-t border-line px-6 pb-5 pt-3">
-                <p className="text-[14.5px] leading-relaxed text-muted"><KrackitText text={a} /></p>
+              <div className="border-t border-line px-5 pb-4 pt-3">
+                <p className="text-[14px] leading-relaxed text-muted">{a}</p>
               </div>
             </details>
           ))}
@@ -683,10 +677,10 @@ export function RootLanding() {
       <StatsBar />
 
       <section className="border-b border-line">
-        <div className="mx-auto max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12 xl:px-16">
+        <div className="mx-auto max-w-[1440px] px-5 py-28 sm:px-8 lg:px-12 xl:px-16">
           <Reveal>
             <div className="mb-14 text-center">
-              <span className="mb-4 inline-block rounded-full border border-cyan/20 bg-cyan/8 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-cyan">PLATFORM</span>
+              <span className="mb-4 inline-block rounded-full bg-cyan px-5 py-2 text-[16px] font-bold tracking-wider text-white shadow-[0_4px_12px_rgba(254,127,45,0.3)]">PLATFORM</span>
               <h2 className="font-display text-[32px] font-bold text-ink sm:text-[38px]">
                 <Krackit /> for students &mdash; <Krackit /> for recruiters
               </h2>
@@ -749,10 +743,10 @@ export function RootLanding() {
       <HowItWorks />
 
       <section className="border-b border-line bg-surface/40">
-        <div className="mx-auto max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12 xl:px-16">
+        <div className="mx-auto max-w-[1440px] px-5 py-28 sm:px-8 lg:px-12 xl:px-16">
           <Reveal>
             <div className="mb-14 text-center">
-              <span className="mb-4 inline-block rounded-full border border-cyan/20 bg-cyan/8 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-cyan">BRANCH COVERAGE</span>
+              <span className="mb-4 inline-block rounded-full bg-cyan px-5 py-2 text-[16px] font-bold tracking-wider text-white shadow-[0_4px_12px_rgba(254,127,45,0.3)]">BRANCH COVERAGE</span>
               <h2 className="font-display text-[32px] font-bold text-ink sm:text-[38px]">
                 Built branch by branch, not one-size-fits-all
               </h2>
@@ -768,7 +762,7 @@ export function RootLanding() {
             {BRANCHES.map(({ name, Animation, tag, blurb, tags, labSoon, rgb }, i) => (
               <Reveal key={name} delay={i * 60}>
                 <div
-                  className="group relative overflow-hidden transition-all duration-300 hover:scale-[1.03]"
+                  className="group relative transition-all duration-300 hover:scale-[1.03] hover:z-10"
                   style={{
                     borderRadius: "0.5rem 2rem",
                     boxShadow: "0px 15px 20px -5px rgba(0, 0, 0, 0.5)",
@@ -779,7 +773,7 @@ export function RootLanding() {
                   <div
                     className="relative grid overflow-hidden"
                     style={{
-                      height: 260,
+                      height: 340,
                       borderRadius: "0.5rem 2rem",
                       background: "linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.2))",
                     }}
@@ -791,16 +785,16 @@ export function RootLanding() {
 
                   {/* Description overlay */}
                   <div
-                    className="absolute bottom-2 left-2 w-[90%] overflow-hidden text-ellipsis whitespace-nowrap transition-all duration-500 ease-in-out"
+                    className="absolute bottom-2 left-2 w-[calc(100%-1rem)] transition-all duration-500 ease-in-out"
                     style={{
-                      padding: "0.5rem 1em",
+                      padding: "0.75rem 1rem",
                       borderRadius: "0.5rem 2rem",
-                      backdropFilter: "blur(0.1rem)",
-                      backgroundColor: "rgba(0, 0, 0, 0.4)",
+                      backdropFilter: "blur(0.2rem)",
+                      backgroundColor: "rgba(0, 0, 0, 0.55)",
                     }}
                   >
                     <h3 className="text-[15px] font-bold text-white">{name}</h3>
-                    <p className="mt-1 text-[12px] text-gray-300 truncate"><KrackitText text={blurb} /></p>
+                    <p className="mt-1 text-[12px] leading-relaxed text-gray-300 line-clamp-3"><KrackitText text={blurb} /></p>
                     <div className="mt-2 flex flex-wrap gap-1">
                       {tags.map((t) => (
                         <span key={t} className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${tag}`}>
@@ -813,54 +807,14 @@ export function RootLanding() {
               </Reveal>
             ))}
           </div>
-
-          <Reveal delay={BRANCHES.length * 60}>
-            <div className="group relative mt-6 overflow-hidden rounded-2xl bg-gradient-to-br from-[#0d1b2a] via-[#0f1a24] to-[#0d1b2a] p-[1px]">
-              <div className="absolute -inset-[1px] rounded-2xl opacity-0 transition-opacity duration-700 group-hover:opacity-100"
-                style={{
-                  background: "conic-gradient(from 0deg, #FE7F2D, #F7C131, #006a61, #FE7F2D)",
-                  animation: "borderRotate 4s linear infinite",
-                }}
-              />
-              <div className="relative rounded-2xl bg-gradient-to-br from-[#0d1b2a] to-[#0f1a24] p-10 text-center sm:p-14">
-                <div className="pointer-events-none absolute inset-0 rounded-2xl bg-[radial-gradient(ellipse_at_top,rgba(254,127,45,0.08),transparent_60%)]" />
-
-                <span className="relative inline-block">
-                  <span className="bg-gradient-to-r from-[#FE7F2D] via-[#F7C131] to-[#FE7F2D] bg-clip-text text-[44px] font-black leading-none tracking-[0.2em] text-transparent sm:text-[56px]"
-                    style={{ fontFamily: "'Arial Black', 'Impact', sans-serif", animation: "glowPulse 3s ease-in-out infinite" }}>
-                    COMING SOON
-                  </span>
-                </span>
-
-                <div className="mx-auto mt-6 h-[2px] w-24 rounded-full bg-gradient-to-r from-transparent via-[#FE7F2D] to-transparent animate-shimmer" />
-
-                <h3 className="mt-6 font-display text-[20px] font-bold text-ink">Don&apos;t see your branch?</h3>
-                <p className="mx-auto mt-2 max-w-[520px] text-[15px] leading-relaxed text-muted">
-                  Reports, assignments, resumes, and interview prep already work for every branch — a
-                  dedicated numerical solver for yours is next.
-                </p>
-
-                <div className="mx-auto mt-6 flex max-w-lg flex-wrap justify-center gap-2">
-                  {OTHER_BRANCHES.split(", ").map((b, i) => (
-                    <span key={b}
-                      className={`inline-block rounded-full border border-[#FE7F2D]/20 bg-[#FE7F2D]/5 px-3 py-1 text-[12px] font-medium text-[#FE7F2D] transition-all duration-300 hover:bg-[#FE7F2D]/15 hover:scale-105 ${i === 0 ? "" : ""}`}
-                      style={{ animationDelay: `${i * 0.1}s` }}
-                    >
-                      {b}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </Reveal>
         </div>
       </section>
 
       <section className="border-b border-line bg-surface/40">
-        <div className="mx-auto max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12 xl:px-16">
+        <div className="mx-auto max-w-[1440px] px-5 py-28 sm:px-8 lg:px-12 xl:px-16">
           <Reveal>
             <div className="mb-16 text-center">
-              <span className="mb-4 inline-block rounded-full border border-indigo/20 bg-indigo/8 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-indigo">PROFESSIONALS</span>
+              <span className="mb-4 inline-block rounded-full bg-cyan px-5 py-2 text-[16px] font-bold tracking-wider text-white shadow-[0_4px_12px_rgba(254,127,45,0.3)]">PROFESSIONALS</span>
               <h2 className="font-display text-[32px] font-bold text-ink sm:text-[38px]">
                 Already working? <Krackit /> isn&apos;t just for students
               </h2>
@@ -908,10 +862,10 @@ export function RootLanding() {
       </section>
 
       <section className="border-b border-line bg-surface/40">
-        <div className="mx-auto max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12 xl:px-16">
+        <div className="mx-auto max-w-[1440px] px-5 py-28 sm:px-8 lg:px-12 xl:px-16">
           <Reveal>
             <div className="mb-16 text-center">
-              <span className="mb-4 inline-block rounded-full border border-amber/20 bg-amber/8 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-amber">RECRUITERS</span>
+              <span className="mb-4 inline-block rounded-full bg-cyan px-5 py-2 text-[16px] font-bold tracking-wider text-white shadow-[0_4px_12px_rgba(254,127,45,0.3)]">RECRUITERS</span>
               <h2 className="font-display text-[32px] font-bold text-ink sm:text-[38px]">
                 Hiring? <Krackit /> shows you who&apos;s actually ready
               </h2>
@@ -959,10 +913,10 @@ export function RootLanding() {
       </section>
 
       <section className="border-b border-line">
-        <div className="mx-auto max-w-[1440px] px-5 py-24 sm:px-8 lg:px-12 xl:px-16">
+        <div className="mx-auto max-w-[1440px] px-5 py-28 sm:px-8 lg:px-12 xl:px-16">
           <Reveal>
             <div className="mb-16 text-center">
-              <span className="mb-4 inline-block rounded-full border border-cyan/20 bg-cyan/8 px-4 py-1.5 text-[12px] font-semibold tracking-wide text-cyan">FEATURES</span>
+              <span className="mb-4 inline-block rounded-full bg-cyan px-5 py-2 text-[16px] font-bold tracking-wider text-white shadow-[0_4px_12px_rgba(254,127,45,0.3)]">FEATURES</span>
               <h2 className="font-display text-[32px] font-bold text-ink sm:text-[38px]">
                 See <Krackit />&apos;s tools in action
               </h2>

@@ -52,7 +52,7 @@ export function CandidateSearchAnimation({ rgb, className }: CardAnimationProps)
   return (
     <AnimationPanel rgb={rgb} className={className}>
       <WindowShell filename="candidate-search.ts">
-        <div className="mt-4 px-4 pb-5" style={{ height: 130, overflow: "hidden" }}>
+        <div className="mt-4 px-4 pb-5" style={{ height: 200, overflow: "hidden" }}>
           {/* Search bar */}
           <div className="mb-2 flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[10px]" style={{ borderColor: `rgba(${rgb}, 0.3)`, color: `rgba(${rgb}, 0.8)` }}>
             <svg viewBox="0 0 24 24" className="size-3" fill="none" stroke="currentColor" strokeWidth={2.2}>
@@ -97,7 +97,7 @@ export function VerifiedProfileAnimation({ rgb, className }: CardAnimationProps)
   return (
     <AnimationPanel rgb={rgb} className={className}>
       <WindowShell filename="verified-profile.ts">
-        <div className="mt-4 px-4 pb-5" style={{ height: 130, overflow: "hidden" }}>
+        <div className="mt-4 px-4 pb-5" style={{ height: 200, overflow: "hidden" }}>
           <div className="mb-3 flex items-center gap-2">
             <span className="flex size-7 shrink-0 items-center justify-center rounded-full text-[10px] font-bold" style={{ background: `rgba(${rgb}, 0.85)`, color: "#fff" }}>
               AS
@@ -139,7 +139,7 @@ export function RecruiterDirectMessageAnimation({ rgb, className }: CardAnimatio
   return (
     <AnimationPanel rgb={rgb} className={className}>
       <WindowShell filename="messages.chat">
-        <div className="mt-4 px-4 pb-5" style={{ height: 130, overflow: "hidden" }}>
+        <div className="mt-4 px-4 pb-5" style={{ height: 200, overflow: "hidden" }}>
           <div className="code-scroll flex flex-col gap-2" style={{ animation: "codeScroll 10s linear infinite" }}>
             {DM_LOOP.map((m, i) => (
               <div key={i} className={`flex ${m.from === "student" ? "justify-end" : "justify-start"}`}>
@@ -210,7 +210,7 @@ export function LiveInterviewRecruiterAnimation({ rgb, className }: CardAnimatio
   return (
     <AnimationPanel rgb={rgb} className={className}>
       <WindowShell filename="LiveInterview.tsx">
-        <div className="mt-4 px-4 pb-5" style={{ height: 130, overflow: "hidden" }}>
+        <div className="mt-4 px-4 pb-5" style={{ height: 200, overflow: "hidden" }}>
           <div className="mb-2 flex items-center justify-end">
             <span className="flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold" style={{ color: `rgb(${rgb})`, background: `rgba(${rgb}, 0.14)` }}>
               <span className="chip-pulse inline-block size-1.5 rounded-full" style={{ background: `rgb(${rgb})`, animation: "chipPulse 1.4s ease-in-out infinite" }} />
