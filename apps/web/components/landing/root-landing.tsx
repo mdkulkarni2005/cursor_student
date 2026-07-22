@@ -750,58 +750,53 @@ export function RootLanding() {
           </Reveal>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {BRANCHES.map(({ name, Animation, tag, blurb, tags, labSoon, rgb }, i) => {
-              const isEven = i % 2 === 0;
-              return (
-                <Reveal key={name} delay={i * 60}>
+            {BRANCHES.map(({ name, Animation, tag, blurb, tags, labSoon, rgb }, i) => (
+              <Reveal key={name} delay={i * 60}>
+                <div
+                  className="group relative overflow-hidden transition-all duration-300 hover:scale-[1.03]"
+                  style={{
+                    borderRadius: "0.5rem 2rem",
+                    boxShadow: "0px 15px 20px -5px rgba(0, 0, 0, 0.5)",
+                    backgroundColor: "#0d1b2a",
+                  }}
+                >
+                  {/* Image container with animation */}
                   <div
-                    className="group relative overflow-hidden transition-all duration-300 hover:scale-[1.03]"
-                    style={{
-                      borderRadius: "0.5rem 2rem",
-                      boxShadow: "0px 15px 20px -5px rgba(0, 0, 0, 0.5)",
-                      backgroundColor: isEven ? "#0d1b2a" : "#f5f5f5",
-                    }}
-                  >
-                    {/* Image container with animation */}
-                    <div
-                      className="relative grid overflow-hidden"
+                    className="relative grid overflow-hidden"
                     style={{
                       height: 260,
                       borderRadius: "0.5rem 2rem",
-                        background: isEven
-                          ? `linear-gradient(135deg, rgba(${rgb}, 0.1), rgba(${rgb}, 0.3))`
-                          : `linear-gradient(135deg, rgba(${rgb}, 0.08), rgba(${rgb}, 0.15))`,
-                      }}
-                    >
-                      <div className="flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
-                        <Animation rgb={rgb} />
-                      </div>
-                    </div>
-
-                    {/* Description overlay */}
-                    <div
-                      className="absolute bottom-2 left-2 w-[90%] overflow-hidden text-ellipsis whitespace-nowrap transition-all duration-500 ease-in-out"
-                      style={{
-                        padding: "0.5rem 1em",
-                        borderRadius: "0.5rem 2rem",
-                        backdropFilter: "blur(0.1rem)",
-                        backgroundColor: isEven ? "rgba(0, 0, 0, 0.4)" : "rgba(255, 255, 255, 0.5)",
-                      }}
-                    >
-                      <h3 className={`text-[15px] font-bold ${isEven ? "text-white" : "text-gray-900"}`}>{name}</h3>
-                      <p className={`mt-1 text-[12px] truncate ${isEven ? "text-gray-300" : "text-gray-600"}`}>{blurb}</p>
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {tags.map((t) => (
-                          <span key={t} className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${tag}`}>
-                            {t}
-                          </span>
-                        ))}
-                      </div>
+                      background: `linear-gradient(135deg, rgba(${rgb}, 0.1), rgba(${rgb}, 0.3))`,
+                    }}
+                  >
+                    <div className="flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+                      <Animation rgb={rgb} />
                     </div>
                   </div>
-                </Reveal>
-              );
-            })}
+
+                  {/* Description overlay */}
+                  <div
+                    className="absolute bottom-2 left-2 w-[90%] overflow-hidden text-ellipsis whitespace-nowrap transition-all duration-500 ease-in-out"
+                    style={{
+                      padding: "0.5rem 1em",
+                      borderRadius: "0.5rem 2rem",
+                      backdropFilter: "blur(0.1rem)",
+                      backgroundColor: "rgba(0, 0, 0, 0.4)",
+                    }}
+                  >
+                    <h3 className="text-[15px] font-bold text-white">{name}</h3>
+                    <p className="mt-1 text-[12px] text-gray-300 truncate">{blurb}</p>
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {tags.map((t) => (
+                        <span key={t} className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${tag}`}>
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </Reveal>
+            ))}
           </div>
 
           <Reveal delay={BRANCHES.length * 60}>
