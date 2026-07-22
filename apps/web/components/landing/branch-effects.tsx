@@ -54,10 +54,10 @@ export function MechanicalAnimation({ rgb, className }: BranchAnimationProps) {
   return (
     <AnimationPanel rgb={rgb} className={className}>
       <div className="flex size-full items-center justify-center" style={{ maxWidth: 120, maxHeight: 120, marginTop: -50 }}>
-        <svg viewBox="20 20 160 160" className="opacity-60" style={{ width: "100%", height: "100%" }}>
-          <Gear spec={MECHANICAL_GEARS[0]!} rgb={rgb} baseDuration={18} opacity={0.6} />
-          <Gear spec={MECHANICAL_GEARS[1]!} rgb={rgb} baseDuration={18} opacity={0.6} />
-          <Gear spec={MECHANICAL_GEARS[2]!} rgb={rgb} baseDuration={18} opacity={0.6} />
+        <svg viewBox="20 20 160 160" className="opacity-70" style={{ width: "100%", height: "100%" }}>
+          <Gear spec={MECHANICAL_GEARS[0]!} rgb="226,232,240" baseDuration={18} opacity={0.7} />
+          <Gear spec={MECHANICAL_GEARS[1]!} rgb="226,232,240" baseDuration={18} opacity={0.7} />
+          <Gear spec={MECHANICAL_GEARS[2]!} rgb="226,232,240" baseDuration={18} opacity={0.7} />
         </svg>
       </div>
     </AnimationPanel>
@@ -82,9 +82,9 @@ export function CivilAnimation({ rgb, className }: BranchAnimationProps) {
   return (
     <AnimationPanel rgb={rgb} className={className}>
       <div className="flex size-full items-center justify-center" style={{ maxWidth: 120, maxHeight: 120, marginTop: -50 }}>
-        <svg viewBox="20 30 160 150" className="opacity-50" style={{ width: "100%", height: "100%" }}>
+        <svg viewBox="20 30 160 150" className="opacity-60" style={{ width: "100%", height: "100%" }}>
           {CIVIL_PATHS.map((p, i) => (
-            <path key={i} d={p.d} className="blueprint-path" fill="none" stroke={`rgb(${rgb})`} strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
+            <path key={i} d={p.d} className="blueprint-path" fill="none" stroke="#e2e8f0" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
               style={{ strokeDasharray: 220, animation: `blueprintDraw 5.2s ease-in-out infinite`, animationDelay: `${p.delay}s` }} />
           ))}
         </svg>
@@ -104,11 +104,11 @@ export function ElectricalAnimation({ rgb, className }: BranchAnimationProps) {
   return (
     <AnimationPanel rgb={rgb} className={className}>
       <div className="flex size-full items-center justify-center" style={{ maxWidth: 120, maxHeight: 120, marginTop: -50 }}>
-        <svg viewBox="10 20 190 160" className="opacity-50" style={{ width: "100%", height: "100%" }}>
-          <path d={ELECTRICAL_WIRE} fill="none" stroke={`rgb(${rgb})`} strokeWidth={3} strokeLinecap="round"
+        <svg viewBox="10 20 190 160" className="opacity-60" style={{ width: "100%", height: "100%" }}>
+          <path d={ELECTRICAL_WIRE} fill="none" stroke="#e2e8f0" strokeWidth={3} strokeLinecap="round"
             style={{ strokeDasharray: "10 8", animation: "currentFlow 0.7s linear infinite" }} />
           {!reducedMotion && [0, 0.9].map((offset, i) => (
-            <circle key={i} r={4} fill={`rgb(${rgb})`}>
+            <circle key={i} r={4} fill="#e2e8f0">
               <animateMotion dur="2.4s" begin={`${offset}s`} repeatCount="indefinite" path={ELECTRICAL_WIRE} />
             </circle>
           ))}
@@ -134,12 +134,12 @@ export function ElectronicsAnimation({ rgb, className }: BranchAnimationProps) {
   return (
     <AnimationPanel rgb={rgb} className={className}>
       <div className="flex size-full items-center justify-center" style={{ maxWidth: 120, maxHeight: 120, marginTop: -50 }}>
-        <svg viewBox="10 20 190 160" className="opacity-50" style={{ width: "100%", height: "100%" }}>
+        <svg viewBox="10 20 190 160" className="opacity-60" style={{ width: "100%", height: "100%" }}>
           {CIRCUIT_TRACES.map((d, i) => (
-            <path key={i} d={d} fill="none" stroke={`rgb(${rgb})`} strokeWidth={2.5} strokeLinecap="round" />
+            <path key={i} d={d} fill="none" stroke="#e2e8f0" strokeWidth={2.5} strokeLinecap="round" />
           ))}
           {!reducedMotion && CIRCUIT_TRACES.map((d, i) => (
-            <circle key={i} r={3.5} fill={`rgb(${rgb})`}>
+            <circle key={i} r={3.5} fill="#e2e8f0">
               <animateMotion dur="2.2s" begin={`${i * 0.35}s`} repeatCount="indefinite" path={d} />
             </circle>
           ))}
@@ -164,12 +164,12 @@ export function ChemicalAnimation({ rgb, className }: BranchAnimationProps) {
   return (
     <AnimationPanel rgb={rgb} className={className}>
       <div className="flex size-full items-center justify-center" style={{ maxWidth: 120, maxHeight: 120, marginTop: -50 }}>
-        <svg viewBox="20 20 160 160" className="opacity-50" style={{ width: "100%", height: "100%" }}>
-          <path d="M92 40 H108 V78 L138 148 Q142 165 124 165 H76 Q58 165 62 148 L92 78 Z" fill={`rgba(${rgb}, 0.06)`} stroke={`rgb(${rgb})`} strokeWidth={3} strokeLinejoin="round" />
-          <path d="M84 38 H116" stroke={`rgb(${rgb})`} strokeWidth={3} strokeLinecap="round" />
+        <svg viewBox="20 20 160 160" className="opacity-60" style={{ width: "100%", height: "100%" }}>
+          <path d="M92 40 H108 V78 L138 148 Q142 165 124 165 H76 Q58 165 62 148 L92 78 Z" fill={`rgba(${rgb}, 0.06)`} stroke="#e2e8f0" strokeWidth={3} strokeLinejoin="round" />
+          <path d="M84 38 H116" stroke="#e2e8f0" strokeWidth={3} strokeLinecap="round" />
           <rect x={55} y={110} width={90} height={60} fill={`rgba(${rgb}, 0.28)`} className="liquid-sway" style={{ animation: "liquidSway 2.4s ease-in-out infinite" }} />
           {CHEMICAL_BUBBLES.map((b, i) => (
-            <circle key={i} cx={b.x} cy={155} r={4} fill={`rgba(${rgb}, 0.8)`} className="bubble"
+            <circle key={i} cx={b.x} cy={155} r={4} fill="#e2e8f0" className="bubble"
               style={{ animation: `bubbleRise ${b.duration}s ease-in infinite`, animationDelay: `${b.delay}s` }} />
           ))}
         </svg>
@@ -206,13 +206,13 @@ export function ComputerAnimation({ rgb, className }: BranchAnimationProps) {
   return (
     <AnimationPanel rgb={rgb} className={className}>
       <div className="flex size-full items-center justify-center" style={{ maxWidth: 120, maxHeight: 120, marginTop: -50 }}>
-        <svg viewBox="0 0 125 105" style={{ width: "100%", height: "100%" }}>
+        <svg viewBox="0 0 125 105" className="opacity-70" style={{ width: "100%", height: "100%" }}>
           {edges.map(([a, b], i) => (
             <line
               key={i}
               x1={nodes[a]!.x} y1={nodes[a]!.y}
               x2={nodes[b]!.x} y2={nodes[b]!.y}
-              stroke={`rgb(${rgb})`}
+              stroke="#e2e8f0"
               strokeWidth="1.5"
               opacity={i === activeNode ? "0.8" : "0.3"}
               style={{ transition: "opacity 0.3s ease" }}
@@ -222,12 +222,12 @@ export function ComputerAnimation({ rgb, className }: BranchAnimationProps) {
             <g key={i}>
               <circle
                 cx={n.x} cy={n.y} r="10"
-                fill={i === activeNode ? `rgb(${rgb})` : `rgba(${rgb}, 0.2)`}
-                stroke={`rgb(${rgb})`}
+                fill={i === activeNode ? `rgb(${rgb})` : "rgba(226,232,240,0.2)"}
+                stroke={i === activeNode ? `rgb(${rgb})` : "#e2e8f0"}
                 strokeWidth="1.5"
                 style={{ transition: "fill 0.3s ease" }}
               />
-              <text x={n.x} y={n.y + 3} textAnchor="middle" fill={i === activeNode ? "#fff" : `rgb(${rgb})`} fontSize="8" fontWeight="700">
+              <text x={n.x} y={n.y + 3} textAnchor="middle" fill={i === activeNode ? "#fff" : "#e2e8f0"} fontSize="8" fontWeight="700">
                 {String.fromCharCode(65 + i)}
               </text>
             </g>
