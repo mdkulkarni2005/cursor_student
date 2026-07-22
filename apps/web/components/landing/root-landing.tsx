@@ -766,7 +766,7 @@ export function RootLanding() {
                     style={{
                       height: 260,
                       borderRadius: "0.5rem 2rem",
-                      background: "linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.1))",
+                      background: "linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.2))",
                     }}
                   >
                     <div className="flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
