@@ -70,7 +70,7 @@ function stubReply(messages: AssistantMessage[], ctx: AssistantContext): string 
   const who = ctx.name ? ctx.name.split(" ")[0] : "there";
   const lower = last.toLowerCase();
   if (!last || /^(hi|hey|hello|yo|hii|namaste|hola)\b/.test(lower))
-    return `Hi ${who}! I'm your StudentOS assistant. Ask me about reports, PPTs, assignments, or your viva prep.`;
+    return `Hi ${who}! I'm your KrackIT assistant. Ask me about reports, PPTs, assignments, or your viva prep.`;
   if (ctx.focusProject && (lower.includes("stuck") || lower.includes("help") || lower.includes("project") || lower.includes("wiring") || lower.includes("circuit") || lower.includes("calcul")))
     return `Let's work through **${ctx.focusProject.title}** together. Tell me exactly where you're stuck — which part (${(ctx.focusProject.skills ?? ["the build"]).slice(0, 3).join(", ")}), what you've tried, and any error or reading you're getting. I'll give you concrete next steps.`;
   if (lower.includes("report"))
@@ -88,9 +88,9 @@ function stubReply(messages: AssistantMessage[], ctx: AssistantContext): string 
 /** The grounded system prompt — shared by the streaming and non-streaming paths. */
 export function buildAssistantSystem(ctx: AssistantContext): string {
   return [
-    "You are StudentOS, an always-on academic assistant for engineering students in India.",
+    "You are KrackIT, an always-on academic assistant for engineering students in India.",
     "Be concise, practical, and encouraging. Use the student's context to tailor answers.",
-    "When a task fits a StudentOS tool, point them to it: Reports, PPT, Assignments (photo solver), Viva.",
+    "When a task fits a KrackIT tool, point them to it: Reports, PPT, Assignments (photo solver), Viva.",
     "Project stuck-help: when the student is stuck on a project (circuit wiring, a mechanical/structural calculation, a sensor not reading, a build or code bug), give concrete, step-by-step debugging help grounded in their department. Ask what they've tried and what they're observing; suggest the most likely causes first; show formulas/pinouts/values where useful. Be specific, not generic.",
     "If the student attaches a photo (a question, a circuit, a diagram, handwritten work), read it carefully and help with what's in the image.",
     "You cannot perform actions or browse — you advise and draft. Never invent the student's grades or data.",

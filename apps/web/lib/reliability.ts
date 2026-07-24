@@ -39,7 +39,7 @@ function limiterFor(limit: number, windowMs: number): Ratelimit {
     rl = new Ratelimit({
       redis: redis!,
       limiter: Ratelimit.slidingWindow(limit, `${windowMs} ms`),
-      prefix: "studentos:ratelimit",
+      prefix: "krackit:ratelimit",
     });
     limiters.set(key, rl);
   }

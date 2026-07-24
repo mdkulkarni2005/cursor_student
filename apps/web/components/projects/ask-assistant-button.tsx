@@ -7,7 +7,7 @@
 export function AskAssistantButton({ projectId, title }: { projectId: string; title: string }) {
   function open() {
     window.dispatchEvent(
-      new CustomEvent("studentos:assistant-open", {
+      new CustomEvent("krackit:assistant-open", {
         detail: {
           projectId,
           label: title,

@@ -1,22 +1,12 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { usePrefersReducedMotion, AnimationPanel, type CardAnimationProps } from "./animation-shell";
-
-/**
- * Always-on, per-branch centerpiece animations for the branch ladder — these REPLACE the
- * static department icon entirely, not decorate it. Each one fills the same panel the icon used
- * to occupy, so swapping branches in `root-landing.tsx` is a drop-in. Built as inline SVG driven
- * by CSS transforms/SMIL wherever the effect is a clean geometric motion — crisper at any size,
- * and cheap enough to run continuously rather than only on hover. Shares `AnimationPanel` (see
- * `animation-shell.tsx`) with the professional-ladder animations so both sections read as one
- * coherent system.
- */
 
 type BranchAnimationProps = CardAnimationProps;
 
 /* ---------------------------------------------------------------------------------------------
- * Mechanical: three interlocking gears turning at matched relative speed — the big one slow and
- * deliberate, the small ones quick — reads as machinery under load, not decoration for its own sake.
+ * Mechanical: animated gears only
  * ------------------------------------------------------------------------------------------- */
 
 type Point = { x: number; y: number };
@@ -52,19 +42,9 @@ function Gear({ spec, rgb, baseDuration, opacity }: { spec: GearSpec; rgb: strin
   return (
     <g
       className="gear-rotor"
-      style={{
-        transformBox: "fill-box",
-        transformOrigin: "center",
-        animation: `gearSpin ${duration.toFixed(2)}s linear infinite ${spec.speed < 0 ? "reverse" : "normal"}`,
-      }}
+      style={{ transformBox: "fill-box", transformOrigin: "center", animation: `gearSpin ${duration.toFixed(2)}s linear infinite ${spec.speed < 0 ? "reverse" : "normal"}` }}
     >
-      <path
-        d={gearPath(spec.cx, spec.cy, spec.teeth, spec.outerR, spec.innerR)}
-        fill={`rgba(${rgb}, ${opacity})`}
-        stroke={`rgba(${rgb}, 1)`}
-        strokeWidth={1.4}
-        strokeLinejoin="round"
-      />
+      <path d={gearPath(spec.cx, spec.cy, spec.teeth, spec.outerR, spec.innerR)} fill={`rgba(${rgb}, ${opacity})`} stroke={`rgba(${rgb}, 1)`} strokeWidth={1.4} strokeLinejoin="round" />
       <circle cx={spec.cx} cy={spec.cy} r={spec.innerR * 0.42} fill="none" stroke={`rgba(${rgb}, 0.9)`} strokeWidth={2.5} />
     </g>
   );
@@ -73,18 +53,19 @@ function Gear({ spec, rgb, baseDuration, opacity }: { spec: GearSpec; rgb: strin
 export function MechanicalAnimation({ rgb, className }: BranchAnimationProps) {
   return (
     <AnimationPanel rgb={rgb} className={className}>
-      <svg viewBox="20 20 160 160" className="relative size-full max-w-[220px]" aria-hidden="true">
-        <Gear spec={MECHANICAL_GEARS[0]!} rgb={rgb} baseDuration={18} opacity={0.22} />
-        <Gear spec={MECHANICAL_GEARS[1]!} rgb={rgb} baseDuration={18} opacity={0.9} />
-        <Gear spec={MECHANICAL_GEARS[2]!} rgb={rgb} baseDuration={18} opacity={0.9} />
-      </svg>
+      <div className="flex size-full items-center justify-center" style={{ maxWidth: 120, maxHeight: 120, marginTop: -50 }}>
+        <svg viewBox="20 20 160 160" className="opacity-70" style={{ width: "100%", height: "100%" }}>
+          <Gear spec={MECHANICAL_GEARS[0]!} rgb="226,232,240" baseDuration={18} opacity={0.7} />
+          <Gear spec={MECHANICAL_GEARS[1]!} rgb="226,232,240" baseDuration={18} opacity={0.7} />
+          <Gear spec={MECHANICAL_GEARS[2]!} rgb="226,232,240" baseDuration={18} opacity={0.7} />
+        </svg>
+      </div>
     </AnimationPanel>
   );
 }
 
 /* ---------------------------------------------------------------------------------------------
- * Civil: a wireframe structure (foundation → columns → slabs → roof truss) that draws itself in,
- * holds, then erases and redraws — a blueprint under continuous construction.
+ * Civil: blueprint drawing only
  * ------------------------------------------------------------------------------------------- */
 
 const CIVIL_PATHS = [
@@ -100,32 +81,20 @@ const CIVIL_PATHS = [
 export function CivilAnimation({ rgb, className }: BranchAnimationProps) {
   return (
     <AnimationPanel rgb={rgb} className={className}>
-      <svg viewBox="20 30 160 150" className="relative size-full max-w-[220px]" aria-hidden="true">
-        {CIVIL_PATHS.map((p, i) => (
-          <path
-            key={i}
-            d={p.d}
-            className="blueprint-path"
-            fill="none"
-            stroke={`rgba(${rgb}, 1)`}
-            strokeWidth={3}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            style={{
-              strokeDasharray: 220,
-              animation: `blueprintDraw 5.2s ease-in-out infinite`,
-              animationDelay: `${p.delay}s`,
-            }}
-          />
-        ))}
-      </svg>
+      <div className="flex size-full items-center justify-center" style={{ maxWidth: 120, maxHeight: 120, marginTop: -50 }}>
+        <svg viewBox="20 30 160 150" className="opacity-60" style={{ width: "100%", height: "100%" }}>
+          {CIVIL_PATHS.map((p, i) => (
+            <path key={i} d={p.d} className="blueprint-path" fill="none" stroke="#e2e8f0" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round"
+              style={{ strokeDasharray: 220, animation: `blueprintDraw 5.2s ease-in-out infinite`, animationDelay: `${p.delay}s` }} />
+          ))}
+        </svg>
+      </div>
     </AnimationPanel>
   );
 }
 
 /* ---------------------------------------------------------------------------------------------
- * Electrical: current flowing through a wire (marching dashes) into a bulb that glows on the
- * same rhythm, plus pulse-dots physically travelling the wire — power flowing, not sparking.
+ * Electrical: circuit with current flow only
  * ------------------------------------------------------------------------------------------- */
 
 const ELECTRICAL_WIRE = "M20 130 C 55 60, 85 200, 120 100 S 165 40, 190 90";
@@ -134,36 +103,23 @@ export function ElectricalAnimation({ rgb, className }: BranchAnimationProps) {
   const reducedMotion = usePrefersReducedMotion();
   return (
     <AnimationPanel rgb={rgb} className={className}>
-      <svg viewBox="10 20 190 160" className="relative size-full max-w-[220px]" aria-hidden="true">
-        <path
-          d={ELECTRICAL_WIRE}
-          className="current-flow"
-          fill="none"
-          stroke={`rgba(${rgb}, 0.9)`}
-          strokeWidth={3}
-          strokeLinecap="round"
-          style={{ strokeDasharray: "10 8", animation: "currentFlow 0.7s linear infinite" }}
-        />
-        {!reducedMotion &&
-          [0, 0.9].map((offset, i) => (
-            <circle key={i} r={4} fill={`rgba(${rgb}, 1)`}>
+      <div className="flex size-full items-center justify-center" style={{ maxWidth: 120, maxHeight: 120, marginTop: -50 }}>
+        <svg viewBox="10 20 190 160" className="opacity-60" style={{ width: "100%", height: "100%" }}>
+          <path d={ELECTRICAL_WIRE} fill="none" stroke="#e2e8f0" strokeWidth={3} strokeLinecap="round"
+            style={{ strokeDasharray: "10 8", animation: "currentFlow 0.7s linear infinite" }} />
+          {!reducedMotion && [0, 0.9].map((offset, i) => (
+            <circle key={i} r={4} fill="#e2e8f0">
               <animateMotion dur="2.4s" begin={`${offset}s`} repeatCount="indefinite" path={ELECTRICAL_WIRE} />
             </circle>
           ))}
-        <g transform="translate(150, 118)" className="bulb-glow" style={{ color: `rgb(${rgb})`, animation: "bulbGlow 1.8s ease-in-out infinite" }}>
-          <circle r={16} fill="none" stroke="currentColor" strokeWidth={2.5} />
-          <path d="M-6 -8 L-2 -2 L2 -8 L6 -2" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" fill="none" />
-          <path d="M-2 -2 V6" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
-          <path d="M-5 16 L5 16 M-4 21 L4 21" stroke="currentColor" strokeWidth={2} strokeLinecap="round" />
-        </g>
-      </svg>
+        </svg>
+      </div>
     </AnimationPanel>
   );
 }
 
 /* ---------------------------------------------------------------------------------------------
- * Electronics & Telecom: right-angle PCB traces carrying pulses inward to a central chip, which
- * pulses in turn — a live circuit board rather than a lightning motif.
+ * Electronics: PCB traces with signal dots only
  * ------------------------------------------------------------------------------------------- */
 
 const CIRCUIT_TRACES = [
@@ -177,33 +133,24 @@ export function ElectronicsAnimation({ rgb, className }: BranchAnimationProps) {
   const reducedMotion = usePrefersReducedMotion();
   return (
     <AnimationPanel rgb={rgb} className={className}>
-      <svg viewBox="10 20 190 160" className="relative size-full max-w-[220px]" aria-hidden="true">
-        {CIRCUIT_TRACES.map((d, i) => (
-          <path key={i} d={d} fill="none" stroke={`rgba(${rgb}, 0.35)`} strokeWidth={2.5} strokeLinecap="round" />
-        ))}
-        {!reducedMotion &&
-          CIRCUIT_TRACES.map((d, i) => (
-            <circle key={i} r={3.5} fill={`rgba(${rgb}, 1)`}>
+      <div className="flex size-full items-center justify-center" style={{ maxWidth: 120, maxHeight: 120, marginTop: -50 }}>
+        <svg viewBox="10 20 190 160" className="opacity-60" style={{ width: "100%", height: "100%" }}>
+          {CIRCUIT_TRACES.map((d, i) => (
+            <path key={i} d={d} fill="none" stroke="#e2e8f0" strokeWidth={2.5} strokeLinecap="round" />
+          ))}
+          {!reducedMotion && CIRCUIT_TRACES.map((d, i) => (
+            <circle key={i} r={3.5} fill="#e2e8f0">
               <animateMotion dur="2.2s" begin={`${i * 0.35}s`} repeatCount="indefinite" path={d} />
             </circle>
           ))}
-        <g transform="translate(100, 100)">
-          <rect x={-24} y={-24} width={48} height={48} rx={6} fill={`rgba(${rgb}, 0.16)`} stroke={`rgba(${rgb}, 1)`} strokeWidth={2} className="chip-pulse" style={{ animation: "chipPulse 2.2s ease-in-out infinite" }} />
-          {[-14, 0, 14].map((o) => (
-            <g key={o}>
-              <line x1={-24} y1={o} x2={-30} y2={o} stroke={`rgba(${rgb}, 0.7)`} strokeWidth={2} />
-              <line x1={24} y1={o} x2={30} y2={o} stroke={`rgba(${rgb}, 0.7)`} strokeWidth={2} />
-            </g>
-          ))}
-        </g>
-      </svg>
+        </svg>
+      </div>
     </AnimationPanel>
   );
 }
 
 /* ---------------------------------------------------------------------------------------------
- * Chemical: a flask with a gently swaying liquid line and bubbles rising and popping through it —
- * a reaction in progress.
+ * Chemical: flask with bubbles only
  * ------------------------------------------------------------------------------------------- */
 
 const CHEMICAL_BUBBLES = [
@@ -216,73 +163,76 @@ const CHEMICAL_BUBBLES = [
 export function ChemicalAnimation({ rgb, className }: BranchAnimationProps) {
   return (
     <AnimationPanel rgb={rgb} className={className}>
-      <svg viewBox="20 20 160 160" className="relative size-full max-w-[220px]" aria-hidden="true">
-        <clipPath id="flask-clip">
-          <path d="M92 40 H108 V78 L138 148 Q142 165 124 165 H76 Q58 165 62 148 L92 78 Z" />
-        </clipPath>
-        <path
-          d="M92 40 H108 V78 L138 148 Q142 165 124 165 H76 Q58 165 62 148 L92 78 Z"
-          fill={`rgba(${rgb}, 0.06)`}
-          stroke={`rgba(${rgb}, 1)`}
-          strokeWidth={3}
-          strokeLinejoin="round"
-        />
-        <path d="M84 38 H116" stroke={`rgba(${rgb}, 1)`} strokeWidth={3} strokeLinecap="round" />
-        <g clipPath="url(#flask-clip)">
+      <div className="flex size-full items-center justify-center" style={{ maxWidth: 120, maxHeight: 120, marginTop: -50 }}>
+        <svg viewBox="20 20 160 160" className="opacity-60" style={{ width: "100%", height: "100%" }}>
+          <path d="M92 40 H108 V78 L138 148 Q142 165 124 165 H76 Q58 165 62 148 L92 78 Z" fill={`rgba(${rgb}, 0.06)`} stroke="#e2e8f0" strokeWidth={3} strokeLinejoin="round" />
+          <path d="M84 38 H116" stroke="#e2e8f0" strokeWidth={3} strokeLinecap="round" />
           <rect x={55} y={110} width={90} height={60} fill={`rgba(${rgb}, 0.28)`} className="liquid-sway" style={{ animation: "liquidSway 2.4s ease-in-out infinite" }} />
           {CHEMICAL_BUBBLES.map((b, i) => (
-            <circle
-              key={i}
-              cx={b.x}
-              cy={155}
-              r={4}
-              fill={`rgba(${rgb}, 0.8)`}
-              className="bubble"
-              style={{ animation: `bubbleRise ${b.duration}s ease-in infinite`, animationDelay: `${b.delay}s` }}
-            />
+            <circle key={i} cx={b.x} cy={155} r={4} fill="#e2e8f0" className="bubble"
+              style={{ animation: `bubbleRise ${b.duration}s ease-in infinite`, animationDelay: `${b.delay}s` }} />
           ))}
-        </g>
-      </svg>
+        </svg>
+      </div>
     </AnimationPanel>
   );
 }
 
 /* ---------------------------------------------------------------------------------------------
- * Computer Engineering & IT: a terminal window with code lines scrolling past and a blinking
- * caret — the one motif that's genuinely clearer as styled text than as an SVG illustration.
+ * Computer: algorithm visualization with nodes and edges
  * ------------------------------------------------------------------------------------------- */
 
-const CODE_LINES = [
-  "> const proof = build();",
-  "> run(tests) // 12 passed",
-  "> git commit -m \"ship\"",
-  "> score: 98/100",
-  "> const proof = build();",
-  "> run(tests) // 12 passed",
-  "> git commit -m \"ship\"",
-  "> score: 98/100",
-];
-
 export function ComputerAnimation({ rgb, className }: BranchAnimationProps) {
+  const [activeNode, setActiveNode] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setActiveNode((c) => (c + 1) % 6), 1500);
+    return () => clearInterval(t);
+  }, []);
+
+  const nodes = [
+    { x: 70, y: 20 },
+    { x: 35, y: 50 },
+    { x: 105, y: 50 },
+    { x: 20, y: 85 },
+    { x: 55, y: 85 },
+    { x: 90, y: 85 },
+  ];
+
+  const edges = [
+    [0, 1], [0, 2], [1, 3], [1, 4], [2, 5],
+  ];
+
   return (
     <AnimationPanel rgb={rgb} className={className}>
-      <div
-        className="relative w-full max-w-[240px] overflow-hidden rounded-xl border p-3 font-mono text-[11px] leading-[1.9]"
-        style={{ borderColor: `rgba(${rgb}, 0.35)`, background: `rgba(${rgb}, 0.06)`, height: 132 }}
-      >
-        <div className="mb-1.5 flex gap-1.5">
-          <span className="size-2 rounded-full" style={{ background: `rgba(${rgb}, 0.5)` }} />
-          <span className="size-2 rounded-full" style={{ background: `rgba(${rgb}, 0.35)` }} />
-          <span className="size-2 rounded-full" style={{ background: `rgba(${rgb}, 0.25)` }} />
-        </div>
-        <div className="code-scroll" style={{ animation: "codeScroll 9s linear infinite", color: `rgba(${rgb}, 0.9)` }}>
-          {CODE_LINES.map((line, i) => (
-            <div key={i} className="whitespace-nowrap">
-              {line}
-              {i === 3 && <span className="caret-blink" style={{ animation: "caretBlink 1s step-end infinite" }}>▌</span>}
-            </div>
+      <div className="flex size-full items-center justify-center" style={{ maxWidth: 120, maxHeight: 120, marginTop: -50 }}>
+        <svg viewBox="0 0 125 105" className="opacity-70" style={{ width: "100%", height: "100%" }}>
+          {edges.map(([a, b], i) => (
+            <line
+              key={i}
+              x1={nodes[a]!.x} y1={nodes[a]!.y}
+              x2={nodes[b]!.x} y2={nodes[b]!.y}
+              stroke="#e2e8f0"
+              strokeWidth="1.5"
+              opacity={i === activeNode ? "0.8" : "0.3"}
+              style={{ transition: "opacity 0.3s ease" }}
+            />
           ))}
-        </div>
+          {nodes.map((n, i) => (
+            <g key={i}>
+              <circle
+                cx={n.x} cy={n.y} r="10"
+                fill={i === activeNode ? `rgb(${rgb})` : "rgba(226,232,240,0.2)"}
+                stroke={i === activeNode ? `rgb(${rgb})` : "#e2e8f0"}
+                strokeWidth="1.5"
+                style={{ transition: "fill 0.3s ease" }}
+              />
+              <text x={n.x} y={n.y + 3} textAnchor="middle" fill={i === activeNode ? "#fff" : "#e2e8f0"} fontSize="8" fontWeight="700">
+                {String.fromCharCode(65 + i)}
+              </text>
+            </g>
+          ))}
+        </svg>
       </div>
     </AnimationPanel>
   );

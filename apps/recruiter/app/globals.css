@@ -1,19 +1,16 @@
 @import "tailwindcss";
 
-/* Enable class-based dark mode */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Shares the Vidyas OS orange/navy design tokens (apps/web/app/globals.css) so the
-   recruiter app reads as the same product, not a bolted-on tool. */
 @theme {
-  --color-canvas: #f7f7f7;
+  --color-canvas: #ffffff;
   --color-base: #ffffff;
-  --color-surface: #f2f4f6;
+  --color-surface: #f5f5f5;
   --color-card: #ffffff;
   --color-raised: #eceef0;
   --color-input: #ffffff;
 
-  --color-cyan: #f6921e;
+  --color-cyan: #FE7F2D;
   --color-indigo: #F7C131;
   --color-primary-deep: #d97a10;
   --color-teal: #006a61;
@@ -24,7 +21,7 @@
   --color-warning: #d97706;
   --color-danger: #ba1a1a;
 
-  --color-ink: #152241;
+  --color-ink: #233D4D;
   --color-soft: #000000;
   --color-muted: #5c5555;
   --color-faint: #858585;
@@ -62,7 +59,6 @@ body {
   background: var(--color-canvas);
 }
 
-/* Accent gradient — orange to golden yellow, reused on logos, primary CTAs, avatars (apps/web/app/globals.css) */
 .bg-accent-gradient {
   background-image: linear-gradient(135deg, var(--color-cyan), var(--color-indigo));
 }

@@ -5,7 +5,7 @@ export function AskAiButton({ className, children }: { className?: string; child
   return (
     <button
       type="button"
-      onClick={() => window.dispatchEvent(new CustomEvent("studentos:assistant-open", { detail: {} }))}
+      onClick={() => window.dispatchEvent(new CustomEvent("krackit:assistant-open", { detail: {} }))}
       className={className}
     >
       {children}

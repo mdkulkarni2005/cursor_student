@@ -70,7 +70,7 @@ export default async function PlansPage() {
                 key={t.id}
                 className={`relative flex flex-col rounded-3xl border p-7 ${
                   highlight
-                    ? "border-cyan bg-gradient-to-br from-cyan/8 to-indigo/8 shadow-[0_18px_40px_rgba(246,146,30,0.12)]"
+                    ? "border-cyan bg-gradient-to-br from-cyan/8 to-indigo/8 shadow-[0_18px_40px_rgba(254,127,45,0.12)]"
                     : "border-line bg-card"
                 }`}
               >

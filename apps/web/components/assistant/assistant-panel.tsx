@@ -52,8 +52,8 @@ export function AssistantPanel({ name }: { name?: string }) {
       setOpen(true);
       if (d.prompt) setInput(d.prompt);
     }
-    window.addEventListener("studentos:assistant-open", onOpen as EventListener);
-    return () => window.removeEventListener("studentos:assistant-open", onOpen as EventListener);
+    window.addEventListener("krackit:assistant-open", onOpen as EventListener);
+    return () => window.removeEventListener("krackit:assistant-open", onOpen as EventListener);
   }, []);
 
   function onPickImage(e: React.ChangeEvent<HTMLInputElement>) {
@@ -128,7 +128,7 @@ export function AssistantPanel({ name }: { name?: string }) {
           <button
             onClick={() => setOpen(true)}
             aria-label="Open AI mentor"
-            className="flex size-14 items-center justify-center rounded-full bg-accent-gradient shadow-[0_10px_30px_rgba(246,146,30,0.45)] animate-pulse-ring"
+            className="flex size-14 items-center justify-center rounded-full bg-accent-gradient shadow-[0_10px_30px_rgba(254,127,45,0.45)] animate-pulse-ring"
           >
             <ChatIcon size={26} className="text-on-accent" />
           </button>

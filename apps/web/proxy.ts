@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 // TICKET to establish a session, so they must be reachable with no session yet.
 const isPublicRoute = createRouteMatcher([
   "/",
+  "/for-professionals",
   "/sign-in(.*)",
   "/sign-up(.*)",
   "/privacy(.*)",

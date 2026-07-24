@@ -303,7 +303,7 @@ export function InterviewLiveSession({
             <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-warning/15 text-2xl">⚠️</div>
             <p className="text-[15px] font-semibold text-ink">Couldn’t generate your feedback</p>
             <p className="mt-1 text-[12.5px] text-warning">{error}</p>
-            <Button type="button" onClick={() => { setError(null); void finalize(); }} className="mt-4 rounded-xl bg-accent-gradient px-5 py-2.5 text-[13px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(246,146,30,0.3)]">Retry →</Button>
+            <Button type="button" onClick={() => { setError(null); void finalize(); }} className="mt-4 rounded-xl bg-accent-gradient px-5 py-2.5 text-[13px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(254,127,45,0.3)]">Retry →</Button>
           </>
         ) : (
           <>
@@ -385,7 +385,7 @@ export function InterviewLiveSession({
             {codeReview ? <ReviewVerdict review={codeReview} /> : null}
 
             <div className="mt-2 flex items-center gap-2">
-              <Button type="button" onClick={submitForReview} loading={reviewing} loadingText="Reviewing…" disabled={!code.trim()} className="rounded-lg bg-accent-gradient px-4 py-2 text-[12.5px] font-semibold text-on-accent shadow-[0_4px_14px_rgba(246,146,30,0.3)] disabled:opacity-50">
+              <Button type="button" onClick={submitForReview} loading={reviewing} loadingText="Reviewing…" disabled={!code.trim()} className="rounded-lg bg-accent-gradient px-4 py-2 text-[12.5px] font-semibold text-on-accent shadow-[0_4px_14px_rgba(254,127,45,0.3)] disabled:opacity-50">
                 Submit for Review
               </Button>
               {editorOpen && !activeCoding ? (
@@ -493,7 +493,7 @@ function Lobby({
           {permission === "denied" ? (
             <Button type="button" onClick={onRequest} className="rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-[13px] font-semibold text-soft hover:text-cyan">Retry permissions</Button>
           ) : (
-            <Button type="button" onClick={onJoin} loading={permission === "requesting"} loadingText="Joining…" disabled={!granted} className="rounded-xl bg-accent-gradient px-6 py-2.5 text-[13.5px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(246,146,30,0.3)] disabled:opacity-50">
+            <Button type="button" onClick={onJoin} loading={permission === "requesting"} loadingText="Joining…" disabled={!granted} className="rounded-xl bg-accent-gradient px-6 py-2.5 text-[13.5px] font-semibold text-on-accent shadow-[0_6px_18px_rgba(254,127,45,0.3)] disabled:opacity-50">
               Join interview →
             </Button>
           )}
@@ -516,7 +516,7 @@ function InterviewerTile({ speaking, scale, compact = false }: { speaking: boole
           </>
         ) : null}
         <div
-          className={`relative flex items-center justify-center rounded-full bg-accent-gradient font-display font-bold text-on-accent shadow-[0_0_30px_rgba(246,146,30,0.35)] transition-transform duration-100 ${compact ? "size-14 text-lg" : "size-24 text-3xl"}`}
+          className={`relative flex items-center justify-center rounded-full bg-accent-gradient font-display font-bold text-on-accent shadow-[0_0_30px_rgba(254,127,45,0.35)] transition-transform duration-100 ${compact ? "size-14 text-lg" : "size-24 text-3xl"}`}
           style={{ transform: speaking ? `scale(${scale})` : "scale(1)" }}
         >
           AI

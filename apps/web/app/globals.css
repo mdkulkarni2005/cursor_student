@@ -3,31 +3,29 @@
 /* Enable class-based dark mode */
 @custom-variant dark (&:where(.dark, .dark *));
 
+
+
 /* ============================================================
-   VIDYAS OS — orange + navy theme
-   Orange primary (#f6921e), golden accent (#F7C131),
-   deep navy headlines (#152241), Inter typography.
-   Semantic names are preserved from the previous indigo system so
-   existing utilities (bg-canvas, text-ink, border-line, text-cyan…)
-   keep working — they now resolve to orange/navy values.
+   ColorHunt palette: #000000 #233D4D #FE7F2D #EAECF0
+   Orange primary (#FE7F2D), dark navy headings (#233D4D),
+   light gray canvas (#EAECF0), black body (#000000).
+   Semantic names preserved so existing utilities keep working.
    ============================================================ */
 @theme {
-  /* Surfaces (white / light gray canvas) */
-  --color-canvas: #f7f7f7; /* app background           */
+
+  /* Surfaces */
+  --color-canvas: #ffffff; /* app background           */
   --color-base: #ffffff; /* sidebar / deepest panel  */
-  --color-surface: #f2f4f6; /* inputs, secondary panels */
+  --color-surface: #f5f5f5; /* inputs, secondary panels */
   --color-card: #ffffff; /* cards                    */
-  --color-raised: #eceef0; /* raised buttons / hover   */
+  --color-raised: #e2e4e8; /* raised buttons / hover   */
   --color-input: #ffffff; /* topbar search field      */
 
-  /* Accent system: orange (primary) → golden yellow.
-     `cyan` is the legacy primary-accent token name, repointed to
-      Orange so existing text-cyan/bg-cyan render on-brand. */
-  --color-cyan: #f6921e; /* primary orange            */
-  --color-indigo: #F7C131; /* golden accent companion   */
-  /* Deep orange for emphasised headings / active states */
-  --color-primary-deep: #d97a10;
-  /* Teal secondary for variety on new screens */
+  /* Accent: `cyan` = orange primary, `indigo` = warm gold accent */
+  --color-cyan: #FE7F2D; /* primary orange            */
+  --color-indigo: #F7C131; /* warm gold accent          */
+  --color-primary-deep: #e06a15;
+  /* Teal secondary */
   --color-teal: #006a61;
   --color-teal-soft: #86f2e4;
   /* Phosphor scope-green — ECE branch tools (Digital Logic Sim, Signal Playground, Op-Amp
@@ -47,21 +45,21 @@
   /* Light text/icons sitting ON the accent gradient. */
   --color-on-accent: #ffffff;
 
-  /* Semantic (tuned for a light background) */
+  /* Semantic */
   --color-success: #059669;
   --color-warning: #d97706;
   --color-danger: #ba1a1a;
 
-  /* Text ramp (dark ink on light) */
-  --color-ink: #152241; /* deep navy headings        */
+  /* Text ramp */
+  --color-ink: #233D4D; /* dark navy headings         */
   --color-soft: #000000; /* body (black)              */
-  --color-muted: #5c5555; /* secondary                */
-  --color-faint: #858585; /* tertiary / placeholder   */
-  --color-dim: #a7a7a7; /* labels / disabled        */
+  --color-muted: #5c5555; /* secondary                 */
+  --color-faint: #858585; /* tertiary / placeholder    */
+  --color-dim: #a7a7a7; /* labels / disabled         */
 
   /* Hairlines */
-  --color-line: rgba(15, 23, 42, 0.08);
-  --color-line-strong: rgba(15, 23, 42, 0.12);
+  --color-line: rgba(35, 61, 77, 0.08);
+  --color-line-strong: rgba(35, 61, 77, 0.12);
 
   /* Typography — Inter for headings + body */
   --font-display: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
@@ -121,13 +119,13 @@
 }
 @keyframes pulseRing {
   0% {
-    box-shadow: 0 0 0 0 rgba(246,146,30, 0.45);
+    box-shadow: 0 0 0 0 rgba(254,127,45, 0.45);
   }
   70% {
-    box-shadow: 0 0 0 16px rgba(246,146,30, 0);
+    box-shadow: 0 0 0 16px rgba(254,127,45, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(246,146,30, 0);
+    box-shadow: 0 0 0 0 rgba(254,127,45, 0);
   }
 }
 @keyframes flameWobble {
@@ -310,7 +308,7 @@
   margin: 1rem 0;
   padding: 0.75rem 1.1rem;
   border-left: 3px solid var(--color-cyan);
-  background: rgba(246, 146, 30, 0.05);
+  background: rgba(254, 127, 45, 0.05);
   border-radius: 0 0.5rem 0.5rem 0;
   font-style: italic;
   color: #475569;
@@ -364,8 +362,8 @@
   100% { background-position: 200% center; }
 }
 @keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 20px rgba(246,146,30, 0.15); }
-  50%      { box-shadow: 0 0 40px rgba(246,146,30, 0.3); }
+  0%, 100% { box-shadow: 0 0 20px rgba(254,127,45, 0.15); }
+  50%      { box-shadow: 0 0 40px rgba(254,127,45, 0.3); }
 }
 @keyframes iconBounce {
   0%, 100% { transform: scale(1); }
@@ -390,6 +388,15 @@
 .animate-float-drift {
   animation: floatDrift 12s ease-in-out infinite;
 }
+.animate-node-twinkle {
+  animation: chipPulse 2.6s ease-in-out infinite;
+}
+.animate-ambient-flow {
+  animation: currentFlow 1.6s linear infinite;
+}
+.animate-dot-glow {
+  animation: bulbGlow 1.4s ease-in-out infinite;
+}
 .animate-shimmer {
   background-size: 200% auto;
   animation: shimmer 3s linear infinite;
@@ -406,6 +413,14 @@
 .animate-gradient-shift {
   background-size: 200% 200%;
   animation: gradientShift 6s ease infinite;
+}
+
+/* Animated gradient border for cards */
+@keyframes borderRotate {
+  to { transform: rotate(360deg); }
+}
+.animate-border-rotate {
+  animation: borderRotate 6s linear infinite;
 }
 
 /* Branch-ladder centerpiece animations (always-on, not hover-triggered) */
@@ -472,6 +487,10 @@
   .current-flow,
   .bulb-glow,
   .chip-pulse,
+  .animate-node-twinkle,
+  .animate-ambient-flow,
+  .animate-dot-glow,
+  .animate-float-drift,
   .bubble,
   .liquid-sway,
   .code-scroll,
@@ -507,15 +526,19 @@ html.dark {
 
 body {
   margin: 0;
-  background: var(--color-canvas);
+  background:
+    radial-gradient(circle at 20% 50%, rgba(254,127,45,0.03) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(247,193,49,0.03) 0%, transparent 50%),
+    radial-gradient(circle at 50% 80%, rgba(254,127,45,0.02) 0%, transparent 50%),
+    var(--color-canvas);
   color: var(--color-soft);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
 ::selection {
-  background: rgba(246, 146, 30, 0.18);
-  color: #152241;
+  background: rgba(254, 127, 45, 0.18);
+  color: #233D4D;
 }
 
 /* ─── Dark Mode Overrides ─────────────────────────────────── */
@@ -541,7 +564,7 @@ html.dark {
 }
 
 html.dark ::selection {
-  background: rgba(246, 146, 30, 0.3);
+  background: rgba(254, 127, 45, 0.3);
   color: #ffffff;
 }
 
@@ -552,15 +575,30 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.25);
 }
 
-/* Accent gradient — orange to golden yellow, reused on logos, primary CTAs, avatars */
+/* Accent — solid #FE7F2D orange, reused on logos, primary CTAs, avatars */
 .bg-accent-gradient {
-  background-image: linear-gradient(135deg, var(--color-cyan), var(--color-indigo));
+  background-color: var(--color-cyan);
 }
 .text-accent-gradient {
-  background-image: linear-gradient(135deg, var(--color-cyan), var(--color-indigo));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--color-cyan);
+}
+
+/* Subtle dot-grid overlay for sections */
+.bg-dot-grid {
+  background-image: radial-gradient(rgba(254,127,45,0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Mesh gradient backgrounds for section variety */
+.bg-mesh-1 {
+  background:
+    radial-gradient(ellipse 80% 60% at 0% 50%, rgba(254,127,45,0.04) 0%, transparent 100%),
+    radial-gradient(ellipse 80% 60% at 100% 50%, rgba(247,193,49,0.04) 0%, transparent 100%);
+}
+.bg-mesh-2 {
+  background:
+    radial-gradient(ellipse 60% 80% at 50% 0%, rgba(254,127,45,0.05) 0%, transparent 100%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(247,193,49,0.03) 0%, transparent 100%);
 }
 
 /* Thin custom scrollbar to match the light canvas */

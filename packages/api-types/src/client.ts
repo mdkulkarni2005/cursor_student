@@ -77,7 +77,7 @@ export class StudentOSClient {
       // Native platforms surface a raw socket exception here (e.g. Android's
       // java.net.ConnectException) naming the unreachable host — not actionable for a student.
       // Give them something they can actually do instead.
-      throw new Error("Can't reach StudentOS. Check your connection and try again.");
+      throw new Error("Can't reach KrackIT. Check your connection and try again.");
     }
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new ApiRequestError(res.status, body as ApiError);

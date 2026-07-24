@@ -4,7 +4,6 @@ import { AuthAside } from "@/components/auth-aside";
 export default function SignInPage() {
   return (
     <main className="flex min-h-screen bg-canvas">
-      {/* Left — form */}
       <div className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 lg:w-1/2">
         <div className="mx-auto w-full max-w-[400px]">
           <div className="mb-8">
@@ -16,7 +15,6 @@ export default function SignInPage() {
           <SignIn />
         </div>
       </div>
-      {/* Right — marketing */}
       <AuthAside />
     </main>
   );

@@ -378,7 +378,7 @@ export async function renderPptx(
 
   const pptx = new PptxGenJS();
   pptx.layout = "LAYOUT_WIDE"; // 13.33 x 7.5
-  pptx.author = "StudentOS";
+  pptx.author = "KrackIT";
 
   // Title slide.
   const title = pptx.addSlide();
