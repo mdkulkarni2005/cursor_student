@@ -388,6 +388,15 @@
 .animate-float-drift {
   animation: floatDrift 12s ease-in-out infinite;
 }
+.animate-node-twinkle {
+  animation: chipPulse 2.6s ease-in-out infinite;
+}
+.animate-ambient-flow {
+  animation: currentFlow 1.6s linear infinite;
+}
+.animate-dot-glow {
+  animation: bulbGlow 1.4s ease-in-out infinite;
+}
 .animate-shimmer {
   background-size: 200% auto;
   animation: shimmer 3s linear infinite;
@@ -478,6 +487,10 @@
   .current-flow,
   .bulb-glow,
   .chip-pulse,
+  .animate-node-twinkle,
+  .animate-ambient-flow,
+  .animate-dot-glow,
+  .animate-float-drift,
   .bubble,
   .liquid-sway,
   .code-scroll,

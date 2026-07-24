@@ -29,7 +29,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     const { Resend } = await import("resend");
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { data, error } = await resend.emails.send({
-      from: process.env.EMAIL_FROM ?? "StudentOS <notifications@studentos.app>",
+      from: process.env.EMAIL_FROM ?? "KrackIT <notifications@krackit.app>",
       to: input.to,
       subject: input.subject,
       html: input.html,

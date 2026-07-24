@@ -1,8 +1,9 @@
+/** Icon-only K mark — square, for tight spots like the collapsed sidebar. */
 export function LogoMark({ size = 150 }: { size?: number }) {
   return (
     <>
       <img
-        src="/LightTheme.png"
+        src="/logo-mark.png"
         alt="krackit"
         width={size}
         height={size}
@@ -10,10 +11,35 @@ export function LogoMark({ size = 150 }: { size?: number }) {
         style={{ objectFit: "contain" }}
       />
       <img
-        src="/DarkTheme.png"
+        src="/logo-mark-dark.png"
         alt="krackit"
         width={size}
         height={size}
+        className="hidden dark:block shrink-0"
+        style={{ objectFit: "contain" }}
+      />
+    </>
+  );
+}
+
+/** Full wordmark lockup (K mark + "krackIT" text) — wide, not square. */
+export function LogoWordmark({ size = 150 }: { size?: number }) {
+  const height = Math.round(size * 0.437);
+  return (
+    <>
+      <img
+        src="/LightTheme.png"
+        alt="krackit"
+        width={size}
+        height={height}
+        className="block dark:hidden shrink-0"
+        style={{ objectFit: "contain" }}
+      />
+      <img
+        src="/DarkTheme.png"
+        alt="krackit"
+        width={size}
+        height={height}
         className="hidden dark:block shrink-0"
         style={{ objectFit: "contain" }}
       />
@@ -38,7 +64,7 @@ export function Logo({
 }) {
   return (
     <span className={`flex items-center ${className}`}>
-      <LogoMark size={size} />
+      <LogoWordmark size={size} />
     </span>
   );
 }

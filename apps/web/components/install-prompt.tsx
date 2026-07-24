@@ -7,7 +7,7 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 };
 
-const DISMISS_KEY = "studentos:install-prompt-dismissed";
+const DISMISS_KEY = "krackit:install-prompt-dismissed";
 
 /** Captures the browser's install prompt once and keeps it for re-use (Settings' "Install app"
  *  button re-fires the same captured event — Chrome only fires beforeinstallprompt once per load). */

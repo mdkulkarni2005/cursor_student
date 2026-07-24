@@ -52,8 +52,8 @@ export function AssistantPanel({ name }: { name?: string }) {
       setOpen(true);
       if (d.prompt) setInput(d.prompt);
     }
-    window.addEventListener("studentos:assistant-open", onOpen as EventListener);
-    return () => window.removeEventListener("studentos:assistant-open", onOpen as EventListener);
+    window.addEventListener("krackit:assistant-open", onOpen as EventListener);
+    return () => window.removeEventListener("krackit:assistant-open", onOpen as EventListener);
   }, []);
 
   function onPickImage(e: React.ChangeEvent<HTMLInputElement>) {
