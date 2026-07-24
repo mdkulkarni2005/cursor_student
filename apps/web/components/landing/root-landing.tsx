@@ -49,7 +49,7 @@ function KrackitText({ text }: { text: string }) {
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 const RECRUITER_URL = process.env.NEXT_PUBLIC_RECRUITER_APP_URL ?? "http://localhost:3200";
-const CONTACT_EMAIL = "support@krackit.in";
+const CONTACT_EMAIL = "info@krackit.in";
 
 const STUDENT_POINTS = [
   "Assignments, reports & PPTs in your college's exact format",
@@ -318,7 +318,7 @@ const ROOT_ORG_SCHEMA = {
       description: "Career acceleration platform where students create, professionals upskill, and recruiters hire on verified evidence.",
       url: "https://krackit.in",
       logo: "https://krackit.in/icon.png",
-      contactPoint: { "@type": "ContactPoint", email: "support@krackit.in", contactType: "customer service" },
+      contactPoint: { "@type": "ContactPoint", email: "info@krackit.in", contactType: "customer service" },
     },
     {
       "@type": "WebSite",
@@ -1042,7 +1042,7 @@ export function RootLanding() {
                 upskill, and recruiters hire based on what&apos;s real — not what&apos;s on a résumé.
               </p>
               <div className="mt-3 flex gap-3">
-                <a href="mailto:support@krackit.in" className="flex size-9 items-center justify-center rounded-lg border border-line bg-surface text-muted transition-colors hover:border-cyan/30 hover:text-cyan">
+                <a href="mailto:info@krackit.in" className="flex size-9 items-center justify-center rounded-lg border border-line bg-surface text-muted transition-colors hover:border-cyan/30 hover:text-cyan">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg>
                 </a>
                 <a href="#" className="flex size-9 items-center justify-center rounded-lg border border-line bg-surface text-muted transition-colors hover:border-cyan/30 hover:text-cyan">
@@ -1070,7 +1070,7 @@ export function RootLanding() {
             <div>
               <h4 className="text-[12px] font-semibold uppercase tracking-[0.12em] text-ink">Company</h4>
               <ul className="mt-4 space-y-2.5">
-                <li><a href={`mailto:support@krackit.in`} className="text-[14px] text-muted transition-colors hover:text-ink">Contact</a></li>
+                <li><a href={`mailto:info@krackit.in`} className="text-[14px] text-muted transition-colors hover:text-ink">Contact</a></li>
                 <li><a href={`${APP_URL}/support`} className="text-[14px] text-muted transition-colors hover:text-ink">Support</a></li>
                 <li><a href={`${APP_URL}/privacy`} className="text-[14px] text-muted transition-colors hover:text-ink">Privacy Policy</a></li>
                 <li><a href={`${APP_URL}/terms`} className="text-[14px] text-muted transition-colors hover:text-ink">Terms of Service</a></li>
@@ -1098,7 +1098,7 @@ export function RootLanding() {
             <div className="flex gap-5 text-[12px] text-faint">
               <a href={`${APP_URL}/privacy`} className="transition-colors hover:text-soft">Privacy</a>
               <a href={`${APP_URL}/terms`} className="transition-colors hover:text-soft">Terms</a>
-              <a href={`mailto:support@krackit.in`} className="transition-colors hover:text-soft">support@krackit.in</a>
+              <a href={`mailto:info@krackit.in`} className="transition-colors hover:text-soft">info@krackit.in</a>
             </div>
           </div>
         </div>

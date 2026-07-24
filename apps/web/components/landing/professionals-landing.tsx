@@ -651,7 +651,7 @@ export async function ProfessionalsLanding() {
                 upskill, and recruiters hire on proof of work — not buzzwords.
               </p>
               <div className="mt-5 flex gap-3">
-                <a href="mailto:support@krackit.in" className="flex size-9 items-center justify-center rounded-lg border border-line bg-surface text-[13px] text-muted transition-colors hover:border-indigo/30 hover:text-indigo">
+                <a href="mailto:info@krackit.in" className="flex size-9 items-center justify-center rounded-lg border border-line bg-surface text-[13px] text-muted transition-colors hover:border-indigo/30 hover:text-indigo">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4L12 13 2 4"/></svg>
                 </a>
                 <a href="#" className="flex size-9 items-center justify-center rounded-lg border border-line bg-surface text-[13px] text-muted transition-colors hover:border-indigo/30 hover:text-indigo">
@@ -679,7 +679,7 @@ export async function ProfessionalsLanding() {
             <div>
               <h4 className="text-[12px] font-semibold uppercase tracking-[0.12em] text-ink">Company</h4>
               <ul className="mt-4 space-y-2.5">
-                <li><a href={`mailto:support@krackit.in`} className="text-[13px] text-muted transition-colors hover:text-ink">Contact</a></li>
+                <li><a href={`mailto:info@krackit.in`} className="text-[13px] text-muted transition-colors hover:text-ink">Contact</a></li>
                 <li><Link href="/support" className="text-[13px] text-muted transition-colors hover:text-ink">Support</Link></li>
                 <li><Link href="/privacy" className="text-[13px] text-muted transition-colors hover:text-ink">Privacy Policy</Link></li>
                 <li><Link href="/terms" className="text-[13px] text-muted transition-colors hover:text-ink">Terms of Service</Link></li>
@@ -707,7 +707,7 @@ export async function ProfessionalsLanding() {
             <div className="flex gap-5 text-[12px] text-faint">
               <Link href="/privacy" className="transition-colors hover:text-soft">Privacy</Link>
               <Link href="/terms" className="transition-colors hover:text-soft">Terms</Link>
-              <a href={`mailto:support@krackit.in`} className="transition-colors hover:text-soft">support@krackit.in</a>
+              <a href={`mailto:info@krackit.in`} className="transition-colors hover:text-soft">info@krackit.in</a>
             </div>
           </div>
         </div>
